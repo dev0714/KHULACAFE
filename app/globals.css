@@ -199,6 +199,12 @@ body {
   .section-wrap { padding: 0 16px; }
   .page-hero { padding: 110px 16px 52px; }
   .page-hero p { font-size: 14px; }
+  .hero-light-rays { display: none !important; }
+  .hero-arc-frame {
+    width: min(86vw, 360px) !important;
+    transform: translate(-50%, -50%) !important;
+    opacity: 0.18 !important;
+  }
 }
 @media (min-width: 769px) {
   .show-mobile-only { display: none !important; }

@@ -46,7 +46,7 @@ function LightRays() {
     { left: '87%', angle: '20deg',  delay: '0.5s',  dur: '4.2s' },
   ]
   return (
-    <>
+    <div className="hero-light-rays" aria-hidden="true">
       {rays.map((r, i) => (
         <div key={i} style={{
           position: 'absolute',
@@ -59,7 +59,7 @@ function LightRays() {
           pointerEvents: 'none',
         }} />
       ))}
-    </>
+    </div>
   )
 }
 
@@ -120,6 +120,7 @@ export default function HomePage() {
           <div style={{ position: 'relative', display: 'inline-block', marginBottom: '8px' }}>
             {/* SVG arc frame */}
             <svg
+              className="hero-arc-frame"
               viewBox="0 0 500 420"
               style={{
                 position: 'absolute',
