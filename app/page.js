@@ -4,6 +4,7 @@ import Link from 'next/link'
 import { useScrollReveal } from '../hooks/useScrollReveal'
 import { stats, appFeatures, testimonials } from '../lib/mockData'
 import { supabase } from '../lib/supabase-public'
+import { useCart } from '../lib/cart-context'
 
 function Counter({ target, suffix }) {
   const [val, setVal] = useState(0)
@@ -50,8 +51,8 @@ function LightRays() {
         <div key={i} style={{
           position: 'absolute',
           left: r.left, top: '-5%',
-          width: '1.5px', height: '75%',
-          background: 'linear-gradient(to bottom, rgba(245,200,66,0.7), transparent)',
+          width: '2px', height: '85%',
+          background: 'linear-gradient(to bottom, rgba(255,220,80,0.95), transparent)',
           transformOrigin: 'top center',
           transform: `rotate(${r.angle})`,
           animation: `rayPulse ${r.dur} ease-in-out ${r.delay} infinite alternate`,
@@ -64,6 +65,8 @@ function LightRays() {
 
 export default function HomePage() {
   useScrollReveal()
+  const { addItem, items } = useCart()
+  function cartQty(itemId) { return items.find(i => i.id === itemId)?.qty ?? 0 }
   const [scrollY, setScrollY] = useState(0)
   const [featuredItems, setFeaturedItems] = useState([])
   const [atmosphereItems, setAtmosphereItems] = useState([])
@@ -91,7 +94,9 @@ export default function HomePage() {
         position: 'relative', minHeight: '100vh',
         display: 'flex', alignItems: 'center', justifyContent: 'center',
         overflow: 'hidden',
-        background: 'linear-gradient(105deg, #7d5a0b 0%, #c8940c 18%, #f5c842 38%, #fffbe0 52%, #f5c842 66%, #c8940c 82%, #7d5a0b 100%)',
+        background: 'linear-gradient(105deg, #7d5a0b 0%, #c8940c 18%, #f5c842 38%, #f0d96a 50%, #f5c842 66%, #c8940c 82%, #7d5a0b 100%)',
+        backgroundSize: '160% 100%',
+        animation: 'heroGlow 8s ease-in-out infinite',
       }}>
         <LightRays />
 
@@ -127,15 +132,6 @@ export default function HomePage() {
               filter: 'drop-shadow(0 8px 32px rgba(61,34,0,0.35))',
             }}
           />
-
-          {/* Divider */}
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '20px', margin: '24px 0' }}>
-            <div style={{ height: '1px', width: '60px', background: 'linear-gradient(90deg, transparent, #3d2200)' }} />
-            <p style={{ fontSize: '9px', letterSpacing: '6px', textTransform: 'uppercase', color: '#3d2200' }}>
-              Best of the Best
-            </p>
-            <div style={{ height: '1px', width: '60px', background: 'linear-gradient(90deg, #3d2200, transparent)' }} />
-          </div>
 
           <p style={{
             fontSize: 'clamp(15px, 2.5vw, 20px)', color: 'rgba(0,0,0,0.65)',
@@ -225,33 +221,63 @@ export default function HomePage() {
             {featuredItems.map((item, i) => (
               <div key={item.id} className="card-lift" data-reveal data-delay={`${i * 150 + 200}`} style={{
                 background: '#1e1500', border: '1px solid #2e2000', borderRadius: '16px',
-                padding: '28px', position: 'relative', overflow: 'hidden', cursor: 'pointer',
+                overflow: 'hidden', position: 'relative',
+                display: 'flex', flexDirection: 'column',
               }}>
-                <div className="shimmer" style={{ position: 'absolute', inset: 0, borderRadius: '16px', pointerEvents: 'none' }} />
-                {item.badge && (
-                  <span style={{
-                    position: 'absolute', top: '20px', right: '20px',
-                    background: '#f5c842', color: '#0a0600',
-                    fontSize: '9px', fontWeight: 700, letterSpacing: '1.5px', textTransform: 'uppercase',
-                    padding: '4px 10px', borderRadius: '20px',
-                  }}>{item.badge}</span>
+                {item.image_url ? (
+                  <div style={{ position: 'relative', height: '180px', flexShrink: 0 }}>
+                    <img src={item.image_url} alt={item.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                    <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to top, rgba(30,21,0,0.65) 0%, transparent 60%)' }} />
+                    {item.badge && (
+                      <span style={{
+                        position: 'absolute', top: '14px', right: '14px',
+                        background: '#f5c842', color: '#0a0600',
+                        fontSize: '9px', fontWeight: 700, letterSpacing: '1.5px', textTransform: 'uppercase',
+                        padding: '4px 10px', borderRadius: '20px',
+                      }}>{item.badge}</span>
+                    )}
+                  </div>
+                ) : (
+                  <div style={{ padding: '28px 28px 0' }}>
+                    <div style={{ fontSize: '36px', marginBottom: '8px' }}>
+                      {i === 0 ? '🥩' : i === 1 ? '🍛' : '🍔'}
+                    </div>
+                  </div>
                 )}
-                <div style={{ fontSize: '36px', marginBottom: '16px' }}>
-                  {i === 0 ? '🥩' : i === 1 ? '🍛' : '🍔'}
-                </div>
-                <h3 style={{ fontFamily: 'var(--font-playfair)', fontSize: '20px', color: '#fafafa', marginBottom: '8px' }}>
-                  {item.name}
-                </h3>
-                <p style={{ fontSize: '13px', color: 'rgba(255,255,255,0.5)', lineHeight: 1.7, marginBottom: '20px' }}>
-                  {item.description}
-                </p>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <span style={{ fontFamily: 'var(--font-playfair)', fontSize: '22px', color: '#f5c842', fontWeight: 600 }}>
-                    {item.price}
-                  </span>
-                  <span style={{ fontSize: '11px', letterSpacing: '2px', color: '#c8940c', textTransform: 'uppercase' }}>
-                    Order →
-                  </span>
+                <div style={{ padding: '20px 28px 28px', flex: 1, display: 'flex', flexDirection: 'column' }}>
+                  {!item.image_url && item.badge && (
+                    <span style={{
+                      alignSelf: 'flex-start', marginBottom: '10px',
+                      background: '#f5c842', color: '#0a0600',
+                      fontSize: '9px', fontWeight: 700, letterSpacing: '1.5px', textTransform: 'uppercase',
+                      padding: '4px 10px', borderRadius: '20px',
+                    }}>{item.badge}</span>
+                  )}
+                  <h3 style={{ fontFamily: 'var(--font-playfair)', fontSize: '20px', color: '#fafafa', marginBottom: '8px' }}>
+                    {item.name}
+                  </h3>
+                  <p style={{ fontSize: '13px', color: 'rgba(255,255,255,0.5)', lineHeight: 1.7, marginBottom: '20px', flex: 1 }}>
+                    {item.description}
+                  </p>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <span style={{ fontFamily: 'var(--font-playfair)', fontSize: '22px', color: '#f5c842', fontWeight: 600 }}>
+                      {item.price}
+                    </span>
+                    {item.price_cents ? (
+                      <button
+                        onClick={() => addItem({ id: item.id, name: item.name, price_cents: item.price_cents, image_url: item.image_url || null })}
+                        style={{
+                          fontSize: '10px', letterSpacing: '1.5px', textTransform: 'uppercase', fontWeight: 700,
+                          color: '#0a0600', padding: '7px 16px', borderRadius: '30px', border: 'none', cursor: 'pointer',
+                          background: cartQty(item.id) > 0 ? 'linear-gradient(135deg, #c8940c, #a07008)' : 'linear-gradient(135deg, #f5c842, #c8940c)',
+                        }}
+                      >
+                        {cartQty(item.id) > 0 ? `In Cart (${cartQty(item.id)})` : 'Add →'}
+                      </button>
+                    ) : (
+                      <span style={{ fontSize: '11px', color: '#c8940c', textTransform: 'uppercase', letterSpacing: '2px' }}>Order →</span>
+                    )}
+                  </div>
                 </div>
               </div>
             ))}
@@ -293,7 +319,7 @@ export default function HomePage() {
               { id: 'p5', label: 'The Lounge', icon: '💛', image_url: null },
               { id: 'p6', label: 'Pastry Display', icon: '🍰', image_url: null },
             ]).map((item, i) => (
-              <Link key={item.id} href="/gallery" data-reveal data-delay={`${(i % 3) * 100}`}
+              <Link key={item.id} href="/gallery"
                 className={i === 0 ? 'gallery-card-wide' : ''}
                 style={{
                   textDecoration: 'none',
