@@ -1,6 +1,8 @@
 'use client'
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
+import { useState, useEffect } from 'react'
+import { getOrderCounts } from '../../app/admin/actions'
 
 const navItems = [
   { href: '/admin', label: 'Dashboard', icon: '🏠', exact: true },
@@ -15,6 +17,19 @@ const navItems = [
 export default function AdminSidebar() {
   const pathname = usePathname()
   const router = useRouter()
+  const [activeOrders, setActiveOrders] = useState(0)
+
+  useEffect(() => {
+    getOrderCounts().then(c => {
+      setActiveOrders((c.received ?? 0) + (c.making ?? 0) + (c.out_for_delivery ?? 0))
+    }).catch(() => {})
+    const interval = setInterval(() => {
+      getOrderCounts().then(c => {
+        setActiveOrders((c.received ?? 0) + (c.making ?? 0) + (c.out_for_delivery ?? 0))
+      }).catch(() => {})
+    }, 30000)
+    return () => clearInterval(interval)
+  }, [])
 
   async function handleSignOut() {
     await fetch('/api/auth/logout', { method: 'POST' })
@@ -38,6 +53,7 @@ export default function AdminSidebar() {
       <nav style={{ flex: 1, padding: '24px 12px', display: 'flex', flexDirection: 'column', gap: '4px' }}>
         {navItems.map(item => {
           const active = item.exact ? pathname === item.href : pathname.startsWith(item.href)
+          const isOrders = item.href === '/admin/orders'
           return (
             <Link key={item.href} href={item.href} style={{
               textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '10px',
@@ -47,7 +63,16 @@ export default function AdminSidebar() {
               transition: 'all 0.2s',
             }}>
               <span>{item.icon}</span>
-              {item.label}
+              <span style={{ flex: 1 }}>{item.label}</span>
+              {isOrders && activeOrders > 0 && (
+                <span style={{
+                  background: '#f5c842', color: '#0a0600', borderRadius: '50%',
+                  width: '18px', height: '18px', display: 'flex', alignItems: 'center',
+                  justifyContent: 'center', fontSize: '10px', fontWeight: 700, flexShrink: 0,
+                }}>
+                  {activeOrders}
+                </span>
+              )}
             </Link>
           )
         })}

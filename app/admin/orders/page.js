@@ -1,6 +1,7 @@
 'use client'
 import { useState, useEffect, useCallback } from 'react'
 import { getOrders, updateOrderStatus } from '../actions'
+import { supabase } from '../../../lib/supabase-public'
 
 const STATUSES = [
   { key: 'received',         label: 'Received',          color: '#6b9fff', icon: '📥' },
@@ -95,6 +96,7 @@ export default function OrdersPage() {
   const [orders, setOrders] = useState([])
   const [filter, setFilter] = useState('active') // 'active' | 'delivered' | 'all'
   const [loading, setLoading] = useState(true)
+  const [toast, setToast] = useState(null)
 
   const load = useCallback(async () => {
     const data = await getOrders()
@@ -104,6 +106,24 @@ export default function OrdersPage() {
 
   useEffect(() => { load() }, [load])
 
+  // Real-time new order notifications
+  useEffect(() => {
+    const channel = supabase
+      .channel('admin-new-orders')
+      .on('postgres_changes', { event: 'INSERT', schema: 'Khulacafe', table: 'orders' }, (payload) => {
+        load()
+        const name = payload.new?.customer_name ?? 'Someone'
+        setToast(`🛎️ New order from ${name}!`)
+        setTimeout(() => setToast(null), 7000)
+        // Browser notification if permitted
+        if (typeof Notification !== 'undefined' && Notification.permission === 'granted') {
+          new Notification('New Khula Order!', { body: `Order received from ${name}`, icon: '/images/logo.png' })
+        }
+      })
+      .subscribe()
+    return () => { supabase.removeChannel(channel) }
+  }, [load])
+
   const filtered = orders.filter(o => {
     if (filter === 'active') return o.status !== 'delivered'
     if (filter === 'delivered') return o.status === 'delivered'
@@ -112,13 +132,37 @@ export default function OrdersPage() {
 
   const activeCount = orders.filter(o => o.status !== 'delivered').length
 
+  function requestNotifPermission() {
+    if (typeof Notification !== 'undefined' && Notification.permission === 'default') {
+      Notification.requestPermission()
+    }
+  }
+
   return (
     <>
+      {/* Toast notification */}
+      {toast && (
+        <div style={{
+          position: 'fixed', top: '24px', right: '24px', zIndex: 9999,
+          background: '#1e1500', border: '2px solid #f5c842', borderRadius: '14px',
+          padding: '16px 20px', color: '#fafafa', fontSize: '14px', fontWeight: 600,
+          boxShadow: '0 8px 32px rgba(245,200,66,0.35)', display: 'flex', alignItems: 'center', gap: '12px',
+        }}>
+          <span>{toast}</span>
+          <button onClick={() => setToast(null)} style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,0.4)', cursor: 'pointer', fontSize: '18px', lineHeight: 1 }}>×</button>
+        </div>
+      )}
+
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
         <h1 style={{ fontFamily: 'var(--font-playfair)', color: '#fafafa', fontSize: '28px', margin: 0 }}>Orders</h1>
-        <button onClick={load} style={{ background: 'none', border: '1px solid #2e2000', borderRadius: '8px', color: 'rgba(255,255,255,0.4)', padding: '6px 14px', cursor: 'pointer', fontSize: '12px' }}>
-          Refresh
-        </button>
+        <div style={{ display: 'flex', gap: '8px' }}>
+          <button onClick={requestNotifPermission} style={{ background: 'none', border: '1px solid #2e2000', borderRadius: '8px', color: 'rgba(255,255,255,0.4)', padding: '6px 14px', cursor: 'pointer', fontSize: '12px' }}>
+            🔔 Enable Alerts
+          </button>
+          <button onClick={load} style={{ background: 'none', border: '1px solid #2e2000', borderRadius: '8px', color: 'rgba(255,255,255,0.4)', padding: '6px 14px', cursor: 'pointer', fontSize: '12px' }}>
+            Refresh
+          </button>
+        </div>
       </div>
 
       {/* Status legend */}
