@@ -1,5 +1,6 @@
 'use client'
 import Link from 'next/link'
+import Image from 'next/image'
 
 const footerLinks = {
   Explore: [
@@ -18,24 +19,20 @@ const footerLinks = {
 
 export default function Footer() {
   return (
-    <footer style={{ background: '#020805', borderTop: '1px solid #1a3a22', paddingTop: '72px' }}>
+    <footer style={{ background: '#0a0600', borderTop: '1px solid #2e2000', paddingTop: '72px' }}>
       <div className="section-wrap">
         <div className="footer-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '48px', paddingBottom: '48px' }}>
 
           {/* Brand */}
           <div>
-            <div style={{ marginBottom: '20px', lineHeight: 1 }}>
-              <div style={{ fontFamily: 'var(--font-playfair)', fontWeight: 900, letterSpacing: '3px', lineHeight: 0.92 }}>
-                <span style={{ display: 'block', fontSize: '26px', color: '#fafafa' }}>KHULA</span>
-                <span style={{ display: 'block', fontSize: '26px', color: '#57cc99' }}>CAFE</span>
-              </div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginTop: '6px' }}>
-                <div style={{ height: '1px', flex: 1, background: '#c4a265', opacity: 0.5 }} />
-                <span style={{ fontSize: '7px', letterSpacing: '3px', color: '#c4a265', textTransform: 'uppercase', whiteSpace: 'nowrap' }}>
-                  Best of the Best
-                </span>
-                <div style={{ height: '1px', flex: 1, background: '#c4a265', opacity: 0.5 }} />
-              </div>
+            <div style={{ marginBottom: '20px', lineHeight: 0, display: 'inline-block' }}>
+              <img
+                src="/images/logo.png"
+                alt="Khula Cafe"
+                width={90}
+                height={113}
+                style={{ display: 'block' }}
+              />
             </div>
             <p style={{ fontSize: '13px', color: 'rgba(255,255,255,0.45)', lineHeight: 1.8, maxWidth: '260px' }}>
               Where memories are made, smiles are created, and every conversation begins over a great cup of coffee.
@@ -48,12 +45,12 @@ export default function Footer() {
               {['📘', '📸', '🐦', '💬'].map((icon, i) => (
                 <button key={i} style={{
                   width: '36px', height: '36px', borderRadius: '50%',
-                  background: '#0d2818', border: '1px solid #1a3a22',
+                  background: '#1e1500', border: '1px solid #2e2000',
                   display: 'flex', alignItems: 'center', justifyContent: 'center',
                   fontSize: '15px', cursor: 'pointer', transition: 'background 0.2s',
                 }}
-                  onMouseEnter={e => e.currentTarget.style.background = '#1a3a22'}
-                  onMouseLeave={e => e.currentTarget.style.background = '#0d2818'}
+                  onMouseEnter={e => e.currentTarget.style.background = '#2e2000'}
+                  onMouseLeave={e => e.currentTarget.style.background = '#1e1500'}
                 >
                   {icon}
                 </button>
@@ -64,7 +61,7 @@ export default function Footer() {
           {/* Links */}
           {Object.entries(footerLinks).map(([heading, links]) => (
             <div key={heading}>
-              <h4 style={{ fontSize: '11px', letterSpacing: '3px', textTransform: 'uppercase', color: '#c4a265', marginBottom: '20px' }}>
+              <h4 style={{ fontSize: '11px', letterSpacing: '3px', textTransform: 'uppercase', color: '#f5c842', marginBottom: '20px' }}>
                 {heading}
               </h4>
               <ul style={{ listStyle: 'none', display: 'flex', flexDirection: 'column', gap: '12px' }}>
@@ -74,7 +71,7 @@ export default function Footer() {
                       textDecoration: 'none', fontSize: '13px',
                       color: 'rgba(255,255,255,0.5)', transition: 'color 0.2s',
                     }}
-                      onMouseEnter={e => e.currentTarget.style.color = '#57cc99'}
+                      onMouseEnter={e => e.currentTarget.style.color = '#f5c842'}
                       onMouseLeave={e => e.currentTarget.style.color = 'rgba(255,255,255,0.5)'}
                     >
                       {link.label}
@@ -87,7 +84,7 @@ export default function Footer() {
 
           {/* Hours */}
           <div>
-            <h4 style={{ fontSize: '11px', letterSpacing: '3px', textTransform: 'uppercase', color: '#c4a265', marginBottom: '20px' }}>
+            <h4 style={{ fontSize: '11px', letterSpacing: '3px', textTransform: 'uppercase', color: '#f5c842', marginBottom: '20px' }}>
               Hours
             </h4>
             {[
@@ -101,13 +98,13 @@ export default function Footer() {
                 <div style={{ fontSize: '13px', color: 'rgba(255,255,255,0.7)', fontWeight: 500 }}>{item.hours}</div>
               </div>
             ))}
-            {/* Loadshedding badge */}
+            {/* Status badge */}
             <div style={{
               marginTop: '20px', padding: '10px 14px', borderRadius: '8px',
-              background: '#0d2818', border: '1px solid #1a3a22',
+              background: '#1e1500', border: '1px solid #2e2000',
               display: 'flex', alignItems: 'center', gap: '8px',
             }}>
-              <span className="pulse-dot" style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#39ff14', display: 'block', flexShrink: 0 }} />
+              <span className="pulse-dot" style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#f5c842', display: 'block', flexShrink: 0 }} />
               <span style={{ fontSize: '11px', color: 'rgba(255,255,255,0.6)', lineHeight: 1.4 }}>
                 Open & cooking on gas/generators
               </span>
@@ -117,7 +114,7 @@ export default function Footer() {
 
         {/* Bottom bar */}
         <div className="footer-bottom" style={{
-          borderTop: '1px solid #1a3a22', padding: '20px 0',
+          borderTop: '1px solid #2e2000', padding: '20px 0',
           display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '12px',
         }}>
           <p style={{ fontSize: '11px', color: 'rgba(255,255,255,0.3)', letterSpacing: '1px' }}>
@@ -126,6 +123,15 @@ export default function Footer() {
           <p style={{ fontSize: '11px', color: 'rgba(255,255,255,0.25)', letterSpacing: '1px' }}>
             Best of the Best ✦ South African Hospitality
           </p>
+          <Link href="/admin" style={{
+            fontSize: '10px', color: 'rgba(255,255,255,0.12)', letterSpacing: '1px',
+            textDecoration: 'none', transition: 'color 0.2s',
+          }}
+            onMouseEnter={e => e.currentTarget.style.color = 'rgba(255,255,255,0.45)'}
+            onMouseLeave={e => e.currentTarget.style.color = 'rgba(255,255,255,0.12)'}
+          >
+            Staff
+          </Link>
         </div>
       </div>
     </footer>
