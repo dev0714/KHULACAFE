@@ -10,11 +10,18 @@ export async function POST(request) {
 
   const formData = await request.formData()
   const file = formData.get('file')
-  const folder = formData.get('folder') || 'general'
+  const rawFolder = formData.get('folder') || 'general'
+  const folder = rawFolder.replace(/[^a-zA-Z0-9_-]/g, '')
+  if (!folder) return NextResponse.json({ error: 'Invalid folder name' }, { status: 400 })
 
   if (!file) return NextResponse.json({ error: 'No file provided' }, { status: 400 })
 
-  const ext = file.name.split('.').pop()
+  const ext = file.name.split('.').pop().toLowerCase()
+  const ALLOWED = { jpg: 'image/jpeg', jpeg: 'image/jpeg', png: 'image/png', webp: 'image/webp', gif: 'image/gif' }
+  if (!ALLOWED[ext] || !ALLOWED[ext].includes(file.type)) {
+    return NextResponse.json({ error: 'Only JPEG, PNG, WebP, and GIF images are allowed' }, { status: 400 })
+  }
+
   const path = `${folder}/${Date.now()}.${ext}`
   const buffer = Buffer.from(await file.arrayBuffer())
 
