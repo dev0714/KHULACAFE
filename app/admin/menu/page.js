@@ -1,5 +1,5 @@
 'use client'
-import { useState, useEffect, useTransition } from 'react'
+import { useState, useEffect, useTransition, useCallback } from 'react'
 import { supabase } from '../../../lib/supabase-public'
 import { upsertCategory, deleteCategory, upsertMenuItem, deleteMenuItem } from '../actions'
 import ImageUpload from '../../../components/admin/ImageUpload'
@@ -18,18 +18,18 @@ export default function MenuAdmin() {
   const [editingItem, setEditingItem] = useState(null)
   const [isPending, startTransition] = useTransition()
 
-  useEffect(() => { loadCategories() }, [])
-  useEffect(() => { if (selectedCat) loadItems(selectedCat.id) }, [selectedCat])
-
-  async function loadCategories() {
+  const loadCategories = useCallback(async () => {
     const { data } = await supabase.from('menu_categories').select('*').order('sort_order')
     setCategories(data || [])
-  }
+  }, [])
 
-  async function loadItems(catId) {
+  const loadItems = useCallback(async (catId) => {
     const { data } = await supabase.from('menu_items').select('*').eq('category_id', catId).order('sort_order')
     setItems(data || [])
-  }
+  }, [])
+
+  useEffect(() => { loadCategories() }, [loadCategories])
+  useEffect(() => { if (selectedCat) loadItems(selectedCat.id) }, [selectedCat, loadItems])
 
   function saveCategory() {
     startTransition(async () => {
