@@ -15,15 +15,19 @@ export default function ImageUpload({ value, onChange, folder = 'general' }) {
     form.append('file', file)
     form.append('folder', folder)
 
-    const res = await fetch('/api/admin/upload', { method: 'POST', body: form })
-    const data = await res.json()
-
-    if (!res.ok) {
-      setError(data.error || 'Upload failed')
-    } else {
-      onChange(data.url)
+    try {
+      const res = await fetch('/api/admin/upload', { method: 'POST', body: form })
+      const data = await res.json()
+      if (!res.ok) {
+        setError(data.error || 'Upload failed')
+      } else {
+        onChange(data.url)
+      }
+    } catch {
+      setError('Upload failed. Please try again.')
+    } finally {
+      setUploading(false)
     }
-    setUploading(false)
   }
 
   return (
