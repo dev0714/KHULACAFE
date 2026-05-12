@@ -123,12 +123,12 @@ export default function Footer() {
           <p style={{ fontSize: '11px', color: 'rgba(255,255,255,0.25)', letterSpacing: '1px' }}>
             Best of the Best ✦ South African Hospitality
           </p>
-          <Link href="/admin" style={{
-            fontSize: '10px', color: 'rgba(255,255,255,0.12)', letterSpacing: '1px',
+          <Link href="/staff-login" style={{
+            fontSize: '10px', color: 'rgba(255,255,255,0.25)', letterSpacing: '1px',
             textDecoration: 'none', transition: 'color 0.2s',
           }}
             onMouseEnter={e => e.currentTarget.style.color = 'rgba(255,255,255,0.45)'}
-            onMouseLeave={e => e.currentTarget.style.color = 'rgba(255,255,255,0.12)'}
+            onMouseLeave={e => e.currentTarget.style.color = 'rgba(255,255,255,0.25)'}
           >
             Staff
           </Link>
