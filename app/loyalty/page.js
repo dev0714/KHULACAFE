@@ -15,7 +15,7 @@ export default function LoyaltyPage() {
 
   const steps = [
     { n: '01', title: 'Dine or Order', text: 'Every purchase at Khula Cafe earns you points. Sit-down, takeaway, or delivery — all count.' },
-    { n: '02', title: 'Earn Khula Bucks', text: `R1 spent = 1 point. Every R100 earns you ${loyaltyConfig.bucks_per_100_points} Khula Bucks — that's a 10% reward on everything.` },
+    { n: '02', title: 'Earn Khula Bucks', text: `R1 spent = 1 point. Every R100 earns you ${loyaltyConfig.bucks_per_100_points} Khula Bucks — that's a ${loyaltyConfig.bucks_per_100_points}% reward on everything.` },
     { n: '03', title: 'Redeem Rewards', text: 'Use your Khula Bucks on your next visit. Pay for food, drinks, or add-ons directly from your wallet.' },
   ]
 
