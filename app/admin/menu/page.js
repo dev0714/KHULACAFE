@@ -13,7 +13,7 @@ export default function MenuAdmin() {
   const [selectedCat, setSelectedCat] = useState(null)
   const [items, setItems] = useState([])
   const [catForm, setCatForm] = useState({ name: '', icon: '🍽️', description: '' })
-  const [itemForm, setItemForm] = useState({ name: '', description: '', price: 'Ask us', badge: '', image_url: '', is_featured: false })
+  const [itemForm, setItemForm] = useState({ name: '', description: '', price: 'Ask us', price_cents: '', badge: '', image_url: '', is_featured: false })
   const [editingCat, setEditingCat] = useState(null)
   const [editingItem, setEditingItem] = useState(null)
   const [isPending, startTransition] = useTransition()
@@ -49,10 +49,15 @@ export default function MenuAdmin() {
 
   function saveItem() {
     startTransition(async () => {
-      const payload = { ...itemForm, category_id: selectedCat.id, sort_order: editingItem ? editingItem.sort_order : items.length }
+      const payload = {
+        ...itemForm,
+        price_cents: itemForm.price_cents !== '' ? Math.round(Number(itemForm.price_cents) * 100) : null,
+        category_id: selectedCat.id,
+        sort_order: editingItem ? editingItem.sort_order : items.length,
+      }
       if (editingItem) payload.id = editingItem.id
       await upsertMenuItem(payload)
-      setItemForm({ name: '', description: '', price: 'Ask us', badge: '', image_url: '', is_featured: false })
+      setItemForm({ name: '', description: '', price: 'Ask us', price_cents: '', badge: '', image_url: '', is_featured: false })
       setEditingItem(null)
       await loadItems(selectedCat.id)
     })
@@ -115,7 +120,7 @@ export default function MenuAdmin() {
                   </div>
                 </div>
                 <div>
-                  <button onClick={() => { setEditingItem(item); setItemForm({ name: item.name, description: item.description || '', price: item.price, badge: item.badge || '', image_url: item.image_url || '', is_featured: item.is_featured }) }} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '13px', marginRight: '4px' }}>✏️</button>
+                  <button onClick={() => { setEditingItem(item); setItemForm({ name: item.name, description: item.description || '', price: item.price, price_cents: item.price_cents ? (item.price_cents / 100).toString() : '', badge: item.badge || '', image_url: item.image_url || '', is_featured: item.is_featured }) }} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '13px', marginRight: '4px' }}>✏️</button>
                   <button onClick={() => removeItem(item.id)} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '13px' }}>🗑️</button>
                 </div>
               </div>
@@ -125,7 +130,8 @@ export default function MenuAdmin() {
               <p style={{ color: '#f5c842', fontSize: '10px', letterSpacing: '2px', marginBottom: '14px' }}>{editingItem ? 'EDIT' : 'ADD'} ITEM</p>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', marginBottom: '10px' }}>
                 <div><label style={labelStyle}>Name</label><input value={itemForm.name} onChange={e => setItemForm(f => ({ ...f, name: e.target.value }))} style={inputStyle} /></div>
-                <div><label style={labelStyle}>Price</label><input value={itemForm.price} onChange={e => setItemForm(f => ({ ...f, price: e.target.value }))} style={inputStyle} /></div>
+                <div><label style={labelStyle}>Display Price (e.g. R85)</label><input value={itemForm.price} onChange={e => setItemForm(f => ({ ...f, price: e.target.value }))} style={inputStyle} /></div>
+                <div><label style={labelStyle}>Price in Rands (for cart, e.g. 85)</label><input type="number" min="0" step="0.01" value={itemForm.price_cents} onChange={e => setItemForm(f => ({ ...f, price_cents: e.target.value }))} placeholder="Leave blank for 'Ask us'" style={inputStyle} /></div>
                 <div style={{ gridColumn: '1/-1' }}><label style={labelStyle}>Description</label><input value={itemForm.description} onChange={e => setItemForm(f => ({ ...f, description: e.target.value }))} style={inputStyle} /></div>
                 <div><label style={labelStyle}>Badge (optional)</label><input value={itemForm.badge} onChange={e => setItemForm(f => ({ ...f, badge: e.target.value }))} placeholder="Fan Fav" style={inputStyle} /></div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px', paddingTop: '18px' }}>
@@ -139,7 +145,7 @@ export default function MenuAdmin() {
               </div>
               <div style={{ display: 'flex', gap: '8px' }}>
                 <button onClick={saveItem} disabled={isPending || !itemForm.name} style={btn(true)}>{isPending ? '…' : editingItem ? 'Update' : 'Add Item'}</button>
-                {editingItem && <button onClick={() => { setEditingItem(null); setItemForm({ name: '', description: '', price: 'Ask us', badge: '', image_url: '', is_featured: false }) }} style={btn(false)}>Cancel</button>}
+                {editingItem && <button onClick={() => { setEditingItem(null); setItemForm({ name: '', description: '', price: 'Ask us', price_cents: '', badge: '', image_url: '', is_featured: false }) }} style={btn(false)}>Cancel</button>}
               </div>
             </div>
           </div>
