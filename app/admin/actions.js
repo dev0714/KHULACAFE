@@ -14,7 +14,8 @@ async function assertAdmin() {
 export async function upsertCategory(data) {
   await assertAdmin()
   if (data.id) {
-    await supabaseAdmin.from('menu_categories').update(data).eq('id', data.id)
+    const { id, ...fields } = data
+    await supabaseAdmin.from('menu_categories').update(fields).eq('id', id)
   } else {
     await supabaseAdmin.from('menu_categories').insert(data)
   }
@@ -33,7 +34,8 @@ export async function deleteCategory(id) {
 export async function upsertMenuItem(data) {
   await assertAdmin()
   if (data.id) {
-    await supabaseAdmin.from('menu_items').update(data).eq('id', data.id)
+    const { id, ...fields } = data
+    await supabaseAdmin.from('menu_items').update(fields).eq('id', id)
   } else {
     await supabaseAdmin.from('menu_items').insert(data)
   }
@@ -54,7 +56,8 @@ export async function deleteMenuItem(id) {
 export async function upsertGalleryItem(data) {
   await assertAdmin()
   if (data.id) {
-    await supabaseAdmin.from('gallery_items').update(data).eq('id', data.id)
+    const { id, ...fields } = data
+    await supabaseAdmin.from('gallery_items').update(fields).eq('id', id)
   } else {
     await supabaseAdmin.from('gallery_items').insert(data)
   }
@@ -83,7 +86,8 @@ export async function updateLoyaltyConfig(data) {
 export async function upsertOccasion(data) {
   await assertAdmin()
   if (data.id) {
-    await supabaseAdmin.from('booking_occasions').update(data).eq('id', data.id)
+    const { id, ...fields } = data
+    await supabaseAdmin.from('booking_occasions').update(fields).eq('id', id)
   } else {
     await supabaseAdmin.from('booking_occasions').insert(data)
   }
@@ -102,7 +106,8 @@ export async function deleteOccasion(id) {
 export async function upsertAddon(data) {
   await assertAdmin()
   if (data.id) {
-    await supabaseAdmin.from('booking_addons').update(data).eq('id', data.id)
+    const { id, ...fields } = data
+    await supabaseAdmin.from('booking_addons').update(fields).eq('id', id)
   } else {
     await supabaseAdmin.from('booking_addons').insert(data)
   }
