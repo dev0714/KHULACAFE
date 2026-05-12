@@ -316,7 +316,7 @@ export async function updateOrderStatus(orderId, status) {
   // Fire status email non-blocking
   const { data: order } = await supabaseAdmin.from('orders').select('*').eq('id', orderId).single()
   if (order?.customer_email && status !== 'received') {
-    import('../../../lib/resend').then(({ sendStatusUpdate }) => {
+    import('../../lib/resend').then(({ sendStatusUpdate }) => {
       sendStatusUpdate({ order, status }).catch(() => {})
     })
   }
