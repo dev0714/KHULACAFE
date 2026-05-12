@@ -2,10 +2,16 @@
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { supabase } from '../../lib/supabase-public'
+import { useCart } from '../../lib/cart-context'
 
 export default function MenuPage() {
+  const { addItem, items } = useCart()
   const [menuCategories, setMenuCategories] = useState([])
   const [activeCategory, setActiveCategory] = useState('')
+
+  function cartQty(itemId) {
+    return items.find(i => i.id === itemId)?.qty ?? 0
+  }
 
   useEffect(() => {
     supabase
@@ -84,33 +90,72 @@ export default function MenuPage() {
             {current.items.map((item) => (
               <div key={item.id} className="card-lift" style={{
                 background: '#1e1500', border: '1px solid #2e2000', borderRadius: '14px',
-                padding: '28px', position: 'relative', overflow: 'hidden',
+                overflow: 'hidden', position: 'relative',
+                display: 'flex', flexDirection: 'column',
               }}>
-                {item.badge && (
-                  <span style={{
-                    position: 'absolute', top: '18px', right: '18px',
-                    background: '#f5c842', color: '#0a0600',
-                    fontSize: '9px', fontWeight: 700, letterSpacing: '1.5px', textTransform: 'uppercase',
-                    padding: '4px 10px', borderRadius: '20px',
-                  }}>{item.badge}</span>
+                {/* Food photo */}
+                {item.image_url && (
+                  <div style={{ position: 'relative', height: '200px', flexShrink: 0 }}>
+                    <img
+                      src={item.image_url}
+                      alt={item.name}
+                      style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
+                    />
+                    <div style={{
+                      position: 'absolute', inset: 0,
+                      background: 'linear-gradient(to top, rgba(30,21,0,0.7) 0%, transparent 60%)',
+                    }} />
+                    {item.badge && (
+                      <span style={{
+                        position: 'absolute', top: '14px', right: '14px',
+                        background: '#f5c842', color: '#0a0600',
+                        fontSize: '9px', fontWeight: 700, letterSpacing: '1.5px', textTransform: 'uppercase',
+                        padding: '4px 10px', borderRadius: '20px',
+                      }}>{item.badge}</span>
+                    )}
+                  </div>
                 )}
-                <h3 style={{ fontFamily: 'var(--font-playfair)', fontSize: '20px', color: '#fafafa', marginBottom: '10px' }}>
-                  {item.name}
-                </h3>
-                <p style={{ fontSize: '13px', color: 'rgba(255,255,255,0.5)', lineHeight: 1.75, marginBottom: '24px' }}>
-                  {item.description}
-                </p>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <span style={{ fontFamily: 'var(--font-playfair)', fontSize: '24px', color: '#f5c842', fontWeight: 600 }}>
-                    {item.price}
-                  </span>
-                  <Link href="/book" style={{
-                    textDecoration: 'none', fontSize: '10px', letterSpacing: '2px', textTransform: 'uppercase',
-                    fontWeight: 600, color: '#0a0600', padding: '8px 18px', borderRadius: '30px',
-                    background: 'linear-gradient(135deg, #f5c842, #c8940c)',
-                  }}>
-                    Order
-                  </Link>
+
+                {/* Content */}
+                <div style={{ padding: '24px', flex: 1, display: 'flex', flexDirection: 'column' }}>
+                  {!item.image_url && item.badge && (
+                    <span style={{
+                      alignSelf: 'flex-start', marginBottom: '12px',
+                      background: '#f5c842', color: '#0a0600',
+                      fontSize: '9px', fontWeight: 700, letterSpacing: '1.5px', textTransform: 'uppercase',
+                      padding: '4px 10px', borderRadius: '20px',
+                    }}>{item.badge}</span>
+                  )}
+                  <h3 style={{ fontFamily: 'var(--font-playfair)', fontSize: '20px', color: '#fafafa', marginBottom: '8px' }}>
+                    {item.name}
+                  </h3>
+                  <p style={{ fontSize: '13px', color: 'rgba(255,255,255,0.5)', lineHeight: 1.75, marginBottom: '20px', flex: 1 }}>
+                    {item.description}
+                  </p>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 'auto' }}>
+                    <span style={{ fontFamily: 'var(--font-playfair)', fontSize: '24px', color: '#f5c842', fontWeight: 600 }}>
+                      {item.price}
+                    </span>
+                    {item.price_cents ? (
+                      <button
+                        onClick={() => addItem({ id: item.id, name: item.name, price_cents: item.price_cents, image_url: item.image_url || null })}
+                        style={{
+                          fontSize: '11px', letterSpacing: '1.5px', textTransform: 'uppercase',
+                          fontWeight: 700, color: '#0a0600', padding: '8px 18px', borderRadius: '30px',
+                          background: cartQty(item.id) > 0
+                            ? 'linear-gradient(135deg, #c8940c, #a07008)'
+                            : 'linear-gradient(135deg, #f5c842, #c8940c)',
+                          border: 'none', cursor: 'pointer', transition: 'all 0.2s',
+                        }}
+                      >
+                        {cartQty(item.id) > 0 ? `In Cart (${cartQty(item.id)})` : 'Add to Cart'}
+                      </button>
+                    ) : (
+                      <span style={{ fontSize: '11px', color: 'rgba(255,255,255,0.4)', letterSpacing: '1px' }}>
+                        Call to order
+                      </span>
+                    )}
+                  </div>
                 </div>
               </div>
             ))}
