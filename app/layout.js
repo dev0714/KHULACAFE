@@ -1,5 +1,7 @@
 import './globals.css'
 import ConditionalShell from '../components/ConditionalShell'
+import { CartProvider } from '../lib/cart-context'
+import CartButton from '../components/CartButton'
 
 export const metadata = {
   title: {
@@ -29,7 +31,10 @@ export default function RootLayout({ children }) {
         />
       </head>
       <body>
-        <ConditionalShell>{children}</ConditionalShell>
+        <CartProvider>
+          <ConditionalShell>{children}</ConditionalShell>
+          <CartButton />
+        </CartProvider>
       </body>
     </html>
   )
