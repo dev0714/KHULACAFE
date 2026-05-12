@@ -1,3 +1,5 @@
+'use client'
+
 const sections = [
   { href: '/admin/menu', label: 'Menu', icon: '🍽️', desc: 'Edit categories, items & prices' },
   { href: '/admin/gallery', label: 'Gallery', icon: '📸', desc: 'Upload & reorder photos' },
