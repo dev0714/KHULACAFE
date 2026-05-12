@@ -8,6 +8,8 @@ const navItems = [
   { href: '/admin/gallery', label: 'Gallery', icon: '📸' },
   { href: '/admin/loyalty', label: 'Khula Bucks', icon: '💛' },
   { href: '/admin/bookings', label: 'Bookings', icon: '📅' },
+  { href: '/admin/customers', label: 'Customers', icon: '👥' },
+  { href: '/admin/orders', label: 'Orders', icon: '📦' },
 ]
 
 export default function AdminSidebar() {
@@ -16,7 +18,7 @@ export default function AdminSidebar() {
 
   async function handleSignOut() {
     await fetch('/api/auth/logout', { method: 'POST' })
-    router.push('/admin/login')
+    router.push('/staff-login')
     router.refresh()
   }
 
