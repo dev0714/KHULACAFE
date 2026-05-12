@@ -25,7 +25,7 @@ export default function CartPage() {
   }
 
   return (
-    <div style={{ background: '#0a0600', minHeight: '100vh', padding: '60px 0' }}>
+    <div style={{ background: '#0a0600', minHeight: '100vh', padding: '120px 0 60px' }}>
       <div className="section-wrap" style={{ maxWidth: '720px' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '32px' }}>
           <h1 style={{ fontFamily: 'var(--font-playfair)', color: '#fafafa', fontSize: '36px' }}>Your Order</h1>
