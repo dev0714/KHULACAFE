@@ -116,7 +116,11 @@ export default function MenuAdmin() {
                   {item.image_url && <img src={item.image_url} style={{ width: '36px', height: '36px', borderRadius: '6px', objectFit: 'cover' }} alt="" />}
                   <div>
                     <div style={{ color: '#fafafa', fontSize: '13px' }}>{item.name}</div>
-                    <div style={{ color: 'rgba(255,255,255,0.4)', fontSize: '11px' }}>{item.price}{item.badge ? ` · ${item.badge}` : ''}{item.is_featured ? ' · ⭐' : ''}</div>
+                    <div style={{ color: 'rgba(255,255,255,0.4)', fontSize: '11px' }}>
+                      {item.price}
+                      {item.price_cents ? <span style={{ color: '#26de81', marginLeft: '6px' }}>🛒 R{(item.price_cents / 100).toFixed(2)}</span> : <span style={{ color: 'rgba(255,255,255,0.25)', marginLeft: '6px' }}>no cart price</span>}
+                      {item.badge ? ` · ${item.badge}` : ''}{item.is_featured ? ' · ⭐' : ''}
+                    </div>
                   </div>
                 </div>
                 <div>
