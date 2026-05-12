@@ -4,7 +4,7 @@ import { verifyToken } from './lib/auth'
 export async function middleware(request) {
   const { pathname } = request.nextUrl
 
-  if (pathname === '/admin/login') return NextResponse.next()
+  if (pathname.startsWith('/admin/login')) return NextResponse.next()
 
   const token = request.cookies.get('admin_session')?.value
   const payload = token ? await verifyToken(token) : null
