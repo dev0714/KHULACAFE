@@ -41,19 +41,28 @@ export default function Footer() {
               📍 Cnr Old Main Road & St Johns Avenue<br />Dickswell Centre, Pinetown<br />📞 061 489 4615
             </p>
             {/* Social */}
-            <div style={{ display: 'flex', gap: '14px', marginTop: '24px' }}>
-              {['📘', '📸', '🐦', '💬'].map((icon, i) => (
-                <button key={i} style={{
-                  width: '36px', height: '36px', borderRadius: '50%',
-                  background: '#1e1500', border: '1px solid #2e2000',
-                  display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  fontSize: '15px', cursor: 'pointer', transition: 'background 0.2s',
-                }}
-                  onMouseEnter={e => e.currentTarget.style.background = '#2e2000'}
-                  onMouseLeave={e => e.currentTarget.style.background = '#1e1500'}
+            <div style={{ display: 'flex', gap: '12px', marginTop: '24px' }}>
+              {[
+                { label: 'Facebook', href: '#', svg: <path d="M18 2h-3a5 5 0 0 0-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 0 1 1-1h3z" /> },
+                { label: 'Instagram', href: '#', svg: <><rect x="2" y="2" width="20" height="20" rx="5" ry="5"/><path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"/><line x1="17.5" y1="6.5" x2="17.51" y2="6.5"/></> },
+                { label: 'TikTok', href: '#', svg: <path d="M9 12a4 4 0 1 0 4 4V4a5 5 0 0 0 5 5" /> },
+                { label: 'WhatsApp', href: '#', svg: <><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/></> },
+              ].map(({ label, href, svg }) => (
+                <a key={label} href={href} aria-label={label}
+                  style={{
+                    width: '38px', height: '38px', borderRadius: '50%',
+                    background: 'rgba(245,200,66,0.08)', border: '1px solid rgba(245,200,66,0.25)',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    cursor: 'pointer', transition: 'all 0.2s', textDecoration: 'none', flexShrink: 0,
+                  }}
+                  onMouseEnter={e => { e.currentTarget.style.background = 'rgba(245,200,66,0.18)'; e.currentTarget.style.borderColor = '#f5c842' }}
+                  onMouseLeave={e => { e.currentTarget.style.background = 'rgba(245,200,66,0.08)'; e.currentTarget.style.borderColor = 'rgba(245,200,66,0.25)' }}
                 >
-                  {icon}
-                </button>
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none"
+                    stroke="#f5c842" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                    {svg}
+                  </svg>
+                </a>
               ))}
             </div>
           </div>
