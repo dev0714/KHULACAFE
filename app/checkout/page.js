@@ -1,6 +1,5 @@
 'use client'
-export const dynamic = 'force-dynamic'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { useCart } from '../../lib/cart-context'
@@ -26,10 +25,11 @@ export default function CheckoutPage() {
 
   const set = (k, v) => setForm(f => ({ ...f, [k]: v }))
 
-  if (items.length === 0) {
-    router.push('/cart')
-    return null
-  }
+  useEffect(() => {
+    if (items.length === 0) router.push('/cart')
+  }, [items.length, router])
+
+  if (items.length === 0) return null
 
   async function handleDetailsSubmit(e) {
     e.preventDefault()
