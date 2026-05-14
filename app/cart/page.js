@@ -1,4 +1,5 @@
 'use client'
+export const dynamic = 'force-dynamic'
 import { useCart } from '../../lib/cart-context'
 import Link from 'next/link'
 
