@@ -367,3 +367,20 @@ export async function deleteAdminUser(id) {
   await supabaseAdmin.from('admin_users').delete().eq('id', id)
   revalidatePath('/admin/users')
 }
+
+// ── About Images ─────────────────────────────────────────────────
+export async function getAboutImages() {
+  const { data } = await supabaseAdmin.from('about_images').select('slot, image_url')
+  const map = {}
+  for (const row of data ?? []) map[row.slot] = row.image_url
+  return map
+}
+
+export async function updateAboutImage(slot, imageUrl) {
+  await assertAdmin()
+  await supabaseAdmin.from('about_images')
+    .update({ image_url: imageUrl, updated_at: new Date().toISOString() })
+    .eq('slot', slot)
+  revalidatePath('/about')
+  revalidatePath('/admin/gallery')
+}

@@ -1,9 +1,13 @@
 'use client'
+import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { useScrollReveal } from '../../hooks/useScrollReveal'
+import { getAboutImages } from '../admin/actions'
 
 export default function AboutPage() {
   useScrollReveal()
+  const [photos, setPhotos] = useState({})
+  useEffect(() => { getAboutImages().then(setPhotos) }, [])
 
   const values = [
     { icon: '💛', title: 'People First', text: 'Every guest is family. We learn your name, remember your order, and make your day brighter.' },
@@ -50,24 +54,36 @@ export default function AboutPage() {
 
             <div data-reveal="right" style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
               <div style={{
-                height: '260px', borderRadius: '16px',
+                height: '260px', borderRadius: '16px', overflow: 'hidden',
                 background: 'linear-gradient(135deg, #7d5a0b 0%, #3d2200 100%)',
                 border: '1px solid #2e2000',
                 display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '60px',
-              }}>🌿</div>
+              }}>
+                {photos.main
+                  ? <img src={photos.main} alt="Khula Cafe" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                  : '🌿'}
+              </div>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
                 <div style={{
-                  height: '140px', borderRadius: '12px',
+                  height: '140px', borderRadius: '12px', overflow: 'hidden',
                   background: 'linear-gradient(135deg, #2d1a0a 0%, #1a0a00 100%)',
                   border: '1px solid #2e2000',
                   display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '40px',
-                }}>☕</div>
+                }}>
+                  {photos.bottom_left
+                    ? <img src={photos.bottom_left} alt="Khula Cafe" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                    : '☕'}
+                </div>
                 <div style={{
-                  height: '140px', borderRadius: '12px',
+                  height: '140px', borderRadius: '12px', overflow: 'hidden',
                   background: 'linear-gradient(135deg, #1e1500 0%, #0a0600 100%)',
                   border: '1px solid #2e2000',
                   display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '40px',
-                }}>🛋️</div>
+                }}>
+                  {photos.bottom_right
+                    ? <img src={photos.bottom_right} alt="Khula Cafe" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                    : '🛋️'}
+                </div>
               </div>
             </div>
           </div>
