@@ -12,6 +12,7 @@ const navItems = [
   { href: '/admin/bookings', label: 'Bookings', icon: '📅' },
   { href: '/admin/customers', label: 'Customers', icon: '👥' },
   { href: '/admin/orders', label: 'Orders', icon: '📦' },
+  { href: '/admin/users', label: 'Users', icon: '🔑' },
 ]
 
 export default function AdminSidebar() {

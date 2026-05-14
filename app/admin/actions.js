@@ -323,3 +323,47 @@ export async function updateOrderStatus(orderId, status) {
 
   revalidatePath('/admin/orders')
 }
+
+// ── Admin Users ──────────────────────────────────────────────────
+export async function getAdminUsers() {
+  await assertAdmin()
+  const { data } = await supabaseAdmin
+    .from('admin_users')
+    .select('id, name, email, created_at')
+    .order('created_at', { ascending: true })
+  return data ?? []
+}
+
+export async function createAdminUser(name, email, password) {
+  await assertAdmin()
+  const bcrypt = await import('bcryptjs')
+  const password_hash = await bcrypt.hash(password, 12)
+  const { error } = await supabaseAdmin.from('admin_users').insert({
+    name: name.trim(),
+    email: email.toLowerCase().trim(),
+    password_hash,
+  })
+  if (error) throw new Error(error.message)
+  revalidatePath('/admin/users')
+}
+
+export async function updateAdminUser(id, name, email, password) {
+  await assertAdmin()
+  const fields = { name: name.trim(), email: email.toLowerCase().trim() }
+  if (password) {
+    const bcrypt = await import('bcryptjs')
+    fields.password_hash = await bcrypt.hash(password, 12)
+  }
+  const { error } = await supabaseAdmin.from('admin_users').update(fields).eq('id', id)
+  if (error) throw new Error(error.message)
+  revalidatePath('/admin/users')
+}
+
+export async function deleteAdminUser(id) {
+  await assertAdmin()
+  const token = cookies().get('admin_session')?.value
+  const payload = token ? await verifyToken(token) : null
+  if (payload?.sub === id) throw new Error('Cannot delete your own account')
+  await supabaseAdmin.from('admin_users').delete().eq('id', id)
+  revalidatePath('/admin/users')
+}
