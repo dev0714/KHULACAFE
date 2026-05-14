@@ -61,8 +61,10 @@ body {
   background: var(--bg-dark);
   color: var(--white);
   font-family: var(--font-poppins);
-  overflow-x: hidden;
 }
+
+/* clip-path on html prevents horizontal scroll without breaking position:fixed */
+html { overflow-x: clip; }
 
 /* ── Scroll reveal ── */
 [data-reveal] {
@@ -273,7 +275,6 @@ body {
 
 /* ── Prevent horizontal overflow ── */
 @media (max-width: 768px) {
-  body { overflow-x: hidden; }
   img, video { max-width: 100%; }
   .two-col-grid {
     grid-template-columns: 1fr !important;
