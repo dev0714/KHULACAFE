@@ -12,15 +12,31 @@ const RED = '#ff6b6b'
 const GRID = '#2e2000'
 const AXIS = 'rgba(255,255,255,0.25)'
 
-function ChartCard({ title, subtitle, children }) {
+function PresetTabs({ options, value, onChange }) {
+  return (
+    <div style={{ display: 'flex', gap: '4px', background: '#140e00', borderRadius: '8px', padding: '3px', border: '1px solid #2e2000' }}>
+      {options.map(o => (
+        <button key={o.value} onClick={() => onChange(o.value)} style={{
+          padding: '5px 12px', borderRadius: '5px', border: 'none', cursor: 'pointer',
+          background: value === o.value ? 'linear-gradient(135deg, #f5c842, #c8940c)' : 'transparent',
+          color: value === o.value ? '#0a0600' : 'rgba(255,255,255,0.4)',
+          fontSize: '11px', fontWeight: value === o.value ? 700 : 400,
+          transition: 'all 0.15s',
+        }}>{o.label}</button>
+      ))}
+    </div>
+  )
+}
+
+function ChartCard({ title, children, controls }) {
   return (
     <div style={{ background: '#1e1500', border: '1px solid #2e2000', borderRadius: '14px', padding: '24px' }}>
-      <p style={{ fontSize: '10px', letterSpacing: '3px', textTransform: 'uppercase', color: 'rgba(255,255,255,0.3)', marginBottom: '4px' }}>
-        {subtitle}
-      </p>
-      <h3 style={{ fontFamily: 'var(--font-playfair)', color: '#fafafa', fontSize: '18px', marginBottom: '24px' }}>
-        {title}
-      </h3>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px', flexWrap: 'wrap', gap: '12px' }}>
+        <h3 style={{ fontFamily: 'var(--font-playfair)', color: '#fafafa', fontSize: '18px', margin: 0 }}>
+          {title}
+        </h3>
+        {controls}
+      </div>
       {children}
     </div>
   )
@@ -40,6 +56,9 @@ function CustomTooltip({ active, payload, label }) {
   )
 }
 
+const BUCKS_PRESETS  = [{ label: '7d', value: 7 }, { label: '14d', value: 14 }, { label: '30d', value: 30 }]
+const GROWTH_PRESETS = [{ label: '3m', value: 3 }, { label: '6m', value: 6 }, { label: '12m', value: 12 }]
+
 export default function AdminDashboard() {
   const [stats, setStats] = useState({
     customers: 0, totalBucks: 0, activeOrders: 0, totalOrders: 0,
@@ -47,6 +66,9 @@ export default function AdminDashboard() {
     gallery: 0, atmosphere: 0, occasions: 0, addons: 0,
   })
   const [charts, setCharts] = useState({ bucksActivity: [], customerGrowth: [] })
+  const [bucksDays, setBucksDays] = useState(7)
+  const [growthMonths, setGrowthMonths] = useState(6)
+  const [chartsLoading, setChartsLoading] = useState(false)
 
   useEffect(() => {
     // Public-table counts via anon client
@@ -71,21 +93,27 @@ export default function AdminDashboard() {
       }))
     })
 
-    // Admin-only data via server actions (supabaseAdmin)
-    Promise.all([
-      getDashboardChartData(),
-      getOrderCounts(),
-    ]).then(([chartData, orderCounts]) => {
-      setCharts(chartData)
+    getOrderCounts().then(orderCounts => {
       setStats(prev => ({
         ...prev,
-        customers: chartData.totalCustomers ?? 0,
-        totalBucks: chartData.totalBucks ?? 0,
         activeOrders: (orderCounts.received ?? 0) + (orderCounts.making ?? 0) + (orderCounts.out_for_delivery ?? 0),
         totalOrders: orderCounts.total ?? 0,
       }))
     }).catch(() => {})
   }, [])
+
+  useEffect(() => {
+    setChartsLoading(true)
+    getDashboardChartData({ bucksDays, growthMonths }).then(chartData => {
+      setCharts(chartData)
+      setStats(prev => ({
+        ...prev,
+        customers: chartData.totalCustomers ?? 0,
+        totalBucks: chartData.totalBucks ?? 0,
+      }))
+      setChartsLoading(false)
+    }).catch(() => setChartsLoading(false))
+  }, [bucksDays, growthMonths])
 
   const statCards = [
     { label: 'Customers', value: stats.customers, icon: '👥' },
@@ -128,10 +156,12 @@ export default function AdminDashboard() {
       </div>
 
       {/* Charts */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(420px, 1fr))', gap: '20px' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(420px, 1fr))', gap: '20px', opacity: chartsLoading ? 0.5 : 1, transition: 'opacity 0.2s' }}>
 
-        {/* Bucks Activity — last 7 days */}
-        <ChartCard title="Bucks Activity" subtitle="Last 7 days">
+        <ChartCard
+          title="Bucks Activity"
+          controls={<PresetTabs options={BUCKS_PRESETS} value={bucksDays} onChange={setBucksDays} />}
+        >
           <ResponsiveContainer width="100%" height={220}>
             <BarChart data={charts.bucksActivity} barGap={4} barCategoryGap="30%">
               <CartesianGrid strokeDasharray="3 3" stroke={GRID} vertical={false} />
@@ -145,8 +175,10 @@ export default function AdminDashboard() {
           </ResponsiveContainer>
         </ChartCard>
 
-        {/* Customer Growth — last 6 months */}
-        <ChartCard title="Customer Growth" subtitle="Last 6 months">
+        <ChartCard
+          title="Customer Growth"
+          controls={<PresetTabs options={GROWTH_PRESETS} value={growthMonths} onChange={setGrowthMonths} />}
+        >
           <ResponsiveContainer width="100%" height={220}>
             <LineChart data={charts.customerGrowth}>
               <CartesianGrid strokeDasharray="3 3" stroke={GRID} vertical={false} />

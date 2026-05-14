@@ -201,24 +201,24 @@ export async function recordPurchase(customerId, amountRands, discountPct, notes
 }
 
 // ── Dashboard Charts ─────────────────────────────────────────────
-export async function getDashboardChartData() {
+export async function getDashboardChartData({ bucksDays = 7, growthMonths = 6 } = {}) {
   await assertAdmin()
 
   const now = new Date()
 
-  // Last 7 days — bucks earned/redeemed per day
-  const sevenDaysAgo = new Date(now)
-  sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 6)
-  sevenDaysAgo.setHours(0, 0, 0, 0)
+  // Bucks activity — per day over bucksDays
+  const bucksFrom = new Date(now)
+  bucksFrom.setDate(bucksFrom.getDate() - (bucksDays - 1))
+  bucksFrom.setHours(0, 0, 0, 0)
 
   const { data: txRows } = await supabaseAdmin
     .from('transactions')
     .select('created_at, bucks_earned, bucks_redeemed')
-    .gte('created_at', sevenDaysAgo.toISOString())
+    .gte('created_at', bucksFrom.toISOString())
 
   const bucksMap = {}
-  for (let i = 0; i < 7; i++) {
-    const d = new Date(sevenDaysAgo)
+  for (let i = 0; i < bucksDays; i++) {
+    const d = new Date(bucksFrom)
     d.setDate(d.getDate() + i)
     const key = d.toISOString().slice(0, 10)
     bucksMap[key] = { day: key, earned: 0, redeemed: 0 }
@@ -232,23 +232,25 @@ export async function getDashboardChartData() {
   }
   const bucksActivity = Object.values(bucksMap).map(r => ({
     ...r,
-    day: new Date(r.day + 'T00:00:00').toLocaleDateString('en-ZA', { weekday: 'short', day: 'numeric' }),
+    day: new Date(r.day + 'T00:00:00').toLocaleDateString('en-ZA',
+      bucksDays <= 14 ? { weekday: 'short', day: 'numeric' } : { day: 'numeric', month: 'short' }
+    ),
   }))
 
-  // Last 6 months — new customers per month
-  const sixMonthsAgo = new Date(now)
-  sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 5)
-  sixMonthsAgo.setDate(1)
-  sixMonthsAgo.setHours(0, 0, 0, 0)
+  // Customer growth — per month over growthMonths
+  const custFrom = new Date(now)
+  custFrom.setMonth(custFrom.getMonth() - (growthMonths - 1))
+  custFrom.setDate(1)
+  custFrom.setHours(0, 0, 0, 0)
 
   const { data: custRows } = await supabaseAdmin
     .from('customers')
     .select('created_at')
-    .gte('created_at', sixMonthsAgo.toISOString())
+    .gte('created_at', custFrom.toISOString())
 
   const custMap = {}
-  for (let i = 0; i < 6; i++) {
-    const d = new Date(sixMonthsAgo)
+  for (let i = 0; i < growthMonths; i++) {
+    const d = new Date(custFrom)
     d.setMonth(d.getMonth() + i)
     const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`
     custMap[key] = { month: key, count: 0 }
