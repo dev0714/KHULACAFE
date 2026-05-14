@@ -20,10 +20,10 @@ export default function LoyaltyPage() {
   ]
 
   const features = [
-    { icon: '💬', title: 'WhatsApp AI — Apollo', color: '#25D366', text: 'Order in isiZulu, Afrikaans, Sesotho, or English. Apollo processes your order instantly and sends a payment link.' },
-    { icon: '🚚', title: 'Geofenced Delivery', color: '#f5c842', text: 'Free delivery within 5km. Live map tracking so you always know where your order is.' },
-    { icon: '⚡', title: 'Loadshedding Live', color: '#f5c842', text: 'We display our live status — open, cooking on gas, or on generator. Because South African planning is real.' },
-    { icon: '📊', title: 'Pulse Feedback', color: '#c8940c', text: '30 minutes after your visit, a quick 1-5 star notification. Your voice shapes our kitchen.' },
+    { icon: '💬', title: 'WhatsApp AI — Apollo', text: 'Order in isiZulu, Afrikaans, Sesotho, or English. Apollo processes your order instantly and sends a payment link.' },
+    { icon: '🚚', title: 'Geofenced Delivery', text: 'Free delivery within 5km. Live map tracking so you always know where your order is.' },
+    { icon: '⚡', title: 'Loadshedding Live', text: 'We display our live status — open, cooking on gas, or on generator. Because South African planning is real.' },
+    { icon: '📊', title: 'Pulse Feedback', text: '30 minutes after your visit, a quick 1-5 star notification. Your voice shapes our kitchen.' },
   ]
 
   return (
@@ -163,13 +163,28 @@ export default function LoyaltyPage() {
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: '20px' }}>
             {features.map((f, i) => (
               <div key={i} className="card-lift" data-reveal data-delay={`${i * 100}`} style={{
-                background: '#1e1500', borderRadius: '16px', padding: '28px',
-                borderLeft: `3px solid ${f.color}`,
-                border: `1px solid ${f.color}20`, borderLeftWidth: '3px', borderLeftColor: f.color,
+                background: 'linear-gradient(160deg, #2a1c00 0%, #1e1500 60%, #140e00 100%)',
+                border: '1px solid #2e2000', borderRadius: '16px', padding: '28px',
+                position: 'relative', overflow: 'hidden',
               }}>
-                <div style={{ fontSize: '32px', marginBottom: '14px' }}>{f.icon}</div>
+                <div style={{
+                  position: 'absolute', top: 0, left: '28px', right: '28px', height: '2px',
+                  background: 'linear-gradient(90deg, transparent, #f5c842, transparent)',
+                }} />
+                <div style={{
+                  width: '48px', height: '48px', borderRadius: '12px',
+                  background: 'rgba(245,200,66,0.1)', border: '1px solid rgba(245,200,66,0.2)',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  fontSize: '22px', marginBottom: '18px',
+                }}>{f.icon}</div>
                 <h3 style={{ fontFamily: 'var(--font-playfair)', fontSize: '18px', color: '#fafafa', marginBottom: '10px' }}>{f.title}</h3>
-                <p style={{ fontSize: '13px', color: 'rgba(255,255,255,0.5)', lineHeight: 1.75 }}>{f.text}</p>
+                <p style={{ fontSize: '13px', color: 'rgba(255,255,255,0.5)', lineHeight: 1.75, margin: 0 }}>{f.text}</p>
+                <div style={{
+                  position: 'absolute', bottom: '-20px', right: '-20px',
+                  width: '80px', height: '80px', borderRadius: '50%',
+                  background: 'radial-gradient(circle, rgba(245,200,66,0.06) 0%, transparent 70%)',
+                  pointerEvents: 'none',
+                }} />
               </div>
             ))}
           </div>
