@@ -3,21 +3,43 @@
 @tailwind utilities;
 
 :root {
-  --forest-darkest: #020805;
-  --forest-dark: #040d07;
-  --forest: #071a0e;
-  --forest-mid: #0d2818;
-  --forest-light: #1a3a22;
-  --forest-border: #243d2a;
-  --green-primary: #2d6a4f;
-  --green-mid: #40916c;
-  --green-bright: #57cc99;
-  --green-neon: #39ff14;
-  --wood: #c4a265;
-  --wood-light: #d4b896;
-  --gold: #f5a623;
-  --white: #fafafa;
-  --cream: #f5f0e8;
+  /* ── Dark backgrounds ── */
+  --bg-darkest:  #0a0600;
+  --bg-dark:     #0a0600;
+  --bg-mid:      #140e00;
+  --bg-panel:    #1e1500;
+  --bg-hover:    #2a1c00;
+  --border:      #2e2000;
+  --border-dark: #3d2a00;
+
+  /* ── Gold palette ── */
+  --gold-darkest: #3d2200;
+  --gold-dark:    #7d5a0b;
+  --gold-primary: #c8940c;
+  --gold-bright:  #f5c842;
+  --gold-light:   #fffbe0;
+
+  /* ── Legacy aliases (keeps old var() refs working) ── */
+  --forest-darkest: #0a0600;
+  --forest-dark:    #0a0600;
+  --forest:         #140e00;
+  --forest-mid:     #1e1500;
+  --forest-light:   #2a1c00;
+  --forest-border:  #2e2000;
+  --green-primary:  #c8940c;
+  --green-mid:      #f5c842;
+  --green-bright:   #f5c842;
+  --green-neon:     #f5c842;
+  --wood:           #f5c842;
+  --wood-light:     #fffbe0;
+  --gold:           #f5c842;
+  --white:          #fafafa;
+  --cream:          #fffbe0;
+
+  /* ── Gold metallic gradient ── */
+  --gold-gradient: linear-gradient(105deg, #7d5a0b 0%, #c8940c 18%, #f5c842 38%, #fffbe0 52%, #f5c842 66%, #c8940c 82%, #7d5a0b 100%);
+  --gold-gradient-nav: linear-gradient(105deg, #5c3d00, #b8860b 40%, #e8c060 55%, #b8860b 70%, #5c3d00);
+  --gold-gradient-btn: linear-gradient(135deg, #7d5a0b, #c8940c);
 }
 
 * {
@@ -36,7 +58,7 @@ html {
 }
 
 body {
-  background: var(--forest-dark);
+  background: var(--bg-dark);
   color: var(--white);
   font-family: var(--font-poppins);
   overflow-x: hidden;
@@ -68,16 +90,23 @@ body {
 [data-delay="700"] { transition-delay: 0.70s; }
 [data-delay="800"] { transition-delay: 0.80s; }
 
-/* ── Light rays animation (hero) ── */
-@keyframes rayPulse {
-  0%   { opacity: 0.04; }
-  100% { opacity: 0.22; }
+/* ── Hero shine sweep ── */
+@keyframes heroGlow {
+  0%   { background-position: 0% 50%; }
+  50%  { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
 }
 
-/* ── Neon glow pulse ── */
+/* ── Light rays animation (hero) ── */
+@keyframes rayPulse {
+  0%   { opacity: 0.15; }
+  100% { opacity: 0.55; }
+}
+
+/* ── Gold shimmer pulse ── */
 @keyframes neonPulse {
-  0%, 100% { box-shadow: 0 0 12px #39ff1440, 0 0 30px #39ff1420; }
-  50%       { box-shadow: 0 0 24px #39ff1466, 0 0 60px #39ff1433; }
+  0%, 100% { box-shadow: 0 0 12px rgba(245,200,66,0.4), 0 0 30px rgba(245,200,66,0.2); }
+  50%       { box-shadow: 0 0 24px rgba(245,200,66,0.6), 0 0 60px rgba(245,200,66,0.3); }
 }
 .neon-glow { animation: neonPulse 2.5s ease-in-out infinite; }
 
@@ -101,20 +130,20 @@ body {
   100% { background-position:  200% center; }
 }
 .shimmer {
-  background: linear-gradient(90deg, transparent 25%, rgba(255,255,255,0.07) 50%, transparent 75%);
+  background: linear-gradient(90deg, transparent 25%, rgba(245,200,66,0.07) 50%, transparent 75%);
   background-size: 200% 100%;
   animation: shimmer 2.5s infinite;
 }
 
 /* ── Gradient text helpers ── */
 .text-gradient-green {
-  background: linear-gradient(135deg, #57cc99 0%, #2d6a4f 100%);
+  background: linear-gradient(135deg, #f5c842 0%, #c8940c 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
 }
 .text-gradient-gold {
-  background: linear-gradient(135deg, #f5a623 0%, #c4a265 100%);
+  background: linear-gradient(135deg, #f5c842 0%, #c8940c 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
@@ -122,19 +151,19 @@ body {
 
 /* ── Custom scrollbar ── */
 ::-webkit-scrollbar { width: 5px; }
-::-webkit-scrollbar-track { background: var(--forest-dark); }
-::-webkit-scrollbar-thumb { background: var(--forest-light); border-radius: 3px; }
-::-webkit-scrollbar-thumb:hover { background: var(--green-primary); }
+::-webkit-scrollbar-track { background: var(--bg-dark); }
+::-webkit-scrollbar-thumb { background: var(--bg-hover); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: var(--gold-primary); }
 
 /* ── Selection ── */
-::selection { background: var(--green-primary); color: #fff; }
+::selection { background: var(--gold-primary); color: #000; }
 
 /* ── Page hero shared ── */
 .page-hero {
   padding: 140px 32px 80px;
   text-align: center;
-  background: radial-gradient(ellipse at 50% 0%, #1b5e2033 0%, transparent 70%);
-  border-bottom: 1px solid var(--forest-border);
+  background: radial-gradient(ellipse at 50% 0%, rgba(200,148,12,0.22) 0%, transparent 70%);
+  border-bottom: 1px solid var(--border);
 }
 .page-hero h1 {
   font-family: var(--font-playfair), Georgia, serif;
@@ -165,7 +194,7 @@ body {
   font-size: 11px;
   letter-spacing: 4px;
   text-transform: uppercase;
-  color: var(--wood);
+  color: var(--gold-bright);
   margin-bottom: 12px;
 }
 
@@ -181,7 +210,7 @@ body {
   content: '';
   flex: 1;
   height: 1px;
-  background: linear-gradient(90deg, transparent, var(--wood), transparent);
+  background: linear-gradient(90deg, transparent, var(--gold-bright), transparent);
 }
 
 /* ── Card hover lift ── */
@@ -190,7 +219,7 @@ body {
 }
 .card-lift:hover {
   transform: translateY(-6px);
-  box-shadow: 0 20px 40px rgba(0,0,0,0.4), 0 0 20px rgba(45,106,79,0.15);
+  box-shadow: 0 20px 40px rgba(0,0,0,0.5), 0 0 20px rgba(200,148,12,0.15);
 }
 
 /* ── Responsive helpers ── */
@@ -210,7 +239,7 @@ body {
   .show-mobile-only { display: none !important; }
 }
 
-/* ── Gallery grid — span reset on narrow screens ── */
+/* ── Gallery grid ── */
 .gallery-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
@@ -231,44 +260,25 @@ body {
 
 /* ── Mobile section padding ── */
 @media (max-width: 768px) {
-  /* Reduce large vertical padding on sections */
   section[style*="padding: '100px"] { padding-top: 60px !important; padding-bottom: 60px !important; }
-
-  /* Nav padding tighter */
   nav { padding-left: 16px !important; padding-right: 16px !important; }
-
-  /* Hero text */
   .hero-tagline { font-size: 15px !important; }
-
-  /* Booking step connector narrower */
   .step-connector { width: 40px !important; }
-
-  /* Footer grid single column */
   .footer-grid { grid-template-columns: 1fr !important; gap: 32px !important; }
-
-  /* Menu tabs scroll without wrapping */
   .menu-tabs { flex-wrap: nowrap; overflow-x: auto; }
   .menu-tabs button { white-space: nowrap; }
-
-  /* Stat numbers smaller */
   .stat-number { font-size: 36px !important; }
-
-  /* Card grids tighter */
   .feature-grid { gap: 12px !important; }
 }
 
-/* ── Prevent horizontal overflow globally on mobile ── */
+/* ── Prevent horizontal overflow ── */
 @media (max-width: 768px) {
   body { overflow-x: hidden; }
   img, video { max-width: 100%; }
-
-  /* Two-column grids collapse to one */
   .two-col-grid {
     grid-template-columns: 1fr !important;
     gap: 40px !important;
   }
-
-  /* CTA button rows stack */
   .cta-row {
     flex-direction: column !important;
     align-items: center !important;
@@ -280,26 +290,14 @@ body {
     text-align: center !important;
     box-sizing: border-box;
   }
-
-  /* Testimonials single column */
-  .testimonial-grid {
-    grid-template-columns: 1fr !important;
-  }
-
-  /* Footer bottom bar stacks */
+  .testimonial-grid { grid-template-columns: 1fr !important; }
   .footer-bottom {
     flex-direction: column !important;
     text-align: center !important;
     gap: 6px !important;
   }
-
-  /* Booking: step connector narrower */
   .step-connector { width: 32px !important; margin: 0 4px 20px !important; }
-
-  /* Menu sticky tabs: smaller padding */
   .menu-tab-btn { padding: 14px 14px !important; font-size: 10px !important; }
-
-  /* Gallery card heights shrink on mobile */
   .gallery-card-tall { height: 240px !important; }
   .gallery-card-normal { height: 200px !important; }
 }

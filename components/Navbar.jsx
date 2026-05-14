@@ -1,6 +1,7 @@
 'use client'
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
+import Image from 'next/image'
 import { usePathname } from 'next/navigation'
 
 const navLinks = [
@@ -37,25 +38,23 @@ export default function Navbar() {
       <nav style={{
         position: 'fixed', top: 0, left: 0, right: 0, zIndex: 1000,
         padding: scrolled ? '10px 40px' : '22px 40px',
-        background: scrolled ? 'rgba(4,13,7,0.96)' : 'transparent',
+        background: scrolled
+          ? 'linear-gradient(105deg, #3d2200cc, #7d5a0bcc 40%, #c8940ccc 55%, #7d5a0bcc 70%, #3d2200cc)'
+          : 'transparent',
         backdropFilter: scrolled ? 'blur(24px)' : 'none',
-        borderBottom: scrolled ? '1px solid rgba(36,61,42,0.7)' : 'none',
+        borderBottom: scrolled ? '1px solid rgba(46,32,0,0.7)' : 'none',
         transition: 'all 0.4s cubic-bezier(0.25,0.46,0.45,0.94)',
         display: 'flex', alignItems: 'center', justifyContent: 'space-between',
       }}>
         {/* Logo */}
         <Link href="/" style={{ textDecoration: 'none', lineHeight: 1 }}>
-          <div style={{ fontFamily: 'var(--font-playfair)', fontWeight: 900, letterSpacing: '3px', lineHeight: 0.92 }}>
-            <span style={{ display: 'block', fontSize: '22px', color: '#fafafa' }}>KHULA</span>
-            <span style={{ display: 'block', fontSize: '22px', color: '#57cc99' }}>CAFE</span>
-          </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '5px', marginTop: '4px' }}>
-            <div style={{ height: '1px', flex: 1, background: '#c4a265', opacity: 0.6 }} />
-            <span style={{ fontSize: '6px', letterSpacing: '3px', color: '#c4a265', textTransform: 'uppercase', whiteSpace: 'nowrap' }}>
-              Best of the Best
-            </span>
-            <div style={{ height: '1px', flex: 1, background: '#c4a265', opacity: 0.6 }} />
-          </div>
+          <img
+            src="/images/logo.png"
+            alt="Khula Cafe"
+            width={64}
+            height={80}
+            style={{ display: 'block' }}
+          />
         </Link>
 
         {/* Desktop links — absolutely centred */}
@@ -65,17 +64,21 @@ export default function Navbar() {
         }}>
           {navLinks.map(link => {
             const active = pathname === link.href
+            const onGoldHero = pathname === '/' && !scrolled
+            const activeColor = onGoldHero ? '#3d2200' : '#f5c842'
+            const defaultColor = onGoldHero ? '#0a0600' : 'rgba(255,255,255,0.65)'
+            const hoverColor = onGoldHero ? '#3d2200' : '#fff'
             return (
               <Link key={link.href} href={link.href} style={{
                 textDecoration: 'none',
                 fontSize: '11px', letterSpacing: '2px', textTransform: 'uppercase', fontWeight: 500,
-                color: active ? '#57cc99' : 'rgba(255,255,255,0.65)',
-                borderBottom: active ? '1px solid #57cc99' : '1px solid transparent',
+                color: active ? activeColor : defaultColor,
+                borderBottom: active ? `1px solid ${activeColor}` : '1px solid transparent',
                 paddingBottom: '3px',
                 transition: 'color 0.2s, border-color 0.2s',
               }}
-                onMouseEnter={e => { if (!active) e.currentTarget.style.color = '#fff' }}
-                onMouseLeave={e => { if (!active) e.currentTarget.style.color = 'rgba(255,255,255,0.65)' }}
+                onMouseEnter={e => { if (!active) e.currentTarget.style.color = hoverColor }}
+                onMouseLeave={e => { if (!active) e.currentTarget.style.color = defaultColor }}
               >
                 {link.label}
               </Link>
@@ -87,14 +90,14 @@ export default function Navbar() {
         <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
           <Link href="/book" className="hide-mobile" style={{
             textDecoration: 'none', fontSize: '11px', letterSpacing: '2.5px',
-            textTransform: 'uppercase', fontWeight: 600, color: '#fff',
+            textTransform: 'uppercase', fontWeight: 600, color: '#0a0600',
             padding: '10px 24px', borderRadius: '40px',
-            background: 'linear-gradient(135deg, #2d6a4f, #40916c)',
-            boxShadow: '0 4px 18px rgba(45,106,79,0.45)',
+            background: 'linear-gradient(135deg, #f5c842, #c8940c)',
+            boxShadow: '0 4px 18px rgba(200,148,12,0.45)',
             transition: 'transform 0.2s, box-shadow 0.2s',
           }}
-            onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-2px)'; e.currentTarget.style.boxShadow = '0 8px 24px rgba(45,106,79,0.6)' }}
-            onMouseLeave={e => { e.currentTarget.style.transform = 'none'; e.currentTarget.style.boxShadow = '0 4px 18px rgba(45,106,79,0.45)' }}
+            onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-2px)'; e.currentTarget.style.boxShadow = '0 8px 24px rgba(200,148,12,0.6)' }}
+            onMouseLeave={e => { e.currentTarget.style.transform = 'none'; e.currentTarget.style.boxShadow = '0 4px 18px rgba(200,148,12,0.45)' }}
           >
             Reserve Now
           </Link>
@@ -109,7 +112,7 @@ export default function Navbar() {
             {[0, 1, 2].map(i => (
               <span key={i} style={{
                 display: 'block', width: '22px', height: '2px',
-                background: mobileOpen ? '#57cc99' : '#fafafa',
+                background: mobileOpen ? '#f5c842' : ((pathname === '/' && !scrolled) ? '#0a0600' : '#fafafa'),
                 borderRadius: '2px',
                 transform: mobileOpen
                   ? i === 0 ? 'rotate(45deg) translateY(7px)' : i === 2 ? 'rotate(-45deg) translateY(-7px)' : 'none'
@@ -125,7 +128,7 @@ export default function Navbar() {
       {/* Mobile drawer */}
       <div style={{
         position: 'fixed', inset: 0, zIndex: 999,
-        background: 'rgba(4,13,7,0.98)', backdropFilter: 'blur(24px)',
+        background: 'rgba(10,6,0,0.98)', backdropFilter: 'blur(24px)',
         display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '40px',
         transition: 'opacity 0.3s, transform 0.3s',
         opacity: mobileOpen ? 1 : 0,
@@ -137,7 +140,7 @@ export default function Navbar() {
             textDecoration: 'none',
             fontFamily: 'var(--font-playfair)', fontSize: '28px', fontWeight: 600,
             letterSpacing: '5px', textTransform: 'uppercase',
-            color: pathname === link.href ? '#57cc99' : 'rgba(255,255,255,0.8)',
+            color: pathname === link.href ? '#f5c842' : 'rgba(255,255,255,0.8)',
             transition: 'color 0.2s',
           }}>
             {link.label}
@@ -146,9 +149,9 @@ export default function Navbar() {
         <Link href="/book" onClick={() => setMobileOpen(false)} style={{
           textDecoration: 'none', marginTop: '8px',
           fontSize: '13px', letterSpacing: '3px', textTransform: 'uppercase', fontWeight: 600,
-          color: '#fff', padding: '14px 48px', borderRadius: '40px',
-          background: 'linear-gradient(135deg, #2d6a4f, #40916c)',
-          boxShadow: '0 4px 20px rgba(45,106,79,0.5)',
+          color: '#0a0600', padding: '14px 48px', borderRadius: '40px',
+          background: 'linear-gradient(135deg, #f5c842, #c8940c)',
+          boxShadow: '0 4px 20px rgba(200,148,12,0.5)',
         }}>
           Reserve Now
         </Link>

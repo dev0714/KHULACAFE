@@ -16,10 +16,8 @@ export async function POST(request) {
     .eq('email', email.toLowerCase().trim())
     .single()
 
-  if (dbError) console.error('[login] db error:', dbError)
-
   if (!user) {
-    return NextResponse.json({ error: dbError ? `DB: ${dbError.message}` : 'Invalid credentials' }, { status: 401 })
+    return NextResponse.json({ error: 'Invalid credentials' }, { status: 401 })
   }
 
   const valid = await bcrypt.compare(password, user.password_hash)

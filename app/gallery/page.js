@@ -40,6 +40,11 @@ export default function GalleryPage() {
 
       <section style={{ padding: '80px 0', background: '#0a0600' }}>
         <div className="section-wrap">
+          {galleryImages.length === 0 && (
+            <div style={{ textAlign: 'center', padding: '80px 0', color: 'rgba(255,255,255,0.25)', fontSize: '15px' }}>
+              Gallery photos coming soon.
+            </div>
+          )}
           <div className="gallery-grid">
             {galleryImages.map((img, i) => (
               <div

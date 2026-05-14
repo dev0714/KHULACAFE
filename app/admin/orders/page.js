@@ -1,7 +1,6 @@
 'use client'
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { getOrders, updateOrderStatus } from '../actions'
-import { supabase } from '../../../lib/supabase-public'
 
 const STATUSES = [
   { key: 'received',         label: 'Received',          color: '#6b9fff', icon: '📥' },
@@ -106,23 +105,30 @@ export default function OrdersPage() {
 
   useEffect(() => { load() }, [load])
 
-  // Real-time new order notifications
+  const knownIds = useRef(null)
+
+  // Poll for new orders every 15 seconds
   useEffect(() => {
-    const channel = supabase
-      .channel('admin-new-orders')
-      .on('postgres_changes', { event: 'INSERT', schema: 'Khulacafe', table: 'orders' }, (payload) => {
-        load()
-        const name = payload.new?.customer_name ?? 'Someone'
+    const interval = setInterval(async () => {
+      const data = await getOrders()
+      if (knownIds.current === null) {
+        knownIds.current = new Set(data.map(o => o.id))
+        return
+      }
+      const newOrders = data.filter(o => !knownIds.current.has(o.id))
+      if (newOrders.length > 0) {
+        const name = newOrders[0].customer_name
         setToast(`🛎️ New order from ${name}!`)
         setTimeout(() => setToast(null), 7000)
-        // Browser notification if permitted
         if (typeof Notification !== 'undefined' && Notification.permission === 'granted') {
           new Notification('New Khula Order!', { body: `Order received from ${name}`, icon: '/images/logo.png' })
         }
-      })
-      .subscribe()
-    return () => { supabase.removeChannel(channel) }
-  }, [load])
+        setOrders(data)
+        newOrders.forEach(o => knownIds.current.add(o.id))
+      }
+    }, 15000)
+    return () => clearInterval(interval)
+  }, [])
 
   const filtered = orders.filter(o => {
     if (filter === 'active') return o.status !== 'delivered'
