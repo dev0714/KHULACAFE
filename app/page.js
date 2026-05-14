@@ -391,17 +391,36 @@ export default function HomePage() {
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '20px' }}>
             {appFeatures.map((feat, i) => (
               <div key={i} className="card-lift" data-reveal data-delay={`${i * 100 + 100}`} style={{
-                background: '#1e1500', border: `1px solid ${feat.color}22`,
+                background: 'linear-gradient(160deg, #2a1c00 0%, #1e1500 60%, #140e00 100%)',
+                border: '1px solid #2e2000',
                 borderRadius: '16px', padding: '28px',
-                borderLeft: `3px solid ${feat.color}`,
+                position: 'relative', overflow: 'hidden',
               }}>
-                <div style={{ fontSize: '32px', marginBottom: '16px' }}>{feat.icon}</div>
+                {/* Gold top accent line */}
+                <div style={{
+                  position: 'absolute', top: 0, left: '28px', right: '28px', height: '2px',
+                  background: 'linear-gradient(90deg, transparent, #f5c842, transparent)',
+                }} />
+                {/* Icon box */}
+                <div style={{
+                  width: '48px', height: '48px', borderRadius: '12px',
+                  background: 'rgba(245,200,66,0.1)', border: '1px solid rgba(245,200,66,0.2)',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  fontSize: '22px', marginBottom: '18px',
+                }}>{feat.icon}</div>
                 <h3 style={{ fontFamily: 'var(--font-playfair)', fontSize: '18px', color: '#fafafa', marginBottom: '10px' }}>
                   {feat.title}
                 </h3>
-                <p style={{ fontSize: '13px', color: 'rgba(255,255,255,0.5)', lineHeight: 1.75 }}>
+                <p style={{ fontSize: '13px', color: 'rgba(255,255,255,0.5)', lineHeight: 1.75, margin: 0 }}>
                   {feat.description}
                 </p>
+                {/* Subtle corner glow */}
+                <div style={{
+                  position: 'absolute', bottom: '-20px', right: '-20px',
+                  width: '80px', height: '80px', borderRadius: '50%',
+                  background: 'radial-gradient(circle, rgba(245,200,66,0.06) 0%, transparent 70%)',
+                  pointerEvents: 'none',
+                }} />
               </div>
             ))}
           </div>
