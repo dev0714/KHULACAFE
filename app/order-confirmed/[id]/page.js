@@ -61,6 +61,7 @@ export default function OrderConfirmedPage() {
         {/* Status */}
         <div style={{ background: 'rgba(245,200,66,0.06)', border: '1px solid rgba(245,200,66,0.2)', borderRadius: '10px', padding: '14px', marginBottom: '32px', fontSize: '13px', color: 'rgba(255,255,255,0.6)' }}>
           📦 <strong style={{ color: '#f5c842' }}>Status: Order Received</strong><br />
+          <span style={{ fontSize: '12px' }}>Payment: {order.payment_status === 'paid' ? 'Paid ✅' : order.payment_status === 'failed' ? 'Failed ❌' : 'Pending ⏳'}</span><br />
           <span style={{ fontSize: '12px' }}>
             {order.delivery_type === 'delivery' ? `Delivering to: ${order.delivery_address}` : 'Ready for pickup at Khula Cafe'}
           </span>

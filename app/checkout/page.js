@@ -41,7 +41,7 @@ export default function CheckoutPage() {
     setStep('payment')
   }
 
-  async function handlePlaceOrder() {
+  async function handlePaystackCheckout() {
     setLoading(true)
     setError('')
     try {
@@ -60,8 +60,28 @@ export default function CheckoutPage() {
       })
       const data = await res.json()
       if (!res.ok) throw new Error(data.error || 'Order failed')
+
+      if (!form.email?.trim()) {
+        clearCart()
+        router.push(`/order-confirmed/${data.orderId}`)
+        return
+      }
+
+      const payRes = await fetch('/api/payments/paystack/initialize', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          orderId: data.orderId,
+          email: form.email.trim(),
+          amountCents: totalCents,
+          customerName: form.name,
+        }),
+      })
+      const payData = await payRes.json()
+      if (!payRes.ok) throw new Error(payData.error || 'Failed to initialize payment')
+
       clearCart()
-      router.push(`/order-confirmed/${data.orderId}`)
+      window.location.href = payData.authorizationUrl
     } catch (err) {
       setError(err.message)
       setLoading(false)
@@ -173,23 +193,23 @@ export default function CheckoutPage() {
               <p style={{ fontSize: '10px', letterSpacing: '3px', color: 'rgba(255,255,255,0.3)', textTransform: 'uppercase', marginBottom: '16px' }}>Payment</p>
               <div style={{ background: '#140e00', borderRadius: '8px', padding: '20px', marginBottom: '16px' }}>
                 <p style={{ color: 'rgba(255,255,255,0.5)', fontSize: '13px', margin: 0 }}>
-                  🔒 Secure payment via AO Pay
+                  🔒 Secure payment via Paystack
                 </p>
                 <p style={{ color: 'rgba(255,255,255,0.25)', fontSize: '11px', marginTop: '8px' }}>
-                  Payment gateway coming soon — your order will be placed and payment collected at pickup/delivery.
+                  You will be redirected to Paystack to complete secure payment. If you skip payment, your order remains pending.
                 </p>
               </div>
 
               {error && <p style={{ color: '#ff6b6b', fontSize: '13px', marginBottom: '12px' }}>{error}</p>}
 
-              <button onClick={handlePlaceOrder} disabled={loading} style={{
+              <button onClick={handlePaystackCheckout} disabled={loading} style={{
                 width: '100%', padding: '15px', borderRadius: '10px', border: 'none',
                 cursor: loading ? 'not-allowed' : 'pointer',
                 background: loading ? '#2e2000' : 'linear-gradient(135deg, #f5c842, #c8940c)',
                 color: loading ? 'rgba(255,255,255,0.4)' : '#0a0600',
                 fontWeight: 700, fontSize: '12px', letterSpacing: '2px', textTransform: 'uppercase',
               }}>
-                {loading ? 'Placing Order…' : `Place Order — R${(totalCents / 100).toFixed(2)}`}
+                {loading ? 'Redirecting…' : `Pay with Paystack — R${(totalCents / 100).toFixed(2)}`}
               </button>
             </div>
 
