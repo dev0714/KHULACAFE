@@ -2,13 +2,16 @@
 export const dynamic = 'force-dynamic'
 import { useEffect, useState } from 'react'
 import { useParams } from 'next/navigation'
+import { useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { supabase } from '../../../lib/supabase-public'
 
 export default function OrderConfirmedPage() {
   const { id } = useParams()
+  const searchParams = useSearchParams()
   const [order, setOrder] = useState(null)
   const [items, setItems] = useState([])
+  const paidOverride = searchParams.get('paid') === '1'
 
   useEffect(() => {
     if (!id) return
@@ -30,6 +33,7 @@ export default function OrderConfirmedPage() {
   }
 
   const ref = `#${id.slice(0, 8).toUpperCase()}`
+  const isPaid = paidOverride || order.payment_status === 'paid'
 
   return (
     <div style={{ background: '#0a0600', minHeight: '100vh', padding: '80px 24px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
@@ -61,7 +65,11 @@ export default function OrderConfirmedPage() {
         {/* Status */}
         <div style={{ background: 'rgba(245,200,66,0.06)', border: '1px solid rgba(245,200,66,0.2)', borderRadius: '10px', padding: '14px', marginBottom: '32px', fontSize: '13px', color: 'rgba(255,255,255,0.6)' }}>
           📦 <strong style={{ color: '#f5c842' }}>Status: Order Received</strong><br />
-          <span style={{ fontSize: '12px' }}>Payment: {order.payment_status === 'paid' ? 'Paid ✅' : order.payment_status === 'failed' ? 'Failed ❌' : 'Pending ⏳'}</span><br />
+          <span style={{ fontSize: '12px' }}>
+            Payment: <strong style={{ color: isPaid ? '#26de81' : order.payment_status === 'failed' ? '#ff6b6b' : '#f5c842' }}>
+              {isPaid ? 'Paid ✅' : order.payment_status === 'failed' ? 'Failed ❌' : 'Pending ⏳'}
+            </strong>
+          </span><br />
           <span style={{ fontSize: '12px' }}>
             {order.delivery_type === 'delivery' ? `Delivering to: ${order.delivery_address}` : 'Ready for pickup at Khula Cafe'}
           </span>

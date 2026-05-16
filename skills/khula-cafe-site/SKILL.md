@@ -33,6 +33,7 @@ Use this skill when making any future edits to the Khula Cafe website.
 9. Keep copy consistent with the restaurant’s tone: warm, premium, South African, and welcoming.
 10. After making code changes, run lint and build checks if the edit touches application code.
 11. On the homepage hero, hide or simplify decorative line systems on small screens before they crowd the logo, title, or CTAs.
+12. For Paystack checkout, use the proxy variables `PAYSTACK_FN_BASE`, `PAYSTACK_CREDENTIAL_ID`, `PAYSTACK_CREDENTIAL_KEY`, and `NEXT_PUBLIC_PAYSTACK_PUBLIC_KEY` instead of a direct secret key flow.
 
 ## Edit Order
 

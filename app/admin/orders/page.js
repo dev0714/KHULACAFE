@@ -11,6 +11,12 @@ const STATUSES = [
 
 function statusMeta(key) { return STATUSES.find(s => s.key === key) ?? STATUSES[0] }
 
+function paymentMeta(status) {
+  if (status === 'paid') return { label: 'Paid', color: '#26de81', icon: '💳' }
+  if (status === 'failed') return { label: 'Payment Failed', color: '#ff6b6b', icon: '⚠️' }
+  return { label: 'Payment Pending', color: '#f5c842', icon: '⏳' }
+}
+
 function nextStatus(key) {
   const idx = STATUSES.findIndex(s => s.key === key)
   return idx < STATUSES.length - 1 ? STATUSES[idx + 1] : null
@@ -19,6 +25,7 @@ function nextStatus(key) {
 function OrderCard({ order, onStatusChange }) {
   const [updating, setUpdating] = useState(false)
   const meta = statusMeta(order.status)
+  const payment = paymentMeta(order.payment_status)
   const next = nextStatus(order.status)
   const ref = `#${order.id.slice(0, 8).toUpperCase()}`
   const time = new Date(order.created_at).toLocaleString('en-ZA', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })
@@ -50,6 +57,15 @@ function OrderCard({ order, onStatusChange }) {
           }}>
             {meta.icon} {meta.label}
           </span>
+          <div style={{ marginTop: '8px' }}>
+            <span style={{
+              display: 'inline-flex', alignItems: 'center', gap: '6px',
+              background: `${payment.color}18`, color: payment.color,
+              padding: '4px 10px', borderRadius: '20px', fontSize: '11px', fontWeight: 600,
+            }}>
+              {payment.icon} {payment.label}
+            </span>
+          </div>
         </div>
       </div>
 

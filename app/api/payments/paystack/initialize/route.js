@@ -2,9 +2,19 @@ import { NextResponse } from 'next/server'
 import { supabaseAdmin } from '../../../../../lib/supabase-admin'
 import { callPaystackProxy } from '../../../../../lib/paystack-proxy'
 
+function getCallbackBaseUrl(request) {
+  const envSiteUrl = process.env.NEXT_PUBLIC_SITE_URL?.trim().replace(/\/+$/, '')
+  const vercelUrl = process.env.VERCEL_URL?.trim().replace(/\/+$/, '')
+  const forwardedHost = request.headers.get('x-forwarded-host')?.trim().replace(/\/+$/, '')
+  const forwardedProto = request.headers.get('x-forwarded-proto')?.trim() || 'https'
+  const requestOrigin = forwardedHost ? `${forwardedProto}://${forwardedHost}` : new URL(request.url).origin
+
+  return envSiteUrl || (vercelUrl ? `https://${vercelUrl}` : requestOrigin)
+}
+
 export async function POST(request) {
   try {
-    const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000'
+    const siteUrl = getCallbackBaseUrl(request)
 
     const { orderId, email, amountCents, customerName } = await request.json()
 

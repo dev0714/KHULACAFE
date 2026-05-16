@@ -17,12 +17,25 @@ export async function GET(request) {
 
     const paid = data?.data?.status === 'success'
 
-    await supabaseAdmin.from('orders').update({
-      payment_status: paid ? 'paid' : 'failed',
-      payment_reference: reference,
-    }).eq('id', orderId)
+    const { data: updatedOrder, error: updateError } = await supabaseAdmin
+      .from('orders')
+      .update({
+        payment_status: paid ? 'paid' : 'failed',
+        payment_reference: reference,
+        updated_at: new Date().toISOString(),
+      })
+      .eq('id', orderId)
+      .select('id, payment_status')
+      .single()
 
-    return NextResponse.json({ paid })
+    if (updateError) {
+      throw new Error(updateError.message)
+    }
+    if (!updatedOrder?.id) {
+      throw new Error('Order not found while tagging payment status')
+    }
+
+    return NextResponse.json({ paid, paymentStatus: updatedOrder.payment_status })
   } catch (err) {
     return NextResponse.json({ error: err.message || 'Could not verify payment' }, { status: 500 })
   }

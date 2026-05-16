@@ -25,7 +25,10 @@ function PaymentVerifyContent() {
       .then(({ ok, data }) => {
         if (!ok) throw new Error(data.error || 'Payment verification failed')
         setMessage(data.paid ? 'Payment successful. Redirecting…' : 'Payment not completed. Redirecting to your order…')
-        setTimeout(() => router.replace(`/order-confirmed/${orderId}`), 1200)
+        const nextUrl = data.paid
+          ? `/order-confirmed/${orderId}?paid=1&reference=${encodeURIComponent(reference)}`
+          : `/order-confirmed/${orderId}?reference=${encodeURIComponent(reference)}`
+        setTimeout(() => router.replace(nextUrl), 1200)
       })
       .catch(() => {
         setMessage('Could not verify payment right now. Redirecting to your order…')
