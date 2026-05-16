@@ -1,17 +1,20 @@
 'use client'
 export const dynamic = 'force-dynamic'
-import { useEffect, useState } from 'react'
-import { useParams } from 'next/navigation'
-import { useSearchParams } from 'next/navigation'
+import { useEffect, useRef, useState } from 'react'
+import { useParams, useSearchParams, useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { supabase } from '../../../lib/supabase-public'
 
 export default function OrderConfirmedPage() {
   const { id } = useParams()
   const searchParams = useSearchParams()
+  const router = useRouter()
   const [order, setOrder] = useState(null)
   const [items, setItems] = useState([])
+  const [paymentStatus, setPaymentStatus] = useState(null)
   const paidOverride = searchParams.get('paid') === '1'
+  const reference = searchParams.get('reference') || searchParams.get('trxref')
+  const verificationStarted = useRef(false)
 
   useEffect(() => {
     if (!id) return
@@ -20,9 +23,30 @@ export default function OrderConfirmedPage() {
       supabase.from('order_items').select('*').eq('order_id', id).order('created_at'),
     ]).then(([{ data: o }, { data: i }]) => {
       if (o) setOrder(o)
+      if (o?.payment_status) setPaymentStatus(o.payment_status)
       if (i) setItems(i)
     })
   }, [id])
+
+  useEffect(() => {
+    if (!id || !reference || paidOverride || paymentStatus === 'paid' || verificationStarted.current) return
+
+    verificationStarted.current = true
+    fetch(`/api/payments/paystack/verify?reference=${encodeURIComponent(reference)}&orderId=${encodeURIComponent(id)}`)
+      .then(r => r.json().then(data => ({ ok: r.ok, data })))
+      .then(({ ok, data }) => {
+        if (!ok) throw new Error(data.error || 'Payment verification failed')
+        if (data.paid) {
+          setPaymentStatus('paid')
+          router.replace(`/order-confirmed/${id}?paid=1&reference=${encodeURIComponent(reference)}`)
+        } else {
+          setPaymentStatus('failed')
+        }
+      })
+      .catch(() => {
+        verificationStarted.current = false
+      })
+  }, [id, reference, paidOverride, paymentStatus, router])
 
   if (!order) {
     return (
@@ -33,7 +57,7 @@ export default function OrderConfirmedPage() {
   }
 
   const ref = `#${id.slice(0, 8).toUpperCase()}`
-  const isPaid = paidOverride || order.payment_status === 'paid'
+  const isPaid = paidOverride || paymentStatus === 'paid' || order.payment_status === 'paid'
 
   return (
     <div style={{ background: '#0a0600', minHeight: '100vh', padding: '80px 24px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>

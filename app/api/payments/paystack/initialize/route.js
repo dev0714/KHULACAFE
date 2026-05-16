@@ -23,7 +23,7 @@ export async function POST(request) {
     }
 
     const reference = `KHULA-${orderId.slice(0, 8).toUpperCase()}-${Date.now()}`
-    const callbackUrl = `${siteUrl}/payment/verify?orderId=${encodeURIComponent(orderId)}`
+    const callbackUrl = `${siteUrl}/order-confirmed/${encodeURIComponent(orderId)}`
 
     const data = await callPaystackProxy('paystack-transaction', 'initialize', {
       body: {
