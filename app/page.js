@@ -6,6 +6,65 @@ import { stats, appFeatures, testimonials } from '../lib/mockData'
 import { supabase } from '../lib/supabase-public'
 import { useCart } from '../lib/cart-context'
 
+const GOLD = '#f5c842'
+
+const featureIcons = {
+  booking: (
+    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke={GOLD} strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
+      <rect x="3" y="4" width="18" height="18" rx="3" />
+      <line x1="3" y1="9" x2="21" y2="9" />
+      <line x1="8" y1="2" x2="8" y2="6" />
+      <line x1="16" y1="2" x2="16" y2="6" />
+      <line x1="7" y1="13" x2="9" y2="13" />
+      <line x1="11" y1="13" x2="13" y2="13" />
+      <line x1="15" y1="13" x2="17" y2="13" />
+      <line x1="7" y1="17" x2="9" y2="17" />
+      <line x1="11" y1="17" x2="13" y2="17" />
+    </svg>
+  ),
+  bucks: (
+    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke={GOLD} strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
+      <circle cx="12" cy="12" r="9" />
+      <path d="M12 7v1m0 8v1" />
+      <path d="M9.5 9.5a2.5 2.5 0 0 1 5 0c0 1.5-1 2-2.5 2.5S9.5 13 9.5 14.5a2.5 2.5 0 0 0 5 0" />
+    </svg>
+  ),
+  whatsapp: (
+    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke={GOLD} strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z" />
+      <line x1="9" y1="12" x2="9.01" y2="12" strokeWidth="2.5" />
+      <line x1="12" y1="12" x2="12.01" y2="12" strokeWidth="2.5" />
+      <line x1="15" y1="12" x2="15.01" y2="12" strokeWidth="2.5" />
+    </svg>
+  ),
+  delivery: (
+    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke={GOLD} strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
+      <rect x="1" y="3" width="15" height="13" rx="2" />
+      <path d="M16 8h4l3 5v3h-7V8z" />
+      <circle cx="5.5" cy="18.5" r="2.5" />
+      <circle cx="18.5" cy="18.5" r="2.5" />
+    </svg>
+  ),
+  loadshedding: (
+    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke={GOLD} strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
+      <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" />
+    </svg>
+  ),
+  gift: (
+    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke={GOLD} strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
+      <polyline points="20 12 20 22 4 22 4 12" />
+      <rect x="2" y="7" width="20" height="5" rx="1" />
+      <line x1="12" y1="22" x2="12" y2="7" />
+      <path d="M12 7H7.5a2.5 2.5 0 0 1 0-5C11 2 12 7 12 7z" />
+      <path d="M12 7h4.5a2.5 2.5 0 0 0 0-5C13 2 12 7 12 7z" />
+    </svg>
+  ),
+}
+
+function FeatureIcon({ name }) {
+  return featureIcons[name] ?? null
+}
+
 function Counter({ target, suffix }) {
   const [val, setVal] = useState(0)
   const ref = useRef(null)
@@ -406,8 +465,10 @@ export default function HomePage() {
                   width: '48px', height: '48px', borderRadius: '12px',
                   background: 'rgba(245,200,66,0.1)', border: '1px solid rgba(245,200,66,0.2)',
                   display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  fontSize: '22px', marginBottom: '18px',
-                }}>{feat.icon}</div>
+                  marginBottom: '18px', flexShrink: 0,
+                }}>
+                  <FeatureIcon name={feat.icon} />
+                </div>
                 <h3 style={{ fontFamily: 'var(--font-playfair)', fontSize: '18px', color: '#fafafa', marginBottom: '10px' }}>
                   {feat.title}
                 </h3>
