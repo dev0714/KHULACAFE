@@ -1,0 +1,40 @@
+{
+  "name": "Khula Cafe",
+  "short_name": "Khula Cafe",
+  "description": "Experience authentic South African flavours. Smart booking, loyalty rewards, and unforgettable moments.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0a0600",
+  "theme_color": "#f5c842",
+  "orientation": "portrait-primary",
+  "categories": ["food", "lifestyle"],
+  "icons": [
+    {
+      "src": "/images/logo.png",
+      "sizes": "any",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "screenshots": [
+    {
+      "src": "/images/gallery/gallery-1.jpg",
+      "sizes": "800x600",
+      "type": "image/jpeg",
+      "form_factor": "wide",
+      "label": "Khula Cafe Interior"
+    }
+  ]
+}

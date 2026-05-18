@@ -301,4 +301,74 @@ html { overflow-x: clip; }
   .menu-tab-btn { padding: 14px 14px !important; font-size: 10px !important; }
   .gallery-card-tall { height: 240px !important; }
   .gallery-card-normal { height: 200px !important; }
+  /* Checkout: stack email/phone fields on mobile */
+  .checkout-two-col { grid-template-columns: 1fr !important; }
+}
+
+/* ═══════════════════════════════════════════
+   ADMIN CRM — RESPONSIVE LAYOUT
+═══════════════════════════════════════════ */
+
+/* Desktop: sidebar visible, topbar hidden, drawer hidden */
+.admin-topbar { display: none; }
+.admin-sidebar-mobile { display: none; }
+.admin-drawer-close { display: none; }
+
+@media (max-width: 900px) {
+  /* Hide desktop sidebar */
+  .admin-sidebar-desktop { display: none !important; }
+
+  /* Show mobile top bar */
+  .admin-topbar {
+    display: flex !important;
+    position: fixed;
+    top: 0; left: 0; right: 0;
+    z-index: 1100;
+    background: #140e00;
+    border-bottom: 1px solid #2e2000;
+    padding: 12px 16px;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  /* Push main content below topbar */
+  .admin-main {
+    padding: 80px 16px 40px !important;
+  }
+
+  /* Show close button inside drawer */
+  .admin-drawer-close { display: block !important; }
+
+  /* Mobile sidebar drawer */
+  .admin-sidebar-mobile {
+    display: flex !important;
+    flex-direction: column;
+    position: fixed;
+    top: 0; left: 0; bottom: 0;
+    z-index: 1200;
+    width: 260px;
+    background: #140e00;
+    border-right: 1px solid #2e2000;
+    padding: 32px 0;
+    transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    overflow-y: auto;
+  }
+}
+
+/* ═══════════════════════════════════════════
+   ADMIN PAGES — INNER RESPONSIVE GRIDS
+═══════════════════════════════════════════ */
+@media (max-width: 700px) {
+  /* Menu admin: stack category list above items */
+  .admin-menu-grid {
+    grid-template-columns: 1fr !important;
+  }
+  /* Dashboard stat cards: 2 per row on phones */
+  .admin-stat-grid {
+    grid-template-columns: repeat(2, 1fr) !important;
+  }
+  /* Charts: full width */
+  .admin-chart-grid {
+    grid-template-columns: 1fr !important;
+  }
 }

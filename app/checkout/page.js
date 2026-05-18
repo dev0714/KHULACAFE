@@ -121,7 +121,7 @@ export default function CheckoutPage() {
                 onBlur={e => e.target.style.borderColor = '#2e2000'} />
             </div>
 
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px' }}>
+            <div className="checkout-two-col" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px' }}>
               <div>
                 <label style={labelStyle}>Email</label>
                 <input style={inputStyle} type="email" value={form.email} onChange={e => set('email', e.target.value)}
