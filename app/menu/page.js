@@ -1,5 +1,5 @@
 'use client'
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import Link from 'next/link'
 import { supabase } from '../../lib/supabase-public'
 import { useCart } from '../../lib/cart-context'
@@ -8,6 +8,29 @@ export default function MenuPage() {
   const { addItem, items } = useCart()
   const [menuCategories, setMenuCategories] = useState([])
   const [activeCategory, setActiveCategory] = useState('')
+  const tabsRef = useRef(null)
+  const dragState = useRef({ down: false, startX: 0, scrollLeft: 0 })
+
+  function onMouseDown(e) {
+    const el = tabsRef.current
+    dragState.current = { down: true, startX: e.pageX - el.offsetLeft, scrollLeft: el.scrollLeft }
+    el.style.cursor = 'grabbing'
+  }
+  function onMouseLeave() {
+    dragState.current.down = false
+    if (tabsRef.current) tabsRef.current.style.cursor = 'grab'
+  }
+  function onMouseUp() {
+    dragState.current.down = false
+    if (tabsRef.current) tabsRef.current.style.cursor = 'grab'
+  }
+  function onMouseMove(e) {
+    if (!dragState.current.down) return
+    e.preventDefault()
+    const el = tabsRef.current
+    const x = e.pageX - el.offsetLeft
+    el.scrollLeft = dragState.current.scrollLeft - (x - dragState.current.startX) * 1.5
+  }
 
   function cartQty(itemId) {
     return items.find(i => i.id === itemId)?.qty ?? 0
@@ -49,12 +72,21 @@ export default function MenuPage() {
         background: 'rgba(10,6,0,0.97)', backdropFilter: 'blur(20px)',
         borderBottom: '1px solid #2e2000',
       }}>
-        <div className="menu-tabs-bar" style={{
-          overflowX: 'auto', whiteSpace: 'nowrap',
-          scrollbarWidth: 'none', msOverflowStyle: 'none',
-          WebkitOverflowScrolling: 'touch',
-          padding: '0 32px',
-        }}>
+        <div
+          ref={tabsRef}
+          className="menu-tabs-bar"
+          style={{
+            overflowX: 'auto', whiteSpace: 'nowrap',
+            scrollbarWidth: 'none', msOverflowStyle: 'none',
+            WebkitOverflowScrolling: 'touch',
+            padding: '0 32px',
+            cursor: 'grab', userSelect: 'none',
+          }}
+          onMouseDown={onMouseDown}
+          onMouseLeave={onMouseLeave}
+          onMouseUp={onMouseUp}
+          onMouseMove={onMouseMove}
+        >
           <div style={{ display: 'inline-flex', gap: '0' }}>
             {menuCategories.map(cat => (
               <button key={cat.id} onClick={() => setActiveCategory(cat.id)} style={{
