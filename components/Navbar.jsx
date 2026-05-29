@@ -38,11 +38,9 @@ export default function Navbar() {
       <nav style={{
         position: 'fixed', top: 0, left: 0, right: 0, zIndex: 1000,
         padding: scrolled ? '10px 40px' : '22px 40px',
-        background: scrolled
-          ? 'linear-gradient(105deg, #3d2200cc, #7d5a0bcc 40%, #c8940ccc 55%, #7d5a0bcc 70%, #3d2200cc)'
-          : 'transparent',
-        backdropFilter: scrolled ? 'blur(24px)' : 'none',
-        borderBottom: scrolled ? '1px solid rgba(46,32,0,0.7)' : 'none',
+        background: '#F1EDE6',
+        backdropFilter: 'blur(24px)',
+        borderBottom: '1px solid rgba(200,148,12,0.2)',
         transition: 'all 0.4s cubic-bezier(0.25,0.46,0.45,0.94)',
         display: 'flex', alignItems: 'center', justifyContent: 'space-between',
       }}>
@@ -64,10 +62,9 @@ export default function Navbar() {
         }}>
           {navLinks.map(link => {
             const active = pathname === link.href
-            const onGoldHero = pathname === '/' && !scrolled
-            const activeColor = onGoldHero ? '#3d2200' : '#f5c842'
-            const defaultColor = onGoldHero ? '#0a0600' : 'rgba(255,255,255,0.65)'
-            const hoverColor = onGoldHero ? '#3d2200' : '#fff'
+            const activeColor = '#c8940c'
+            const defaultColor = 'rgba(30,18,0,0.6)'
+            const hoverColor = '#0a0600'
             return (
               <Link key={link.href} href={link.href} style={{
                 textDecoration: 'none',
@@ -112,7 +109,7 @@ export default function Navbar() {
             {[0, 1, 2].map(i => (
               <span key={i} style={{
                 display: 'block', width: '22px', height: '2px',
-                background: mobileOpen ? '#f5c842' : ((pathname === '/' && !scrolled) ? '#0a0600' : '#fafafa'),
+                background: mobileOpen ? '#c8940c' : '#1e1200',
                 borderRadius: '2px',
                 transform: mobileOpen
                   ? i === 0 ? 'rotate(45deg) translateY(7px)' : i === 2 ? 'rotate(-45deg) translateY(-7px)' : 'none'
@@ -128,7 +125,7 @@ export default function Navbar() {
       {/* Mobile drawer */}
       <div style={{
         position: 'fixed', inset: 0, zIndex: 999,
-        background: 'rgba(10,6,0,0.98)', backdropFilter: 'blur(24px)',
+        background: '#F1EDE6', backdropFilter: 'blur(24px)',
         display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '40px',
         transition: 'opacity 0.3s, transform 0.3s',
         opacity: mobileOpen ? 1 : 0,
@@ -140,7 +137,7 @@ export default function Navbar() {
             textDecoration: 'none',
             fontFamily: 'var(--font-playfair)', fontSize: '28px', fontWeight: 600,
             letterSpacing: '5px', textTransform: 'uppercase',
-            color: pathname === link.href ? '#f5c842' : 'rgba(255,255,255,0.8)',
+            color: pathname === link.href ? '#c8940c' : 'rgba(30,18,0,0.75)',
             transition: 'color 0.2s',
           }}>
             {link.label}
