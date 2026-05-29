@@ -44,12 +44,14 @@ export default function MenuPage() {
       </div>
 
       {/* Category tabs */}
-      <div style={{
+      <div className="menu-tabs-bar" style={{
         position: 'sticky', top: '62px', zIndex: 100,
         background: 'rgba(10,6,0,0.97)', backdropFilter: 'blur(20px)',
         borderBottom: '1px solid #2e2000',
         padding: '0 32px',
-        overflowX: 'auto', whiteSpace: 'nowrap', scrollbarWidth: 'none',
+        overflowX: 'auto', whiteSpace: 'nowrap',
+        scrollbarWidth: 'none', msOverflowStyle: 'none',
+        WebkitOverflowScrolling: 'touch',
       }}>
         <div style={{ display: 'inline-flex', gap: '0' }}>
           {menuCategories.map(cat => (

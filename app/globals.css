@@ -151,6 +151,9 @@ html { overflow-x: clip; }
   background-clip: text;
 }
 
+/* ── Hide scrollbar on menu tabs ── */
+.menu-tabs-bar::-webkit-scrollbar { display: none; }
+
 /* ── Custom scrollbar ── */
 ::-webkit-scrollbar { width: 5px; }
 ::-webkit-scrollbar-track { background: var(--bg-dark); }
