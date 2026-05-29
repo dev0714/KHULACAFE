@@ -38,9 +38,9 @@ export default function Navbar() {
       <nav style={{
         position: 'fixed', top: 0, left: 0, right: 0, zIndex: 1000,
         padding: scrolled ? '10px 40px' : '22px 40px',
-        background: '#F1EDE6',
-        backdropFilter: 'blur(24px)',
-        borderBottom: '1px solid rgba(200,148,12,0.2)',
+        background: scrolled ? '#F1EDE6' : 'transparent',
+        backdropFilter: scrolled ? 'blur(24px)' : 'none',
+        borderBottom: scrolled ? '1px solid rgba(200,148,12,0.2)' : 'none',
         transition: 'all 0.4s cubic-bezier(0.25,0.46,0.45,0.94)',
         display: 'flex', alignItems: 'center', justifyContent: 'space-between',
       }}>
@@ -62,9 +62,9 @@ export default function Navbar() {
         }}>
           {navLinks.map(link => {
             const active = pathname === link.href
-            const activeColor = '#c8940c'
-            const defaultColor = 'rgba(30,18,0,0.6)'
-            const hoverColor = '#0a0600'
+            const activeColor = scrolled ? '#c8940c' : '#f5c842'
+            const defaultColor = scrolled ? 'rgba(30,18,0,0.6)' : 'rgba(255,255,255,0.75)'
+            const hoverColor = scrolled ? '#0a0600' : '#fff'
             return (
               <Link key={link.href} href={link.href} style={{
                 textDecoration: 'none',
@@ -109,7 +109,7 @@ export default function Navbar() {
             {[0, 1, 2].map(i => (
               <span key={i} style={{
                 display: 'block', width: '22px', height: '2px',
-                background: mobileOpen ? '#c8940c' : '#1e1200',
+                background: mobileOpen ? '#c8940c' : (scrolled ? '#1e1200' : '#fafafa'),
                 borderRadius: '2px',
                 transform: mobileOpen
                   ? i === 0 ? 'rotate(45deg) translateY(7px)' : i === 2 ? 'rotate(-45deg) translateY(-7px)' : 'none'
