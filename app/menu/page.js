@@ -43,30 +43,33 @@ export default function MenuPage() {
         <p>Authentic South African flavours, crafted with love and served with pride.</p>
       </div>
 
-      {/* Category tabs */}
-      <div className="menu-tabs-bar" style={{
+      {/* Category tabs — sticky wrapper + separate scroll wrapper to avoid CSS conflict */}
+      <div style={{
         position: 'sticky', top: '62px', zIndex: 100,
         background: 'rgba(10,6,0,0.97)', backdropFilter: 'blur(20px)',
         borderBottom: '1px solid #2e2000',
-        padding: '0 32px',
-        overflowX: 'auto', whiteSpace: 'nowrap',
-        scrollbarWidth: 'none', msOverflowStyle: 'none',
-        WebkitOverflowScrolling: 'touch',
       }}>
-        <div style={{ display: 'inline-flex', gap: '0' }}>
-          {menuCategories.map(cat => (
-            <button key={cat.id} onClick={() => setActiveCategory(cat.id)} style={{
-              background: 'none', border: 'none', cursor: 'pointer',
-              padding: '18px 24px',
-              fontSize: '11px', letterSpacing: '2px', textTransform: 'uppercase',
-              fontWeight: 600,
-              color: activeCategory === cat.id ? '#f5c842' : 'rgba(255,255,255,0.45)',
-              borderBottom: activeCategory === cat.id ? '2px solid #f5c842' : '2px solid transparent',
-              transition: 'all 0.2s', whiteSpace: 'nowrap',
-            }}>
-              {cat.icon} {cat.name}
-            </button>
-          ))}
+        <div className="menu-tabs-bar" style={{
+          overflowX: 'auto', whiteSpace: 'nowrap',
+          scrollbarWidth: 'none', msOverflowStyle: 'none',
+          WebkitOverflowScrolling: 'touch',
+          padding: '0 32px',
+        }}>
+          <div style={{ display: 'inline-flex', gap: '0' }}>
+            {menuCategories.map(cat => (
+              <button key={cat.id} onClick={() => setActiveCategory(cat.id)} style={{
+                background: 'none', border: 'none', cursor: 'pointer',
+                padding: '18px 24px',
+                fontSize: '11px', letterSpacing: '2px', textTransform: 'uppercase',
+                fontWeight: 600,
+                color: activeCategory === cat.id ? '#f5c842' : 'rgba(255,255,255,0.45)',
+                borderBottom: activeCategory === cat.id ? '2px solid #f5c842' : '2px solid transparent',
+                transition: 'all 0.2s', whiteSpace: 'nowrap',
+              }}>
+                {cat.icon} {cat.name}
+              </button>
+            ))}
+          </div>
         </div>
       </div>
 
