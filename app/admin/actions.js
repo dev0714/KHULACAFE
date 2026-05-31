@@ -30,6 +30,26 @@ export async function deleteCategory(id) {
   revalidatePath('/admin/menu')
 }
 
+// ── Menu Subcategories ───────────────────────────────────────────
+export async function upsertSubcategory(data) {
+  await assertAdmin()
+  if (data.id) {
+    const { id, ...fields } = data
+    await supabaseAdmin.from('menu_subcategories').update(fields).eq('id', id)
+  } else {
+    await supabaseAdmin.from('menu_subcategories').insert(data)
+  }
+  revalidatePath('/menu')
+  revalidatePath('/admin/menu')
+}
+
+export async function deleteSubcategory(id) {
+  await assertAdmin()
+  await supabaseAdmin.from('menu_subcategories').delete().eq('id', id)
+  revalidatePath('/menu')
+  revalidatePath('/admin/menu')
+}
+
 // ── Menu Items ───────────────────────────────────────────────────
 export async function upsertMenuItem(data) {
   await assertAdmin()
