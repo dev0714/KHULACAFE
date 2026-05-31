@@ -8,9 +8,9 @@ const inputStyle = { width: '100%', padding: '10px 14px', background: '#0a0600',
 const labelStyle = { display: 'block', fontSize: '10px', letterSpacing: '2px', color: '#f5c842', marginBottom: '6px', textTransform: 'uppercase' }
 
 const ABOUT_SLOTS = [
-  { key: 'main',         label: 'Main Photo (large)',   hint: 'Tall banner — shown full width on the right' },
-  { key: 'bottom_left',  label: 'Bottom Left Photo',    hint: 'Smaller square, bottom-left' },
-  { key: 'bottom_right', label: 'Bottom Right Photo',   hint: 'Smaller square, bottom-right' },
+  { key: 'main',         label: 'Main Photo (large)',   hint: 'Tall banner — shown full width on the right', aspect: 3/4 },
+  { key: 'bottom_left',  label: 'Bottom Left Photo',    hint: 'Smaller square, bottom-left',                aspect: 1 },
+  { key: 'bottom_right', label: 'Bottom Right Photo',   hint: 'Smaller square, bottom-right',               aspect: 1 },
 ]
 
 function AboutPhotosTab() {
@@ -33,7 +33,9 @@ function AboutPhotosTab() {
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '24px', maxWidth: '520px' }}>
-      {ABOUT_SLOTS.map(({ key, label, hint }) => (
+      {ABOUT_SLOTS.map((slot) => {
+        const { key, label, hint } = slot
+        return (
         <div key={key} style={{ background: '#1e1500', border: '1px solid #2e2000', borderRadius: '12px', padding: '20px' }}>
           <p style={{ color: '#f5c842', fontSize: '11px', letterSpacing: '2px', textTransform: 'uppercase', marginBottom: '4px' }}>{label}</p>
           <p style={{ color: 'rgba(255,255,255,0.3)', fontSize: '11px', marginBottom: '14px' }}>{hint}</p>
@@ -46,6 +48,7 @@ function AboutPhotosTab() {
             value={images[key] || ''}
             onChange={url => setImages(m => ({ ...m, [key]: url }))}
             folder="about"
+            aspect={slot.aspect}
           />
 
           <button
@@ -61,7 +64,8 @@ function AboutPhotosTab() {
             {saving[key] ? 'Saving…' : success[key] ? '✓ Saved' : 'Save Photo'}
           </button>
         </div>
-      ))}
+        )
+      })}
     </div>
   )
 }
@@ -137,7 +141,7 @@ export default function GalleryAdmin() {
             <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
               <div><label style={labelStyle}>Label</label><input value={form.label} onChange={e => setForm(f => ({ ...f, label: e.target.value }))} style={inputStyle} /></div>
               <div><label style={labelStyle}>Fallback Icon</label><input value={form.icon} onChange={e => setForm(f => ({ ...f, icon: e.target.value }))} style={inputStyle} /></div>
-              <div><label style={labelStyle}>Image</label><ImageUpload value={form.image_url} onChange={url => setForm(f => ({ ...f, image_url: url }))} folder="gallery" /></div>
+              <div><label style={labelStyle}>Image</label><ImageUpload value={form.image_url} onChange={url => setForm(f => ({ ...f, image_url: url }))} folder="gallery" aspect={4/3} /></div>
               <div style={{ display: 'flex', gap: '8px', marginTop: '4px' }}>
                 <button onClick={save} disabled={isPending || !form.label} style={{ padding: '10px 20px', borderRadius: '8px', border: 'none', cursor: 'pointer', background: 'linear-gradient(135deg, #f5c842, #c8940c)', color: '#0a0600', fontWeight: 700, fontSize: '12px' }}>{isPending ? '…' : editing ? 'Update' : 'Add'}</button>
                 {editing && <button onClick={() => { setEditing(null); setForm({ label: '', icon: '📸', image_url: '' }) }} style={{ padding: '10px 20px', borderRadius: '8px', border: 'none', cursor: 'pointer', background: '#2e2000', color: 'rgba(255,255,255,0.6)', fontSize: '12px' }}>Cancel</button>}

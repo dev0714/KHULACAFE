@@ -145,7 +145,7 @@ export default function MenuAdmin() {
               </div>
               <div style={{ marginBottom: '14px' }}>
                 <label style={labelStyle}>Image</label>
-                <ImageUpload value={itemForm.image_url} onChange={url => setItemForm(f => ({ ...f, image_url: url }))} folder="menu" />
+                <ImageUpload value={itemForm.image_url} onChange={url => setItemForm(f => ({ ...f, image_url: url }))} folder="menu" aspect={4/3} />
               </div>
               <div style={{ display: 'flex', gap: '8px' }}>
                 <button onClick={saveItem} disabled={isPending || !itemForm.name} style={btn(true)}>{isPending ? '…' : editingItem ? 'Update' : 'Add Item'}</button>
