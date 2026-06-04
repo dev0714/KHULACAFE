@@ -2,21 +2,31 @@
 import { useState, useCallback } from 'react'
 import Cropper from 'react-easy-crop'
 
-function getCroppedBlob(imageSrc, pixelCrop) {
+const SIZE_PRESETS = [
+  { label: 'Small', width: 400 },
+  { label: 'Medium', width: 800 },
+  { label: 'Large', width: 1200 },
+  { label: 'Original', width: null },
+]
+
+function getCroppedBlob(imageSrc, pixelCrop, outputWidth) {
   return new Promise((resolve, reject) => {
     const image = new Image()
     image.crossOrigin = 'anonymous'
     image.onload = () => {
+      const srcW = pixelCrop.width
+      const srcH = pixelCrop.height
+      const scale = outputWidth && outputWidth < srcW ? outputWidth / srcW : 1
       const canvas = document.createElement('canvas')
-      canvas.width = pixelCrop.width
-      canvas.height = pixelCrop.height
+      canvas.width = Math.round(srcW * scale)
+      canvas.height = Math.round(srcH * scale)
       const ctx = canvas.getContext('2d')
       ctx.drawImage(
         image,
         pixelCrop.x, pixelCrop.y,
-        pixelCrop.width, pixelCrop.height,
+        srcW, srcH,
         0, 0,
-        pixelCrop.width, pixelCrop.height
+        canvas.width, canvas.height
       )
       canvas.toBlob(blob => blob ? resolve(blob) : reject(new Error('Canvas is empty')), 'image/jpeg', 0.92)
     }
@@ -30,6 +40,7 @@ export default function ImageUpload({ value, onChange, folder = 'general', aspec
   const [crop, setCrop] = useState({ x: 0, y: 0 })
   const [zoom, setZoom] = useState(1)
   const [croppedAreaPixels, setCroppedAreaPixels] = useState(null)
+  const [outputWidth, setOutputWidth] = useState(800)
   const [uploading, setUploading] = useState(false)
   const [error, setError] = useState('')
 
@@ -58,7 +69,7 @@ export default function ImageUpload({ value, onChange, folder = 'general', aspec
     setUploading(true)
     setError('')
     try {
-      const blob = await getCroppedBlob(rawSrc, croppedAreaPixels)
+      const blob = await getCroppedBlob(rawSrc, croppedAreaPixels, outputWidth)
       const form = new FormData()
       form.append('file', blob, `crop-${Date.now()}.jpg`)
       form.append('folder', folder)
@@ -120,6 +131,24 @@ export default function ImageUpload({ value, onChange, folder = 'general', aspec
             </div>
 
             <div style={{ padding: '16px 24px', borderTop: '1px solid #2e2000' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '14px' }}>
+                <span style={{ fontSize: '11px', color: 'rgba(255,255,255,0.4)', letterSpacing: '1px', flexShrink: 0 }}>Size</span>
+                {SIZE_PRESETS.map(p => (
+                  <button
+                    key={p.label}
+                    type="button"
+                    onClick={() => setOutputWidth(p.width)}
+                    style={{
+                      padding: '5px 12px', borderRadius: '6px', border: 'none', cursor: 'pointer',
+                      fontSize: '11px', fontWeight: 600, letterSpacing: '0.5px',
+                      background: outputWidth === p.width ? 'linear-gradient(135deg, #f5c842, #c8940c)' : '#2e2000',
+                      color: outputWidth === p.width ? '#0a0600' : 'rgba(255,255,255,0.6)',
+                    }}
+                  >
+                    {p.label}{p.width ? ` ${p.width}px` : ''}
+                  </button>
+                ))}
+              </div>
               <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '16px' }}>
                 <span style={{ fontSize: '11px', color: 'rgba(255,255,255,0.4)', letterSpacing: '1px', width: '36px' }}>Zoom</span>
                 <input
