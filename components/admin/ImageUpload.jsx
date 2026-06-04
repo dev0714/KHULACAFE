@@ -44,6 +44,14 @@ export default function ImageUpload({ value, onChange, folder = 'general', aspec
   const [uploading, setUploading] = useState(false)
   const [error, setError] = useState('')
 
+  function getOutputDims() {
+    if (!croppedAreaPixels) return null
+    const srcW = croppedAreaPixels.width
+    const srcH = croppedAreaPixels.height
+    const scale = outputWidth && outputWidth < srcW ? outputWidth / srcW : 1
+    return { w: Math.round(srcW * scale), h: Math.round(srcH * scale) }
+  }
+
   function openCropFromFile(e) {
     const file = e.target.files?.[0]
     if (!file) return
@@ -131,7 +139,7 @@ export default function ImageUpload({ value, onChange, folder = 'general', aspec
             </div>
 
             <div style={{ padding: '16px 24px', borderTop: '1px solid #2e2000' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '14px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px', flexWrap: 'wrap' }}>
                 <span style={{ fontSize: '11px', color: 'rgba(255,255,255,0.4)', letterSpacing: '1px', flexShrink: 0 }}>Size</span>
                 {SIZE_PRESETS.map(p => (
                   <button
@@ -149,6 +157,18 @@ export default function ImageUpload({ value, onChange, folder = 'general', aspec
                   </button>
                 ))}
               </div>
+              {(() => {
+                const dims = getOutputDims()
+                return dims ? (
+                  <p style={{ fontSize: '11px', color: '#26de81', marginBottom: '12px', letterSpacing: '0.5px' }}>
+                    ✓ Will save as {dims.w} × {dims.h} px
+                  </p>
+                ) : (
+                  <p style={{ fontSize: '11px', color: 'rgba(255,255,255,0.25)', marginBottom: '12px' }}>
+                    Drag to position your crop
+                  </p>
+                )
+              })()}
               <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '16px' }}>
                 <span style={{ fontSize: '11px', color: 'rgba(255,255,255,0.4)', letterSpacing: '1px', width: '36px' }}>Zoom</span>
                 <input
@@ -175,7 +195,7 @@ export default function ImageUpload({ value, onChange, folder = 'general', aspec
                   cursor: uploading ? 'not-allowed' : 'pointer',
                   opacity: uploading ? 0.7 : 1, letterSpacing: '1px',
                 }}>
-                  {uploading ? 'Uploading…' : 'Save Image'}
+                  {uploading ? 'Uploading…' : (() => { const d = getOutputDims(); return d ? `Save ${d.w}×${d.h}` : 'Save Image' })()}
                 </button>
               </div>
             </div>
