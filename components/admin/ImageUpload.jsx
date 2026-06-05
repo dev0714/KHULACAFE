@@ -16,18 +16,30 @@ function getCroppedBlob(imgEl, crop, outputWidth) {
     const scaleX = imgEl.naturalWidth / imgEl.width
     const scaleY = imgEl.naturalHeight / imgEl.height
 
-    const srcW = crop.width * scaleX
-    const srcH = crop.height * scaleY
-    const scale = outputWidth && outputWidth < srcW ? outputWidth / srcW : 1
+    // react-image-crop initial state uses '%' unit; onChange gives 'px'
+    const isPct = crop.unit === '%'
+    const cropX = isPct ? (crop.x / 100) * imgEl.width : crop.x
+    const cropY = isPct ? (crop.y / 100) * imgEl.height : crop.y
+    const cropW = isPct ? (crop.width / 100) * imgEl.width : crop.width
+    const cropH = isPct ? (crop.height / 100) * imgEl.height : crop.height
 
+    const srcW = cropW * scaleX
+    const srcH = cropH * scaleY
+
+    if (!srcW || !srcH) {
+      reject(new Error('Crop area is too small — resize the handles and try again'))
+      return
+    }
+
+    const scale = outputWidth && outputWidth < srcW ? outputWidth / srcW : 1
     canvas.width = Math.round(srcW * scale)
     canvas.height = Math.round(srcH * scale)
 
     const ctx = canvas.getContext('2d')
     ctx.drawImage(
       imgEl,
-      crop.x * scaleX,
-      crop.y * scaleY,
+      cropX * scaleX,
+      cropY * scaleY,
       srcW,
       srcH,
       0, 0,
@@ -35,7 +47,7 @@ function getCroppedBlob(imgEl, crop, outputWidth) {
       canvas.height,
     )
     canvas.toBlob(
-      blob => blob ? resolve(blob) : reject(new Error('Canvas is empty')),
+      blob => blob ? resolve(blob) : reject(new Error('Failed to process image — try a different format')),
       'image/jpeg',
       0.92,
     )
@@ -106,13 +118,14 @@ export default function ImageUpload({ value, onChange, folder = 'general', aspec
       const res = await fetch('/api/admin/upload', { method: 'POST', body: form })
       const data = await res.json()
       if (!res.ok) {
-        setError(data.error || 'Upload failed')
+        setError(data.error || `Upload failed (${res.status})`)
       } else {
         onChange(data.url)
         setRawSrc(null)
       }
-    } catch {
-      setError('Upload failed. Please try again.')
+    } catch (err) {
+      console.error('Upload error:', err)
+      setError(err?.message || 'Upload failed. Please try again.')
     } finally {
       setUploading(false)
     }
