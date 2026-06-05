@@ -12,45 +12,47 @@ const SIZE_PRESETS = [
 
 function getCroppedBlob(imgEl, crop, outputWidth) {
   return new Promise((resolve, reject) => {
-    const canvas = document.createElement('canvas')
-    const scaleX = imgEl.naturalWidth / imgEl.width
-    const scaleY = imgEl.naturalHeight / imgEl.height
+    try {
+      const canvas = document.createElement('canvas')
+      const scaleX = imgEl.naturalWidth / imgEl.width
+      const scaleY = imgEl.naturalHeight / imgEl.height
 
-    // react-image-crop initial state uses '%' unit; onChange gives 'px'
-    const isPct = crop.unit === '%'
-    const cropX = isPct ? (crop.x / 100) * imgEl.width : crop.x
-    const cropY = isPct ? (crop.y / 100) * imgEl.height : crop.y
-    const cropW = isPct ? (crop.width / 100) * imgEl.width : crop.width
-    const cropH = isPct ? (crop.height / 100) * imgEl.height : crop.height
+      // react-image-crop initial state uses '%' unit; onChange gives 'px'
+      const isPct = crop.unit === '%'
+      const cropX = isPct ? (crop.x / 100) * imgEl.width : crop.x
+      const cropY = isPct ? (crop.y / 100) * imgEl.height : crop.y
+      const cropW = isPct ? (crop.width / 100) * imgEl.width : crop.width
+      const cropH = isPct ? (crop.height / 100) * imgEl.height : crop.height
 
-    const srcW = cropW * scaleX
-    const srcH = cropH * scaleY
+      const srcW = cropW * scaleX
+      const srcH = cropH * scaleY
 
-    if (!srcW || !srcH) {
-      reject(new Error('Crop area is too small — resize the handles and try again'))
-      return
+      if (!srcW || !srcH) {
+        reject(new Error('Crop area is too small — resize the handles and try again'))
+        return
+      }
+
+      const scale = outputWidth && outputWidth < srcW ? outputWidth / srcW : 1
+      canvas.width = Math.round(srcW * scale)
+      canvas.height = Math.round(srcH * scale)
+
+      const ctx = canvas.getContext('2d')
+      ctx.drawImage(imgEl, cropX * scaleX, cropY * scaleY, srcW, srcH, 0, 0, canvas.width, canvas.height)
+
+      // toDataURL is more reliable than toBlob across browsers
+      const dataUrl = canvas.toDataURL('image/jpeg', 0.92)
+      if (!dataUrl || dataUrl === 'data:,') {
+        reject(new Error('Failed to process image — canvas may be empty'))
+        return
+      }
+      const byteString = atob(dataUrl.split(',')[1])
+      const ab = new ArrayBuffer(byteString.length)
+      const ia = new Uint8Array(ab)
+      for (let i = 0; i < byteString.length; i++) ia[i] = byteString.charCodeAt(i)
+      resolve(new Blob([ab], { type: 'image/jpeg' }))
+    } catch (err) {
+      reject(err)
     }
-
-    const scale = outputWidth && outputWidth < srcW ? outputWidth / srcW : 1
-    canvas.width = Math.round(srcW * scale)
-    canvas.height = Math.round(srcH * scale)
-
-    const ctx = canvas.getContext('2d')
-    ctx.drawImage(
-      imgEl,
-      cropX * scaleX,
-      cropY * scaleY,
-      srcW,
-      srcH,
-      0, 0,
-      canvas.width,
-      canvas.height,
-    )
-    canvas.toBlob(
-      blob => blob ? resolve(blob) : reject(new Error('Failed to process image — try a different format')),
-      'image/jpeg',
-      0.92,
-    )
   })
 }
 
@@ -172,6 +174,7 @@ export default function ImageUpload({ value, onChange, folder = 'general', aspec
                 <img
                   ref={imgRef}
                   src={rawSrc}
+                  crossOrigin="anonymous"
                   onLoad={onImageLoad}
                   style={{ maxWidth: '100%', maxHeight: '50vh', display: 'block' }}
                   alt="crop preview"
