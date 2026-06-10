@@ -28,14 +28,30 @@ const btnGhost = {
   background: 'transparent', color: 'rgba(255,255,255,0.5)', fontSize: '12px', cursor: 'pointer',
 }
 
+function isBirthdaySoon(dob, days = 30) {
+  if (!dob) return false
+  const today = new Date()
+  const bday = new Date(dob)
+  const next = new Date(today.getFullYear(), bday.getMonth(), bday.getDate())
+  if (next < today) next.setFullYear(today.getFullYear() + 1)
+  return (next - today) / 86400000 <= days
+}
+
+function isBirthdayToday(dob) {
+  if (!dob) return false
+  const today = new Date()
+  const bday = new Date(dob)
+  return bday.getMonth() === today.getMonth() && bday.getDate() === today.getDate()
+}
+
 function CustomerForm({ initial, onSave, onCancel }) {
-  const [form, setForm] = useState({ name: '', email: '', phone: '', ...initial })
+  const [form, setForm] = useState({ name: '', email: '', phone: '', date_of_birth: '', ...initial })
   const [saving, setSaving] = useState(false)
 
   async function handleSubmit(e) {
     e.preventDefault()
     setSaving(true)
-    await upsertCustomer(form)
+    await upsertCustomer({ ...form, date_of_birth: form.date_of_birth || null })
     setSaving(false)
     onSave()
   }
@@ -55,6 +71,13 @@ function CustomerForm({ initial, onSave, onCancel }) {
       <div>
         <label style={labelStyle}>Phone</label>
         <input style={inputStyle} value={form.phone} onChange={e => set('phone', e.target.value)} />
+      </div>
+      <div>
+        <label style={labelStyle}>Date of Birth 🎂</label>
+        <input style={inputStyle} type="date" value={form.date_of_birth || ''} onChange={e => set('date_of_birth', e.target.value)} />
+        <p style={{ fontSize: '11px', color: 'rgba(255,255,255,0.3)', marginTop: '4px' }}>
+          Used to send birthday wishes
+        </p>
       </div>
       <div style={{ display: 'flex', gap: '10px', marginTop: '4px' }}>
         <button type="submit" style={btnPrimary} disabled={saving}>
@@ -331,6 +354,7 @@ export default function CustomersPage() {
                   <p style={{ color: '#fafafa', fontSize: '14px', fontWeight: 600, margin: '0 0 2px' }}>
                     {c.name}
                     {c.is_gold && <span style={{ marginLeft: '6px', fontSize: '12px' }}>⭐</span>}
+                    {isBirthdayToday(c.date_of_birth) && <span style={{ marginLeft: '6px', fontSize: '12px' }}>🎂</span>}
                   </p>
                   {c.email && <p style={{ color: 'rgba(255,255,255,0.4)', fontSize: '11px', margin: 0 }}>{c.email}</p>}
                   {c.phone && <p style={{ color: 'rgba(255,255,255,0.4)', fontSize: '11px', margin: '2px 0 0' }}>{c.phone}</p>}
@@ -364,7 +388,7 @@ export default function CustomersPage() {
                     Edit Customer
                   </p>
                   <CustomerForm
-                    initial={selected}
+                    initial={{ ...selected, date_of_birth: selected.date_of_birth ? selected.date_of_birth.slice(0, 10) : '' }}
                     onSave={async () => {
                       const all = await getCustomers()
                       setCustomers(all)
@@ -384,6 +408,13 @@ export default function CustomersPage() {
                     </h2>
                     {selected.email && <p style={{ color: 'rgba(255,255,255,0.5)', fontSize: '13px', margin: '0 0 2px' }}>{selected.email}</p>}
                     {selected.phone && <p style={{ color: 'rgba(255,255,255,0.5)', fontSize: '13px', margin: 0 }}>{selected.phone}</p>}
+                    {selected.date_of_birth && (
+                      <p style={{ fontSize: '13px', margin: '6px 0 0', color: isBirthdayToday(selected.date_of_birth) ? '#f5c842' : isBirthdaySoon(selected.date_of_birth) ? '#f5c842' : 'rgba(255,255,255,0.5)' }}>
+                        🎂 {new Date(selected.date_of_birth).toLocaleDateString('en-ZA', { day: 'numeric', month: 'long' })}
+                        {isBirthdayToday(selected.date_of_birth) && <span style={{ marginLeft: '8px', fontWeight: 700 }}>— Birthday today! 🎉</span>}
+                        {!isBirthdayToday(selected.date_of_birth) && isBirthdaySoon(selected.date_of_birth) && <span style={{ marginLeft: '8px' }}>— Coming up soon</span>}
+                      </p>
+                    )}
                     <p style={{ color: 'rgba(255,255,255,0.3)', fontSize: '11px', margin: '8px 0 0' }}>
                       Member since {new Date(selected.created_at).toLocaleDateString('en-ZA', { year: 'numeric', month: 'long', day: 'numeric' })}
                     </p>
