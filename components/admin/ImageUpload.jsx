@@ -1,6 +1,6 @@
 'use client'
 import { useState, useRef, useCallback } from 'react'
-import ReactCrop, { centerCrop, makeAspectCrop } from 'react-image-crop'
+import ReactCrop from 'react-image-crop'
 import 'react-image-crop/dist/ReactCrop.css'
 
 const SIZE_PRESETS = [
@@ -56,10 +56,7 @@ function getCroppedBlob(imgEl, crop, outputWidth) {
   })
 }
 
-function initCrop(width, height, aspect) {
-  if (aspect) {
-    return centerCrop(makeAspectCrop({ unit: '%', width: 90 }, aspect, width, height), width, height)
-  }
+function initCrop() {
   return { unit: '%', x: 5, y: 5, width: 90, height: 90 }
 }
 
@@ -86,15 +83,12 @@ export default function ImageUpload({ value, onChange, folder = 'general', aspec
     setError('')
   }
 
-  const onImageLoad = useCallback((e) => {
-    const { width, height } = e.currentTarget
-    setCrop(initCrop(width, height, aspect))
-  }, [aspect])
+  const onImageLoad = useCallback(() => {
+    setCrop(initCrop())
+  }, [])
 
   function resetCrop() {
-    if (!imgRef.current) return
-    const { width, height } = imgRef.current
-    setCrop(initCrop(width, height, aspect))
+    setCrop(initCrop())
   }
 
   function getOutputDims() {
@@ -167,7 +161,6 @@ export default function ImageUpload({ value, onChange, folder = 'general', aspec
               <ReactCrop
                 crop={crop}
                 onChange={c => setCrop(c)}
-                aspect={aspect}
                 ruleOfThirds
                 style={{ maxWidth: '100%', maxHeight: '50vh' }}
               >
