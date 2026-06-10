@@ -23,6 +23,11 @@ export default function CheckoutPage() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
 
+  // Khula Bucks state
+  const [loyaltyCustomer, setLoyaltyCustomer] = useState(null) // { customerId, name, khulaBucks }
+  const [useBucks, setUseBucks] = useState(false)
+  const [bucksToUse, setBucksToUse] = useState(0)
+
   const set = (k, v) => setForm(f => ({ ...f, [k]: v }))
 
   useEffect(() => {
@@ -38,8 +43,23 @@ export default function CheckoutPage() {
       return
     }
     setError('')
+    // Look up Khula Bucks balance by email
+    setLoyaltyCustomer(null)
+    setUseBucks(false)
+    setBucksToUse(0)
+    if (form.email?.trim()) {
+      try {
+        const res = await fetch(`/api/loyalty/lookup?email=${encodeURIComponent(form.email.trim())}`)
+        const data = await res.json()
+        if (data.found && data.khulaBucks > 0) setLoyaltyCustomer(data)
+      } catch {}
+    }
     setStep('payment')
   }
+
+  const redeemedBucks = useBucks ? bucksToUse : 0
+  const redeemedCents = redeemedBucks * 100
+  const payableCents = Math.max(0, totalCents - redeemedCents)
 
   async function handlePaystackCheckout() {
     setLoading(true)
@@ -56,10 +76,19 @@ export default function CheckoutPage() {
           deliveryAddress: form.address || null,
           notes: form.notes || null,
           items,
+          bucksRedeemed: redeemedBucks,
+          customerId: loyaltyCustomer?.customerId || null,
         }),
       })
       const data = await res.json()
       if (!res.ok) throw new Error(data.error || 'Order failed')
+
+      // If fully paid with bucks, skip Paystack
+      if (payableCents === 0) {
+        clearCart()
+        router.push(`/order-confirmed/${data.orderId}`)
+        return
+      }
 
       if (!form.email?.trim()) {
         clearCart()
@@ -73,7 +102,7 @@ export default function CheckoutPage() {
         body: JSON.stringify({
           orderId: data.orderId,
           email: form.email.trim(),
-          amountCents: totalCents,
+          amountCents: payableCents,
           customerName: form.name,
         }),
       })
@@ -182,11 +211,85 @@ export default function CheckoutPage() {
                   <span>R{(i.price_cents * i.qty / 100).toFixed(2)}</span>
                 </div>
               ))}
-              <div style={{ borderTop: '1px solid #2e2000', paddingTop: '12px', marginTop: '12px', display: 'flex', justifyContent: 'space-between' }}>
-                <span style={{ color: '#fafafa', fontWeight: 700 }}>Total</span>
-                <span style={{ color: '#f5c842', fontFamily: 'var(--font-playfair)', fontSize: '20px', fontWeight: 700 }}>R{(totalCents / 100).toFixed(2)}</span>
+              {redeemedBucks > 0 && (
+                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '13px', color: '#26de81', marginTop: '6px' }}>
+                  <span>🎁 Khula Bucks ({redeemedBucks} bucks)</span>
+                  <span>−R{(redeemedCents / 100).toFixed(2)}</span>
+                </div>
+              )}
+              <div style={{ borderTop: '1px solid #2e2000', paddingTop: '12px', marginTop: '12px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <span style={{ color: '#fafafa', fontWeight: 700 }}>
+                  {redeemedBucks > 0 ? 'You Pay' : 'Total'}
+                </span>
+                <div style={{ textAlign: 'right' }}>
+                  {redeemedBucks > 0 && (
+                    <div style={{ color: 'rgba(255,255,255,0.35)', fontSize: '13px', textDecoration: 'line-through' }}>R{(totalCents / 100).toFixed(2)}</div>
+                  )}
+                  <span style={{ color: '#f5c842', fontFamily: 'var(--font-playfair)', fontSize: '20px', fontWeight: 700 }}>
+                    R{(payableCents / 100).toFixed(2)}
+                  </span>
+                </div>
               </div>
             </div>
+
+            {/* Khula Bucks panel */}
+            {loyaltyCustomer && (
+              <div style={{ border: `1px solid ${useBucks ? 'rgba(245,200,66,0.5)' : 'rgba(245,200,66,0.2)'}`, borderRadius: '12px', padding: '20px', background: useBucks ? 'rgba(245,200,66,0.06)' : '#1e1500', transition: 'all 0.2s' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: useBucks ? '18px' : '0' }}>
+                  <div>
+                    <p style={{ color: '#f5c842', fontWeight: 700, fontSize: '14px', margin: '0 0 2px' }}>
+                      💛 {loyaltyCustomer.khulaBucks} Khula Bucks available
+                    </p>
+                    <p style={{ color: 'rgba(255,255,255,0.4)', fontSize: '12px', margin: 0 }}>
+                      Worth R{loyaltyCustomer.khulaBucks.toFixed(2)} off your order
+                    </p>
+                  </div>
+                  {/* Toggle */}
+                  <button
+                    type="button"
+                    onClick={() => { setUseBucks(u => !u); setBucksToUse(u => u ? 0 : Math.min(loyaltyCustomer.khulaBucks, Math.floor(totalCents / 100))) }}
+                    style={{
+                      width: '48px', height: '26px', borderRadius: '13px', border: 'none', cursor: 'pointer', flexShrink: 0,
+                      background: useBucks ? 'linear-gradient(135deg, #f5c842, #c8940c)' : '#2e2000',
+                      position: 'relative', transition: 'background 0.2s',
+                    }}
+                  >
+                    <span style={{
+                      position: 'absolute', top: '3px', width: '20px', height: '20px', borderRadius: '50%',
+                      background: '#fafafa', transition: 'left 0.2s',
+                      left: useBucks ? '25px' : '3px',
+                    }} />
+                  </button>
+                </div>
+
+                {useBucks && (
+                  <div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
+                      <span style={{ fontSize: '11px', color: 'rgba(255,255,255,0.5)', letterSpacing: '1px', textTransform: 'uppercase' }}>Bucks to use</span>
+                      <span style={{ fontSize: '13px', color: '#f5c842', fontWeight: 700 }}>{bucksToUse} bucks = R{bucksToUse.toFixed(2)} off</span>
+                    </div>
+                    <input
+                      type="range"
+                      min={0}
+                      max={Math.min(loyaltyCustomer.khulaBucks, Math.floor(totalCents / 100))}
+                      step={1}
+                      value={bucksToUse}
+                      onChange={e => setBucksToUse(Number(e.target.value))}
+                      style={{ width: '100%', accentColor: '#f5c842', cursor: 'pointer' }}
+                    />
+                    <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '6px' }}>
+                      <span style={{ fontSize: '11px', color: 'rgba(255,255,255,0.3)' }}>Save all</span>
+                      <span style={{ fontSize: '11px', color: 'rgba(255,255,255,0.3)' }}>Use all ({Math.min(loyaltyCustomer.khulaBucks, Math.floor(totalCents / 100))} bucks)</span>
+                    </div>
+                    {payableCents === 0 && (
+                      <p style={{ marginTop: '12px', fontSize: '13px', color: '#26de81', textAlign: 'center', fontWeight: 600 }}>
+                        🎉 Your order is fully covered by Khula Bucks!
+                      </p>
+                    )}
+                  </div>
+                )}
+              </div>
+            )}
 
             {/* AO Pay placeholder */}
             <div style={{ background: '#1e1500', border: '1px solid #2e2000', borderRadius: '12px', padding: '24px', textAlign: 'center' }}>
@@ -209,7 +312,7 @@ export default function CheckoutPage() {
                 color: loading ? 'rgba(255,255,255,0.4)' : '#0a0600',
                 fontWeight: 700, fontSize: '12px', letterSpacing: '2px', textTransform: 'uppercase',
               }}>
-                {loading ? 'Redirecting…' : `Pay with Paystack — R${(totalCents / 100).toFixed(2)}`}
+                {loading ? 'Redirecting…' : payableCents === 0 ? '✓ Place Order — Fully Paid with Bucks' : `Pay with Paystack — R${(payableCents / 100).toFixed(2)}`}
               </button>
             </div>
 

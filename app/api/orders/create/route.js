@@ -4,7 +4,7 @@ import { sendOrderConfirmation } from '../../../../lib/resend'
 
 export async function POST(request) {
   const body = await request.json()
-  const { customerName, customerEmail, customerPhone, deliveryType, deliveryAddress, notes, items } = body
+  const { customerName, customerEmail, customerPhone, deliveryType, deliveryAddress, notes, items, bucksRedeemed, customerId } = body
 
   if (!customerName || !Array.isArray(items) || items.length === 0) {
     return NextResponse.json({ error: 'Customer name and at least one item are required' }, { status: 400 })
@@ -44,7 +44,7 @@ export async function POST(request) {
   )
   if (itemsError) return NextResponse.json({ error: itemsError.message }, { status: 500 })
 
-  // Auto-earn Khula Bucks if email matches a loyalty customer
+  // Handle Khula Bucks — redeem and/or earn
   if (customerEmail) {
     const { data: customer } = await supabaseAdmin
       .from('customers')
@@ -52,24 +52,32 @@ export async function POST(request) {
       .eq('email', customerEmail.toLowerCase().trim())
       .single()
 
-    if (customer) {
+    const resolvedCustomer = customer || (customerId ? { id: customerId, khula_bucks: 0 } : null)
+
+    if (resolvedCustomer) {
       const { data: cfg } = await supabaseAdmin.from('loyalty_config').select('*').eq('id', 1).single()
       const earnRate = cfg?.earn_rate_points_per_rand ?? 1
       const bucksPerHundred = cfg?.bucks_per_100_points ?? 10
-      const bucks = Math.floor((totalCents / 100) * earnRate / 100 * bucksPerHundred)
 
-      if (bucks > 0) {
+      // Redeem bucks first
+      const redeemedBucks = Math.max(0, Math.min(parseInt(bucksRedeemed) || 0, resolvedCustomer.khula_bucks))
+      const redeemedCents = redeemedBucks * 100
+      const netCents = Math.max(0, totalCents - redeemedCents)
+
+      // Earn bucks on the amount actually paid with real money
+      const bucks = Math.floor((netCents / 100) * earnRate / 100 * bucksPerHundred)
+
+      if (redeemedBucks > 0 || bucks > 0) {
         await supabaseAdmin.from('transactions').insert({
-          customer_id: customer.id,
-          type: 'purchase',
+          customer_id: resolvedCustomer.id,
+          type: redeemedBucks > 0 ? 'redeem' : 'purchase',
           amount_cents: totalCents,
           bucks_earned: bucks,
-          bucks_redeemed: 0,
+          bucks_redeemed: redeemedBucks,
           notes: `Online order ${order.id.slice(0, 8).toUpperCase()}`,
         })
-        await supabaseAdmin.from('customers').update({
-          khula_bucks: customer.khula_bucks + bucks,
-        }).eq('id', customer.id)
+        const updatedBucks = Math.max(0, (resolvedCustomer.khula_bucks - redeemedBucks) + bucks)
+        await supabaseAdmin.from('customers').update({ khula_bucks: updatedBucks }).eq('id', resolvedCustomer.id)
       }
     }
   }
