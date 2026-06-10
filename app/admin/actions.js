@@ -390,6 +390,41 @@ export async function deleteAdminUser(id) {
   revalidatePath('/admin/users')
 }
 
+// ── Public Booking Submission ────────────────────────────────────
+export async function createBooking(data) {
+  const { occasion_id, date, time, guests, customer_name, customer_email, customer_phone, add_ons, special_song, special_request, deposit_cents } = data
+  const { data: booking, error } = await supabaseAdmin
+    .from('bookings')
+    .insert({
+      occasion_id: occasion_id || null,
+      date,
+      time,
+      guests,
+      customer_name,
+      customer_email: customer_email || null,
+      customer_phone: customer_phone || null,
+      add_ons: add_ons || [],
+      special_song: special_song || null,
+      special_request: special_request || null,
+      deposit_cents: deposit_cents || 10000,
+      status: 'pending',
+    })
+    .select('id, reference')
+    .single()
+  if (error) throw new Error(error.message)
+  revalidatePath('/admin/bookings')
+  return { id: booking.id, reference: booking.reference }
+}
+
+export async function getBookings() {
+  await assertAdmin()
+  const { data } = await supabaseAdmin
+    .from('bookings')
+    .select('*, booking_occasions(label, emoji)')
+    .order('date', { ascending: false })
+  return data ?? []
+}
+
 // ── About Images ─────────────────────────────────────────────────
 export async function getAboutImages() {
   const { data } = await supabaseAdmin.from('about_images').select('slot, image_url')

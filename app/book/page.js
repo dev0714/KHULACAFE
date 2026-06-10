@@ -1,6 +1,7 @@
 'use client'
 import { useState, useEffect } from 'react'
 import { supabase } from '../../lib/supabase-public'
+import { createBooking } from '../admin/actions'
 
 export default function BookPage() {
   const [occasions, setOccasions] = useState([])
@@ -31,6 +32,8 @@ export default function BookPage() {
   })
   const [loading, setLoading] = useState(false)
   const [success, setSuccess] = useState(false)
+  const [bookingRef, setBookingRef] = useState('')
+  const [submitError, setSubmitError] = useState('')
 
   const toggleAddOn = (id) => {
     setForm(f => ({
@@ -46,12 +49,37 @@ export default function BookPage() {
     return sum + (a ? a.price : 0)
   }, 0)
 
+  const selectedOccasion = occasions.find(o => o.id === form.occasion)
+  const depositCents = selectedOccasion?.price_cents ?? 10000
+
   const handleSubmit = async (e) => {
     e.preventDefault()
     setLoading(true)
-    await new Promise(r => setTimeout(r, 1500))
-    setLoading(false)
-    setSuccess(true)
+    setSubmitError('')
+    try {
+      const selectedAddOns = addOns
+        .filter(a => form.selectedAddOns.includes(a.id))
+        .map(a => ({ id: a.id, label: a.label, icon: a.icon, price_cents: a.price_cents }))
+      const result = await createBooking({
+        occasion_id: form.occasion || null,
+        date: form.date,
+        time: form.time,
+        guests: form.guests,
+        customer_name: form.name,
+        customer_email: form.email || null,
+        customer_phone: form.phone || null,
+        add_ons: selectedAddOns,
+        special_song: form.specialSong || null,
+        special_request: form.specialRequest || null,
+        deposit_cents: depositCents,
+      })
+      setBookingRef(result.reference)
+      setSuccess(true)
+    } catch (err) {
+      setSubmitError(err.message || 'Booking failed. Please try again.')
+    } finally {
+      setLoading(false)
+    }
   }
 
   const inputStyle = {
@@ -85,14 +113,14 @@ export default function BookPage() {
             <strong style={{ color: '#3d2200' }}>{form.time}</strong>.
           </p>
           <p style={{ fontSize: '13px', color: 'rgba(0,0,0,0.45)', lineHeight: 1.7, marginBottom: '40px' }}>
-            A confirmation will be sent to {form.email}. The R100 deposit will be deducted from your final bill.
+            A confirmation will be sent to {form.email}. Your R{(depositCents / 100).toFixed(0)} deposit will be deducted from your final bill.
           </p>
           <div style={{ background: 'rgba(0,0,0,0.12)', border: '1px solid rgba(61,34,0,0.3)', borderRadius: '12px', padding: '20px', marginBottom: '40px' }}>
             <p style={{ fontSize: '11px', letterSpacing: '3px', textTransform: 'uppercase', color: '#3d2200', marginBottom: '8px' }}>
               Your Booking Reference
             </p>
             <p style={{ fontFamily: 'var(--font-playfair)', fontSize: '28px', color: '#0a0600', letterSpacing: '4px' }}>
-              KHU-{Math.floor(Math.random() * 90000) + 10000}
+              {bookingRef || '—'}
             </p>
           </div>
           <button onClick={() => { setSuccess(false); setStep(1); setForm({ occasion:'', date:'', time:'', guests:2, name:'', email:'', phone:'', selectedAddOns:[], specialRequest:'', specialSong:'' }) }}
@@ -170,6 +198,9 @@ export default function BookPage() {
                     <div style={{ fontSize: '40px', marginBottom: '12px' }}>{occ.emoji}</div>
                     <h3 style={{ fontFamily: 'var(--font-playfair)', fontSize: '18px', color: '#fafafa', marginBottom: '6px' }}>{occ.label}</h3>
                     <p style={{ fontSize: '12px', color: 'rgba(255,255,255,0.45)', lineHeight: 1.5 }}>{occ.description}</p>
+                    <p style={{ fontSize: '13px', color: '#f5c842', fontWeight: 700, marginTop: '10px' }}>
+                      R{((occ.price_cents || 0) / 100).toFixed(0)} deposit
+                    </p>
                   </div>
                 ))}
               </div>
@@ -341,7 +372,7 @@ export default function BookPage() {
                   { label: 'Time', value: form.time },
                   { label: 'Guests', value: form.guests },
                   { label: 'Add-ons', value: totalAddOns > 0 ? `R ${totalAddOns}` : 'None' },
-                  { label: 'Deposit', value: 'R 100 (deducted from bill)' },
+                  { label: 'Deposit', value: `R${(depositCents / 100).toFixed(0)} (deducted from bill)` },
                 ].map(row => (
                   <div key={row.label} style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
                     <span style={{ fontSize: '13px', color: 'rgba(255,255,255,0.4)' }}>{row.label}</span>
@@ -349,6 +380,10 @@ export default function BookPage() {
                   </div>
                 ))}
               </div>
+
+              {submitError && (
+                <p style={{ color: '#ff6b6b', fontSize: '13px', marginBottom: '16px' }}>{submitError}</p>
+              )}
 
               <div style={{ display: 'flex', gap: '12px' }}>
                 <button type="button" onClick={() => setStep(2)} style={{
@@ -364,7 +399,7 @@ export default function BookPage() {
                   border: 'none', boxShadow: '0 6px 20px rgba(200,148,12,0.35)',
                   opacity: loading ? 0.7 : 1,
                 }}>
-                  {loading ? 'Confirming...' : 'Confirm & Pay R100 Deposit'}
+                  {loading ? 'Confirming...' : `Confirm & Pay R${(depositCents / 100).toFixed(0)} Deposit`}
                 </button>
               </div>
             </form>
