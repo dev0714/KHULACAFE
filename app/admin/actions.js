@@ -103,6 +103,38 @@ export async function updateLoyaltyConfig(data) {
 }
 
 // ── Booking Occasions ────────────────────────────────────────────
+const DEFAULT_OCCASIONS = [
+  { label: 'Date Night',        emoji: '🕯️',  description: 'A romantic evening for two',                 price_cents: 10000, category: 'Romantic',         sort_order: 1  },
+  { label: 'Proposal',          emoji: '💍',  description: "We'll help you create the perfect moment",   price_cents: 20000, category: 'Romantic',         sort_order: 2  },
+  { label: 'Engagement',        emoji: '💑',  description: 'Celebrate your new chapter together',         price_cents: 15000, category: 'Romantic',         sort_order: 3  },
+  { label: 'Anniversary',       emoji: '🥂',  description: 'Celebrate your love story',                  price_cents: 10000, category: 'Romantic',         sort_order: 4  },
+  { label: "Valentine's Day",   emoji: '❤️',  description: "A special Valentine's Day experience",       price_cents: 10000, category: 'Romantic',         sort_order: 5  },
+  { label: 'Team Lunch',        emoji: '💼',  description: 'Great ideas start over great food',          price_cents: 10000, category: 'Business',         sort_order: 6  },
+  { label: 'Team Breakfast',    emoji: '☕',  description: 'Start the day together as a team',           price_cents: 10000, category: 'Business',         sort_order: 7  },
+  { label: 'Team Supper',       emoji: '🍽️',  description: 'Unwind and connect after work',              price_cents: 10000, category: 'Business',         sort_order: 8  },
+  { label: 'Interview',         emoji: '📋',  description: 'A professional setting for your meeting',    price_cents:  5000, category: 'Business',         sort_order: 9  },
+  { label: 'Business Meeting',  emoji: '🤝',  description: 'Productive meetings in a great atmosphere',  price_cents:  5000, category: 'Business',         sort_order: 10 },
+  { label: 'Birthday',          emoji: '🎂',  description: "We'll make them feel extra special",         price_cents: 10000, category: 'Special Occasion', sort_order: 11 },
+  { label: "Mother's Day",      emoji: '🌸',  description: 'Spoil the most important woman in your life',price_cents: 10000, category: 'Special Occasion', sort_order: 12 },
+  { label: "Father's Day",      emoji: '👔',  description: 'Treat Dad to an unforgettable meal',         price_cents: 10000, category: 'Special Occasion', sort_order: 13 },
+  { label: 'Graduation',        emoji: '🎓',  description: 'Celebrate this incredible achievement',      price_cents: 10000, category: 'Special Occasion', sort_order: 14 },
+  { label: 'Family Reunion',    emoji: '👨‍👩‍👧‍👦', description: 'Bring the family together around great food',price_cents: 15000, category: 'Special Occasion', sort_order: 15 },
+  { label: 'Baby Shower',       emoji: '🍼',  description: 'Welcome the new arrival in style',           price_cents: 10000, category: 'Special Occasion', sort_order: 16 },
+  { label: 'Retirement',        emoji: '🎊',  description: 'Honour a life well lived',                   price_cents: 10000, category: 'Special Occasion', sort_order: 17 },
+  { label: 'Farewell',          emoji: '✈️',  description: 'Send them off in style',                     price_cents: 10000, category: 'Special Occasion', sort_order: 18 },
+  { label: 'Year End Function', emoji: '🎆',  description: "Celebrate your team's achievements",         price_cents: 20000, category: 'Special Occasion', sort_order: 19 },
+  { label: 'Christmas',         emoji: '🎄',  description: 'Festive cheer and great food',               price_cents: 10000, category: 'Special Occasion', sort_order: 20 },
+  { label: 'Easter',            emoji: '🐣',  description: 'A special Easter celebration',               price_cents: 10000, category: 'Special Occasion', sort_order: 21 },
+]
+
+export async function seedOccasions() {
+  await assertAdmin()
+  await supabaseAdmin.from('booking_occasions').delete().neq('id', '00000000-0000-0000-0000-000000000000')
+  await supabaseAdmin.from('booking_occasions').insert(DEFAULT_OCCASIONS)
+  revalidatePath('/book')
+  revalidatePath('/admin/bookings')
+}
+
 export async function upsertOccasion(data) {
   await assertAdmin()
   if (data.id) {

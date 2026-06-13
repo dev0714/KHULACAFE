@@ -1,7 +1,7 @@
 'use client'
 import { useState, useEffect, useTransition, useCallback } from 'react'
 import { supabase } from '../../../lib/supabase-public'
-import { upsertOccasion, deleteOccasion, upsertAddon, deleteAddon } from '../actions'
+import { upsertOccasion, deleteOccasion, upsertAddon, deleteAddon, seedOccasions } from '../actions'
 
 const inp = { width: '100%', padding: '10px 14px', background: '#0a0600', border: '1px solid #2e2000', borderRadius: '8px', color: '#fafafa', fontSize: '13px', outline: 'none', boxSizing: 'border-box' }
 const lbl = { display: 'block', fontSize: '10px', letterSpacing: '2px', color: '#f5c842', marginBottom: '6px', textTransform: 'uppercase' }
@@ -22,7 +22,7 @@ export default function BookingsAdmin() {
   const [bookings, setBookings] = useState([])
   const [bookingFilter, setBookingFilter] = useState('all')
 
-  const [occForm, setOccForm] = useState({ label: '', emoji: '🎉', description: '', price_cents: 10000 })
+  const [occForm, setOccForm] = useState({ label: '', emoji: '🎉', description: '', price_cents: 10000, category: 'Special Occasion' })
   const [addonForm, setAddonForm] = useState({ label: '', icon: '🎁', price_cents: 0 })
   const [editOcc, setEditOcc] = useState(null)
   const [editAddon, setEditAddon] = useState(null)
@@ -204,27 +204,64 @@ export default function BookingsAdmin() {
 
       {/* ── OCCASIONS TAB ── */}
       {tab === 'occasions' && (
-        <div style={{ maxWidth: '600px' }}>
-          <p style={{ color: 'rgba(255,255,255,0.4)', fontSize: '13px', marginBottom: '20px', lineHeight: 1.6 }}>
-            Occasions appear on the booking form for customers to choose from. Set a deposit amount per occasion type.
-          </p>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginBottom: '24px' }}>
-            {occasions.map(o => (
-              <div key={o.id} style={{ padding: '14px 16px', background: '#1e1500', borderRadius: '10px', border: '1px solid #2e2000', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <div>
-                  <span style={{ color: '#fafafa', fontSize: '14px' }}>{o.emoji} {o.label}</span>
-                  {o.description && <p style={{ color: 'rgba(255,255,255,0.4)', fontSize: '12px', margin: '2px 0 0' }}>{o.description}</p>}
-                </div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                  <span style={{ color: '#f5c842', fontSize: '14px', fontWeight: 700 }}>R{((o.price_cents || 0) / 100).toFixed(2)}</span>
-                  <button onClick={() => { setEditOcc(o); setOccForm({ label: o.label, emoji: o.emoji, description: o.description || '', price_cents: o.price_cents || 10000 }) }} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '14px' }}>✏️</button>
-                  <button onClick={() => removeOcc(o.id)} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '14px' }}>🗑️</button>
-                </div>
-              </div>
-            ))}
+        <div style={{ maxWidth: '640px' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '20px', gap: '12px', flexWrap: 'wrap' }}>
+            <p style={{ color: 'rgba(255,255,255,0.4)', fontSize: '13px', lineHeight: 1.6, margin: 0 }}>
+              Occasions appear on the booking form grouped by category. Set a deposit per type.
+            </p>
+            <button
+              onClick={() => {
+                if (!confirm('This will replace ALL current occasions with the default set. Continue?')) return
+                startTransition(async () => { await seedOccasions(); await loadOccasions() })
+              }}
+              disabled={isPending}
+              style={{ ...btnG, fontSize: '11px', whiteSpace: 'nowrap', flexShrink: 0 }}
+            >
+              ↺ Load Defaults
+            </button>
           </div>
 
-          <div style={{ background: '#1e1500', border: '1px solid #2e2000', borderRadius: '12px', padding: '20px' }}>
+          {/* Grouped by category */}
+          {['Romantic', 'Business', 'Special Occasion'].map(cat => {
+            const catItems = occasions.filter(o => (o.category || 'Special Occasion') === cat)
+            if (catItems.length === 0) return null
+            return (
+              <div key={cat} style={{ marginBottom: '24px' }}>
+                <p style={{ fontSize: '10px', letterSpacing: '2px', textTransform: 'uppercase', color: '#f5c842', marginBottom: '8px' }}>{cat}</p>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                  {catItems.map(o => (
+                    <div key={o.id} style={{ padding: '12px 16px', background: '#1e1500', borderRadius: '10px', border: '1px solid #2e2000', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <div>
+                        <span style={{ color: '#fafafa', fontSize: '14px' }}>{o.emoji} {o.label}</span>
+                        {o.description && <p style={{ color: 'rgba(255,255,255,0.4)', fontSize: '12px', margin: '2px 0 0' }}>{o.description}</p>}
+                      </div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexShrink: 0 }}>
+                        <span style={{ color: '#f5c842', fontSize: '13px', fontWeight: 700 }}>R{((o.price_cents || 0) / 100).toFixed(0)}</span>
+                        <button onClick={() => { setEditOcc(o); setOccForm({ label: o.label, emoji: o.emoji, description: o.description || '', price_cents: o.price_cents || 10000, category: o.category || 'Special Occasion' }) }} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '14px' }}>✏️</button>
+                        <button onClick={() => removeOcc(o.id)} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '14px' }}>🗑️</button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )
+          })}
+          {/* Uncategorised */}
+          {occasions.filter(o => !['Romantic','Business','Special Occasion'].includes(o.category)).map(o => (
+            <div key={o.id} style={{ padding: '12px 16px', background: '#1e1500', borderRadius: '10px', border: '1px solid #2e2000', display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
+              <div>
+                <span style={{ color: '#fafafa', fontSize: '14px' }}>{o.emoji} {o.label}</span>
+                {o.description && <p style={{ color: 'rgba(255,255,255,0.4)', fontSize: '12px', margin: '2px 0 0' }}>{o.description}</p>}
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexShrink: 0 }}>
+                <span style={{ color: '#f5c842', fontSize: '13px', fontWeight: 700 }}>R{((o.price_cents || 0) / 100).toFixed(0)}</span>
+                <button onClick={() => { setEditOcc(o); setOccForm({ label: o.label, emoji: o.emoji, description: o.description || '', price_cents: o.price_cents || 10000, category: o.category || 'Special Occasion' }) }} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '14px' }}>✏️</button>
+                <button onClick={() => removeOcc(o.id)} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '14px' }}>🗑️</button>
+              </div>
+            </div>
+          ))}
+
+          <div style={{ background: '#1e1500', border: '1px solid #2e2000', borderRadius: '12px', padding: '20px', marginTop: '8px' }}>
             <p style={{ color: '#f5c842', fontSize: '10px', letterSpacing: '2px', marginBottom: '16px', textTransform: 'uppercase' }}>
               {editOcc ? '✏️ Edit Occasion' : '+ Add Occasion'}
             </p>
@@ -239,10 +276,18 @@ export default function BookingsAdmin() {
               </div>
               <div>
                 <label style={lbl}>Deposit Price (R)</label>
-                <input type="number" min="0" step="0.01"
-                  value={((occForm.price_cents || 0) / 100).toFixed(2)}
+                <input type="number" min="0" step="1"
+                  value={Math.round((occForm.price_cents || 0) / 100)}
                   onChange={e => setOccForm(f => ({ ...f, price_cents: Math.round(parseFloat(e.target.value || 0) * 100) }))}
                   style={inp} />
+              </div>
+              <div>
+                <label style={lbl}>Category</label>
+                <select value={occForm.category} onChange={e => setOccForm(f => ({ ...f, category: e.target.value }))} style={inp}>
+                  <option>Romantic</option>
+                  <option>Business</option>
+                  <option>Special Occasion</option>
+                </select>
               </div>
               <div style={{ gridColumn: '1/-1' }}>
                 <label style={lbl}>Description</label>
@@ -251,7 +296,7 @@ export default function BookingsAdmin() {
             </div>
             <div style={{ display: 'flex', gap: '8px' }}>
               <button onClick={saveOcc} disabled={isPending || !occForm.label} style={btnP}>{isPending ? '…' : editOcc ? 'Update' : 'Add Occasion'}</button>
-              {editOcc && <button onClick={() => { setEditOcc(null); setOccForm({ label: '', emoji: '🎉', description: '', price_cents: 10000 }) }} style={btnG}>Cancel</button>}
+              {editOcc && <button onClick={() => { setEditOcc(null); setOccForm({ label: '', emoji: '🎉', description: '', price_cents: 10000, category: 'Special Occasion' }) }} style={btnG}>Cancel</button>}
             </div>
           </div>
         </div>

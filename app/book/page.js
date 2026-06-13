@@ -187,23 +187,35 @@ export default function BookPage() {
               <p style={{ fontSize: '14px', color: 'rgba(255,255,255,0.5)', marginBottom: '40px' }}>
                 Tell us what you're celebrating — we'll make it unforgettable.
               </p>
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '16px', marginBottom: '40px' }}>
-                {occasions.map((occ) => (
-                  <div key={occ.id} onClick={() => setForm(f => ({ ...f, occasion: occ.id }))} style={{
-                    background: form.occasion === occ.id ? 'rgba(200,148,12,0.2)' : '#1e1500',
-                    border: form.occasion === occ.id ? '1px solid #f5c842' : '1px solid #2e2000',
-                    borderRadius: '14px', padding: '28px', cursor: 'pointer',
-                    transition: 'all 0.25s', textAlign: 'center',
-                  }}>
-                    <div style={{ fontSize: '40px', marginBottom: '12px' }}>{occ.emoji}</div>
-                    <h3 style={{ fontFamily: 'var(--font-playfair)', fontSize: '18px', color: '#fafafa', marginBottom: '6px' }}>{occ.label}</h3>
-                    <p style={{ fontSize: '12px', color: 'rgba(255,255,255,0.45)', lineHeight: 1.5 }}>{occ.description}</p>
-                    <p style={{ fontSize: '13px', color: '#f5c842', fontWeight: 700, marginTop: '10px' }}>
-                      R{((occ.price_cents || 0) / 100).toFixed(0)} deposit
+              {['Romantic', 'Business', 'Special Occasion'].map(cat => {
+                const catOccs = occasions.filter(o => (o.category || 'Special Occasion') === cat)
+                if (catOccs.length === 0) return null
+                const catEmoji = cat === 'Romantic' ? '💕' : cat === 'Business' ? '💼' : '🎉'
+                return (
+                  <div key={cat} style={{ marginBottom: '36px' }}>
+                    <p style={{ fontSize: '11px', letterSpacing: '3px', textTransform: 'uppercase', color: '#f5c842', marginBottom: '16px' }}>
+                      {catEmoji} {cat}
                     </p>
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))', gap: '12px' }}>
+                      {catOccs.map(occ => (
+                        <div key={occ.id} onClick={() => setForm(f => ({ ...f, occasion: occ.id }))} style={{
+                          background: form.occasion === occ.id ? 'rgba(200,148,12,0.2)' : '#1e1500',
+                          border: form.occasion === occ.id ? '1px solid #f5c842' : '1px solid #2e2000',
+                          borderRadius: '14px', padding: '20px 16px', cursor: 'pointer',
+                          transition: 'all 0.25s', textAlign: 'center',
+                        }}>
+                          <div style={{ fontSize: '32px', marginBottom: '8px' }}>{occ.emoji}</div>
+                          <h3 style={{ fontFamily: 'var(--font-playfair)', fontSize: '15px', color: '#fafafa', marginBottom: '4px' }}>{occ.label}</h3>
+                          <p style={{ fontSize: '11px', color: 'rgba(255,255,255,0.4)', lineHeight: 1.4, marginBottom: '8px' }}>{occ.description}</p>
+                          <p style={{ fontSize: '12px', color: '#f5c842', fontWeight: 700 }}>
+                            R{((occ.price_cents || 0) / 100).toFixed(0)} deposit
+                          </p>
+                        </div>
+                      ))}
+                    </div>
                   </div>
-                ))}
-              </div>
+                )
+              })}
               <button disabled={!form.occasion} onClick={() => setStep(2)} style={{
                 cursor: form.occasion ? 'pointer' : 'not-allowed',
                 fontSize: '12px', letterSpacing: '3px', textTransform: 'uppercase',
