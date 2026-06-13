@@ -103,13 +103,21 @@ export default function Navbar() {
           <button
             onClick={() => setMobileOpen(v => !v)}
             aria-label="Toggle menu"
-            style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '6px', display: 'flex', flexDirection: 'column', gap: '5px' }}
+            style={{
+              background: mobileOpen ? 'transparent' : 'rgba(10,6,0,0.55)',
+              backdropFilter: 'blur(8px)',
+              border: mobileOpen ? 'none' : '1px solid rgba(245,200,66,0.25)',
+              borderRadius: '8px',
+              cursor: 'pointer', padding: '8px 10px',
+              display: 'flex', flexDirection: 'column', gap: '5px',
+              transition: 'all 0.3s',
+            }}
             className="show-mobile-only"
           >
             {[0, 1, 2].map(i => (
               <span key={i} style={{
                 display: 'block', width: '22px', height: '2px',
-                background: mobileOpen ? '#c8940c' : (scrolled ? '#1e1200' : '#fafafa'),
+                background: mobileOpen ? '#c8940c' : '#f5c842',
                 borderRadius: '2px',
                 transform: mobileOpen
                   ? i === 0 ? 'rotate(45deg) translateY(7px)' : i === 2 ? 'rotate(-45deg) translateY(-7px)' : 'none'
