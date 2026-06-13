@@ -133,7 +133,7 @@ export default function Navbar() {
         pointerEvents: mobileOpen ? 'auto' : 'none',
       }}>
         {navLinks.map((link) => (
-          <Link key={link.href} href={link.href} style={{
+          <Link key={link.href} href={link.href} onClick={() => setMobileOpen(false)} style={{
             textDecoration: 'none',
             fontFamily: 'var(--font-playfair)', fontSize: '28px', fontWeight: 600,
             letterSpacing: '5px', textTransform: 'uppercase',
