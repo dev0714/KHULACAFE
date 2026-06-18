@@ -44,7 +44,7 @@ export default function MenuPage() {
     // Fetch flat item list separately so search has all items reliably
     supabase
       .from('menu_items')
-      .select('id, name, description, badge, price, price_cents, image_url, category_id, menu_categories(name, icon)')
+      .select('id, name, description, badge, price, price_cents, image_url, category_id, subcategory_id, menu_categories(name, icon), menu_subcategories(name)')
       .order('sort_order')
       .then(({ data }) => { if (data) setAllMenuItems(data) })
   }, [])
@@ -88,7 +88,9 @@ export default function MenuPage() {
     const matched = allMenuItems.filter(item =>
       item.name?.toLowerCase().includes(q) ||
       item.description?.toLowerCase().includes(q) ||
-      item.badge?.toLowerCase().includes(q)
+      item.badge?.toLowerCase().includes(q) ||
+      item.menu_subcategories?.name?.toLowerCase().includes(q) ||
+      item.menu_categories?.name?.toLowerCase().includes(q)
     )
     // Group by category for display
     const byCategory = {}
@@ -269,7 +271,14 @@ export default function MenuPage() {
                     </div>
                     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '20px' }}>
                       {cat.matchedItems.map(item => (
-                        <ItemCard key={item.id} item={item} cartQty={cartQty} addItem={addItem} />
+                        <div key={item.id}>
+                          {item.menu_subcategories?.name && (
+                            <p style={{ fontSize: '10px', letterSpacing: '1.5px', textTransform: 'uppercase', color: 'rgba(245,200,66,0.5)', marginBottom: '6px', paddingLeft: '4px' }}>
+                              {item.menu_subcategories.name}
+                            </p>
+                          )}
+                          <ItemCard item={item} cartQty={cartQty} addItem={addItem} />
+                        </div>
                       ))}
                     </div>
                   </div>
