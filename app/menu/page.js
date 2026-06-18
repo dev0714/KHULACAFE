@@ -7,6 +7,7 @@ import { useCart } from '../../lib/cart-context'
 export default function MenuPage() {
   const { addItem, items } = useCart()
   const [menuCategories, setMenuCategories] = useState([])
+  const [allMenuItems, setAllMenuItems] = useState([]) // flat list for search
   const [activeCategory, setActiveCategory] = useState('')
   const [searchQuery, setSearchQuery] = useState('')
   const [showGlance, setShowGlance] = useState(false)
@@ -40,6 +41,15 @@ export default function MenuPage() {
   }
 
   useEffect(() => {
+    // Fetch flat item list separately so search has all items reliably
+    supabase
+      .from('menu_items')
+      .select('id, name, description, badge, price, price_cents, image_url, category_id, menu_categories(name, icon)')
+      .order('sort_order')
+      .then(({ data }) => { if (data) setAllMenuItems(data) })
+  }, [])
+
+  useEffect(() => {
     Promise.all([
       supabase.from('menu_categories').select('*, menu_items(*)').order('sort_order'),
       supabase.from('menu_subcategories').select('*').order('sort_order'),
@@ -71,21 +81,31 @@ export default function MenuPage() {
     }
   }, [menuCategories])
 
-  // Search across all categories/items
+  // Search across the flat item list — reliable regardless of join state
   const searchResults = useMemo(() => {
     const q = searchQuery.trim().toLowerCase()
     if (!q) return null
-    const results = []
-    for (const cat of menuCategories) {
-      const matched = (cat.items || []).filter(item =>
-        item.name?.toLowerCase().includes(q) ||
-        item.description?.toLowerCase().includes(q) ||
-        item.badge?.toLowerCase().includes(q)
-      )
-      if (matched.length > 0) results.push({ ...cat, matchedItems: matched })
+    const matched = allMenuItems.filter(item =>
+      item.name?.toLowerCase().includes(q) ||
+      item.description?.toLowerCase().includes(q) ||
+      item.badge?.toLowerCase().includes(q)
+    )
+    // Group by category for display
+    const byCategory = {}
+    for (const item of matched) {
+      const catId = item.category_id
+      if (!byCategory[catId]) {
+        byCategory[catId] = {
+          id: catId,
+          name: item.menu_categories?.name || 'Other',
+          icon: item.menu_categories?.icon || '',
+          matchedItems: [],
+        }
+      }
+      byCategory[catId].matchedItems.push(item)
     }
-    return results
-  }, [searchQuery, menuCategories])
+    return Object.values(byCategory)
+  }, [searchQuery, allMenuItems])
 
   const current = menuCategories.find(c => c.id === activeCategory) || menuCategories[0]
   const totalItems = menuCategories.reduce((n, c) => n + (c.items?.length || 0), 0)
