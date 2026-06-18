@@ -9,6 +9,7 @@ export default function MenuPage() {
   const [menuCategories, setMenuCategories] = useState([])
   const [allMenuItems, setAllMenuItems] = useState([]) // flat list for search
   const [activeCategory, setActiveCategory] = useState('')
+  const [activeSubcategory, setActiveSubcategory] = useState(null) // null = All
   const [searchQuery, setSearchQuery] = useState('')
   const [showGlance, setShowGlance] = useState(false)
   const tabsRef = useRef(null)
@@ -80,6 +81,10 @@ export default function MenuPage() {
       setActiveCategory(menuCategories[0]?.id)
     }
   }, [menuCategories])
+
+  useEffect(() => {
+    setActiveSubcategory(null)
+  }, [activeCategory])
 
   // Search across the flat item list — reliable regardless of join state
   const searchResults = useMemo(() => {
@@ -175,37 +180,77 @@ export default function MenuPage() {
 
         {/* Category tabs — hidden when search active or glance open */}
         {!searchQuery && !showGlance && (
-          <div
-            ref={tabsRef}
-            className="menu-tabs-bar"
-            style={{
-              overflowX: 'auto', whiteSpace: 'nowrap',
-              scrollbarWidth: 'none', msOverflowStyle: 'none',
-              WebkitOverflowScrolling: 'touch',
-              padding: '0 32px',
-              cursor: 'grab', userSelect: 'none',
-            }}
-            onMouseDown={onMouseDown}
-            onMouseLeave={onMouseLeave}
-            onMouseUp={onMouseUp}
-            onMouseMove={onMouseMove}
-          >
-            <div style={{ display: 'inline-flex', gap: '0' }}>
-              {menuCategories.map(cat => (
-                <button key={cat.id} onClick={() => setActiveCategory(cat.id)} style={{
-                  background: 'none', border: 'none', cursor: 'pointer',
-                  padding: '16px 24px',
-                  fontSize: '11px', letterSpacing: '2px', textTransform: 'uppercase',
-                  fontWeight: 600,
-                  color: activeCategory === cat.id ? '#f5c842' : 'rgba(255,255,255,0.45)',
-                  borderBottom: activeCategory === cat.id ? '2px solid #f5c842' : '2px solid transparent',
-                  transition: 'all 0.2s', whiteSpace: 'nowrap',
-                }}>
-                  {cat.icon} {cat.name}
-                </button>
-              ))}
+          <>
+            <div
+              ref={tabsRef}
+              className="menu-tabs-bar"
+              style={{
+                overflowX: 'auto', whiteSpace: 'nowrap',
+                scrollbarWidth: 'none', msOverflowStyle: 'none',
+                WebkitOverflowScrolling: 'touch',
+                padding: '0 32px',
+                cursor: 'grab', userSelect: 'none',
+              }}
+              onMouseDown={onMouseDown}
+              onMouseLeave={onMouseLeave}
+              onMouseUp={onMouseUp}
+              onMouseMove={onMouseMove}
+            >
+              <div style={{ display: 'inline-flex', gap: '0' }}>
+                {menuCategories.map(cat => (
+                  <button key={cat.id} onClick={() => setActiveCategory(cat.id)} style={{
+                    background: 'none', border: 'none', cursor: 'pointer',
+                    padding: '16px 24px',
+                    fontSize: '11px', letterSpacing: '2px', textTransform: 'uppercase',
+                    fontWeight: 600,
+                    color: activeCategory === cat.id ? '#f5c842' : 'rgba(255,255,255,0.45)',
+                    borderBottom: activeCategory === cat.id ? '2px solid #f5c842' : '2px solid transparent',
+                    transition: 'all 0.2s', whiteSpace: 'nowrap',
+                  }}>
+                    {cat.icon} {cat.name}
+                  </button>
+                ))}
+              </div>
             </div>
-          </div>
+
+            {/* Subcategory pill tabs — only shown when current category has named subs */}
+            {current && current.groups?.some(g => g.sub) && (
+              <div style={{
+                overflowX: 'auto', whiteSpace: 'nowrap',
+                scrollbarWidth: 'none', msOverflowStyle: 'none',
+                padding: '8px 16px', display: 'flex', gap: '6px',
+                borderTop: '1px solid rgba(46,32,0,0.5)',
+              }}>
+                <button
+                  onClick={() => setActiveSubcategory(null)}
+                  style={{
+                    flexShrink: 0, padding: '6px 16px', borderRadius: '20px', border: 'none', cursor: 'pointer',
+                    fontSize: '11px', fontWeight: 700, letterSpacing: '0.5px',
+                    background: activeSubcategory === null ? 'linear-gradient(135deg,#f5c842,#c8940c)' : '#2e2000',
+                    color: activeSubcategory === null ? '#0a0600' : 'rgba(255,255,255,0.55)',
+                    transition: 'all 0.15s',
+                  }}
+                >
+                  All
+                </button>
+                {current.groups.filter(g => g.sub).map(g => (
+                  <button
+                    key={g.sub.id}
+                    onClick={() => setActiveSubcategory(g.sub.id)}
+                    style={{
+                      flexShrink: 0, padding: '6px 16px', borderRadius: '20px', border: 'none', cursor: 'pointer',
+                      fontSize: '11px', fontWeight: 700, letterSpacing: '0.5px',
+                      background: activeSubcategory === g.sub.id ? 'linear-gradient(135deg,#f5c842,#c8940c)' : '#2e2000',
+                      color: activeSubcategory === g.sub.id ? '#0a0600' : 'rgba(255,255,255,0.55)',
+                      transition: 'all 0.15s', whiteSpace: 'nowrap',
+                    }}
+                  >
+                    {g.sub.name}
+                  </button>
+                ))}
+              </div>
+            )}
+          </>
         )}
       </div>
 
@@ -309,27 +354,22 @@ export default function MenuPage() {
 
             {current && (
               <div>
-                {(current.groups?.length > 0 ? current.groups : [{ sub: null, items: current.items }]).map((group, gi) => (
-                  <div key={gi} style={{ marginBottom: '48px' }}>
-                    {group.sub && (
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '16px', marginBottom: '24px' }}>
-                        <div style={{ flex: 1, height: '1px', background: 'linear-gradient(90deg, #2e2000, transparent)' }} />
-                        <h3 style={{ fontFamily: 'var(--font-playfair)', fontSize: 'clamp(18px, 2.5vw, 26px)', color: '#f5c842', fontWeight: 600, whiteSpace: 'nowrap' }}>
-                          {group.sub.name}
-                        </h3>
-                        <div style={{ flex: 1, height: '1px', background: 'linear-gradient(90deg, transparent, #2e2000)' }} />
+                {(current.groups?.length > 0 ? current.groups : [{ sub: null, items: current.items }])
+                  .filter(g => activeSubcategory === null || (g.sub?.id === activeSubcategory) || (!g.sub && activeSubcategory === null))
+                  .filter(g => activeSubcategory === null ? true : g.sub?.id === activeSubcategory)
+                  .map((group, gi) => (
+                    <div key={gi} style={{ marginBottom: '40px' }}>
+                      {group.sub?.description && (
+                        <p style={{ fontSize: '13px', color: 'rgba(255,255,255,0.4)', marginBottom: '20px' }}>{group.sub.description}</p>
+                      )}
+                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '20px' }}>
+                        {group.items.map(item => (
+                          <ItemCard key={item.id} item={item} cartQty={cartQty} addItem={addItem} />
+                        ))}
                       </div>
-                    )}
-                    {group.sub?.description && (
-                      <p style={{ fontSize: '13px', color: 'rgba(255,255,255,0.4)', marginBottom: '20px', textAlign: 'center' }}>{group.sub.description}</p>
-                    )}
-                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '20px' }}>
-                      {group.items.map(item => (
-                        <ItemCard key={item.id} item={item} cartQty={cartQty} addItem={addItem} />
-                      ))}
                     </div>
-                  </div>
-                ))}
+                  ))
+                }
               </div>
             )}
           </div>
