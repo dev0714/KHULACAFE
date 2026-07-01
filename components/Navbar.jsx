@@ -62,9 +62,9 @@ export default function Navbar() {
         }}>
           {navLinks.map(link => {
             const active = pathname === link.href
-            const activeColor = scrolled ? '#c8940c' : '#f5c842'
-            const defaultColor = scrolled ? 'rgba(30,18,0,0.6)' : 'rgba(255,255,255,0.75)'
-            const hoverColor = scrolled ? '#0a0600' : '#fff'
+            const activeColor = '#c8940c'
+            const defaultColor = 'rgba(30,18,0,0.65)'
+            const hoverColor = '#0a0600'
             return (
               <Link key={link.href} href={link.href} style={{
                 textDecoration: 'none',
