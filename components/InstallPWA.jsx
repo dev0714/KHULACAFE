@@ -9,8 +9,11 @@ export default function InstallPWA() {
   useEffect(() => {
     // Never show if already installed (standalone mode)
     if (window.navigator.standalone || window.matchMedia('(display-mode: standalone)').matches) return
-    // Never show if dismissed before
-    if (sessionStorage.getItem('pwa-banner-dismissed')) return
+    // Never show on desktop
+    const isMobile = window.innerWidth < 1024 && ('ontouchstart' in window || navigator.maxTouchPoints > 0)
+    if (!isMobile) return
+    // Never show if permanently dismissed
+    if (localStorage.getItem('pwa-banner-dismissed')) return
 
     const ua = navigator.userAgent
     const ios = /iphone|ipad|ipod/i.test(ua)
@@ -33,7 +36,7 @@ export default function InstallPWA() {
   }, [])
 
   function dismiss() {
-    sessionStorage.setItem('pwa-banner-dismissed', '1')
+    localStorage.setItem('pwa-banner-dismissed', '1')
     setShow(false)
   }
 
