@@ -1,19 +1,27 @@
 'use client'
 import { useState } from 'react'
 import { useScrollReveal } from '../../hooks/useScrollReveal'
+import { submitContactMessage } from './actions'
 
 export default function ContactPage() {
   useScrollReveal()
   const [form, setForm] = useState({ name: '', email: '', phone: '', message: '' })
   const [loading, setLoading] = useState(false)
   const [sent, setSent] = useState(false)
+  const [error, setError] = useState('')
 
   const handleSubmit = async (e) => {
     e.preventDefault()
     setLoading(true)
-    await new Promise(r => setTimeout(r, 1200))
-    setLoading(false)
-    setSent(true)
+    setError('')
+    try {
+      await submitContactMessage(form)
+      setSent(true)
+    } catch (err) {
+      setError('Something went wrong. Please try again or WhatsApp us at 061 489 4615.')
+    } finally {
+      setLoading(false)
+    }
   }
 
   const inputStyle = {
@@ -138,6 +146,11 @@ export default function ContactPage() {
                       onBlur={e => e.target.style.borderColor = '#2e2000'}
                     />
                   </div>
+                  {error && (
+                    <p style={{ fontSize: '13px', color: '#f87171', background: 'rgba(248,113,113,0.1)', padding: '12px 16px', borderRadius: '8px', margin: 0 }}>
+                      {error}
+                    </p>
+                  )}
                   <button data-reveal data-delay="300" type="submit" disabled={loading} style={{
                     cursor: loading ? 'wait' : 'pointer',
                     fontSize: '12px', letterSpacing: '3px', textTransform: 'uppercase',

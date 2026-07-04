@@ -3,6 +3,7 @@ import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import { useState, useEffect } from 'react'
 import { getOrderCounts } from '../../app/admin/actions'
+import { getUnreadMessageCount } from '../../app/admin/messages/actions'
 
 const navItems = [
   { href: '/admin', label: 'Dashboard', icon: '🏠', exact: true },
@@ -12,6 +13,7 @@ const navItems = [
   { href: '/admin/bookings', label: 'Bookings', icon: '📅' },
   { href: '/admin/customers', label: 'Customers', icon: '👥' },
   { href: '/admin/orders', label: 'Orders', icon: '📦' },
+  { href: '/admin/messages', label: 'Messages', icon: '✉️' },
   { href: '/admin/users', label: 'Users', icon: '🔑' },
 ]
 
@@ -19,16 +21,20 @@ export default function AdminSidebar() {
   const pathname = usePathname()
   const router = useRouter()
   const [activeOrders, setActiveOrders] = useState(0)
+  const [unreadMessages, setUnreadMessages] = useState(0)
   const [open, setOpen] = useState(false)
 
   useEffect(() => {
     getOrderCounts().then(c => {
       setActiveOrders((c.received ?? 0) + (c.making ?? 0) + (c.out_for_delivery ?? 0))
     }).catch(() => {})
+    getUnreadMessageCount().then(setUnreadMessages).catch(() => {})
+
     const interval = setInterval(() => {
       getOrderCounts().then(c => {
         setActiveOrders((c.received ?? 0) + (c.making ?? 0) + (c.out_for_delivery ?? 0))
       }).catch(() => {})
+      getUnreadMessageCount().then(setUnreadMessages).catch(() => {})
     }, 30000)
     return () => clearInterval(interval)
   }, [])
@@ -63,6 +69,8 @@ export default function AdminSidebar() {
         {navItems.map(item => {
           const active = item.exact ? pathname === item.href : pathname.startsWith(item.href)
           const isOrders = item.href === '/admin/orders'
+          const isMessages = item.href === '/admin/messages'
+          const badge = isOrders ? activeOrders : isMessages ? unreadMessages : 0
           return (
             <Link key={item.href} href={item.href} style={{
               textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '10px',
@@ -73,13 +81,13 @@ export default function AdminSidebar() {
             }}>
               <span>{item.icon}</span>
               <span style={{ flex: 1 }}>{item.label}</span>
-              {isOrders && activeOrders > 0 && (
+              {badge > 0 && (
                 <span style={{
                   background: '#f5c842', color: '#0a0600', borderRadius: '50%',
                   width: '18px', height: '18px', display: 'flex', alignItems: 'center',
                   justifyContent: 'center', fontSize: '10px', fontWeight: 700, flexShrink: 0,
                 }}>
-                  {activeOrders}
+                  {badge}
                 </span>
               )}
             </Link>
