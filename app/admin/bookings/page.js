@@ -51,15 +51,21 @@ export default function BookingsAdmin() {
     startTransition(async () => {
       const payload = { ...occForm, sort_order: editOcc ? editOcc.sort_order : occasions.length }
       if (editOcc) payload.id = editOcc.id
-      await upsertOccasion(payload)
-      setOccForm({ label: '', emoji: '🎉', description: '', price_cents: 10000 })
+      const result = await upsertOccasion(payload)
+      if (result?.error) { alert(`Could not save occasion:\n${result.error}`); return }
+      if (result?.warning) alert(result.warning)
+      setOccForm({ label: '', emoji: '🎉', description: '', price_cents: 10000, category: 'Special Occasion' })
       setEditOcc(null)
       await loadOccasions()
     })
   }
   function removeOcc(id) {
     if (!confirm('Delete this occasion?')) return
-    startTransition(async () => { await deleteOccasion(id); await loadOccasions() })
+    startTransition(async () => {
+      const result = await deleteOccasion(id)
+      if (result?.error) { alert(`Could not delete occasion:\n${result.error}`); return }
+      await loadOccasions()
+    })
   }
 
   function saveAddon() {
@@ -212,7 +218,12 @@ export default function BookingsAdmin() {
             <button
               onClick={() => {
                 if (!confirm('This will replace ALL current occasions with the default set. Continue?')) return
-                startTransition(async () => { await seedOccasions(); await loadOccasions() })
+                startTransition(async () => {
+                  const result = await seedOccasions()
+                  if (result?.error) { alert(`Could not load defaults:\n${result.error}`); return }
+                  if (result?.warning) alert(result.warning)
+                  await loadOccasions()
+                })
               }}
               disabled={isPending}
               style={{ ...btnG, fontSize: '11px', whiteSpace: 'nowrap', flexShrink: 0 }}

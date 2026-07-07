@@ -127,31 +127,60 @@ const DEFAULT_OCCASIONS = [
   { label: 'Easter',            emoji: '🐣',  description: 'A special Easter celebration',               price_cents: 10000, category: 'Special Occasion', sort_order: 21 },
 ]
 
+// The category column may not exist yet on older databases — retry without it
+// so saves still work, and surface a clear message instead of failing silently.
+function isMissingCategoryColumn(error) {
+  return error?.code === 'PGRST204' || /category/.test(error?.message || '')
+}
+
 export async function seedOccasions() {
   await assertAdmin()
-  await supabaseAdmin.from('booking_occasions').delete().neq('id', '00000000-0000-0000-0000-000000000000')
-  await supabaseAdmin.from('booking_occasions').insert(DEFAULT_OCCASIONS)
+  const { error: delError } = await supabaseAdmin.from('booking_occasions').delete().neq('id', '00000000-0000-0000-0000-000000000000')
+  if (delError) return { error: `Could not clear existing occasions: ${delError.message}` }
+
+  let { error } = await supabaseAdmin.from('booking_occasions').insert(DEFAULT_OCCASIONS)
+  if (error && isMissingCategoryColumn(error)) {
+    const withoutCategory = DEFAULT_OCCASIONS.map(({ category, ...rest }) => rest)
+    ;({ error } = await supabaseAdmin.from('booking_occasions').insert(withoutCategory))
+    if (!error) return { warning: 'Occasions loaded, but the category column is missing in the database — all occasions will show under Special Occasion until it is added.' }
+  }
+  if (error) return { error: error.message }
+
   revalidatePath('/book')
   revalidatePath('/admin/bookings')
+  return {}
 }
 
 export async function upsertOccasion(data) {
   await assertAdmin()
-  if (data.id) {
-    const { id, ...fields } = data
-    await supabaseAdmin.from('booking_occasions').update(fields).eq('id', id)
-  } else {
-    await supabaseAdmin.from('booking_occasions').insert(data)
+  const run = async (payload) => {
+    if (payload.id) {
+      const { id, ...fields } = payload
+      return supabaseAdmin.from('booking_occasions').update(fields).eq('id', id)
+    }
+    return supabaseAdmin.from('booking_occasions').insert(payload)
   }
+
+  let { error } = await run(data)
+  if (error && isMissingCategoryColumn(error)) {
+    const { category, ...withoutCategory } = data
+    ;({ error } = await run(withoutCategory))
+    if (!error) return { warning: 'Saved, but the category column is missing in the database — this occasion will show under Special Occasion until it is added.' }
+  }
+  if (error) return { error: error.message }
+
   revalidatePath('/book')
   revalidatePath('/admin/bookings')
+  return {}
 }
 
 export async function deleteOccasion(id) {
   await assertAdmin()
-  await supabaseAdmin.from('booking_occasions').delete().eq('id', id)
+  const { error } = await supabaseAdmin.from('booking_occasions').delete().eq('id', id)
+  if (error) return { error: error.message }
   revalidatePath('/book')
   revalidatePath('/admin/bookings')
+  return {}
 }
 
 // ── Booking Add-ons ──────────────────────────────────────────────
