@@ -15,6 +15,7 @@ const navItems = [
   { href: '/admin/orders', label: 'Orders', icon: '📦' },
   { href: '/admin/messages', label: 'Messages', icon: '✉️' },
   { href: '/admin/users', label: 'Users', icon: '🔑' },
+  { href: '/admin/settings', label: 'Email Settings', icon: '⚙️' },
 ]
 
 export default function AdminSidebar() {
