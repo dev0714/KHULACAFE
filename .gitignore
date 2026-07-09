@@ -10,6 +10,12 @@
 /.next/
 /out/
 
+# PWA generated service workers (@ducanh2912/next-pwa build output)
+/public/sw.js
+/public/sw.js.map
+/public/swe-worker-*.js
+/public/workbox-*.js
+
 # production
 /build
 
