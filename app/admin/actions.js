@@ -470,9 +470,42 @@ export async function createBooking(data) {
       deposit_cents: deposit_cents || 10000,
       status: 'pending',
     })
-    .select('id, reference')
+    .select('*')
     .single()
   if (error) throw new Error(error.message)
+
+  // Send the customer confirmation + notify staff. Awaited (serverless freezes
+  // after the response) but never allowed to fail the booking itself.
+  try {
+    let occasion = null
+    if (booking.occasion_id) {
+      const { data: occ } = await supabaseAdmin
+        .from('booking_occasions').select('label, emoji').eq('id', booking.occasion_id).single()
+      occasion = occ
+    }
+    const { sendBookingConfirmation, notifyStaff } = await import('../../lib/resend')
+    await sendBookingConfirmation({ booking, occasion })
+    await notifyStaff({
+      type: 'booking',
+      subject: `New booking ${booking.reference || ''} — ${booking.customer_name}`.trim(),
+      html: `
+        <h2 style="margin:0 0 8px">New reservation received</h2>
+        <table style="width:100%;font-size:14px;border-top:1px solid #eee;margin-top:12px">
+          <tr><td style="padding:6px 0;color:#888">Name</td><td style="padding:6px 0;text-align:right;font-weight:600">${booking.customer_name}</td></tr>
+          <tr><td style="padding:6px 0;color:#888">Occasion</td><td style="padding:6px 0;text-align:right;font-weight:600">${occasion ? `${occasion.emoji || ''} ${occasion.label}` : '—'}</td></tr>
+          <tr><td style="padding:6px 0;color:#888">Date / Time</td><td style="padding:6px 0;text-align:right;font-weight:600">${booking.date} at ${booking.time}</td></tr>
+          <tr><td style="padding:6px 0;color:#888">Guests</td><td style="padding:6px 0;text-align:right;font-weight:600">${booking.guests}</td></tr>
+          <tr><td style="padding:6px 0;color:#888">Email</td><td style="padding:6px 0;text-align:right;font-weight:600">${booking.customer_email || '—'}</td></tr>
+          <tr><td style="padding:6px 0;color:#888">Phone</td><td style="padding:6px 0;text-align:right;font-weight:600">${booking.customer_phone || '—'}</td></tr>
+          <tr><td style="padding:6px 0;color:#888">Reference</td><td style="padding:6px 0;text-align:right;font-weight:600">${booking.reference || '—'}</td></tr>
+        </table>
+        ${booking.special_request ? `<p style="margin-top:12px;color:#555"><strong>Special request:</strong> ${booking.special_request}</p>` : ''}
+      `,
+    })
+  } catch (e) {
+    console.error('booking email failed:', e)
+  }
+
   revalidatePath('/admin/bookings')
   return { id: booking.id, reference: booking.reference }
 }
@@ -501,4 +534,50 @@ export async function updateAboutImage(slot, imageUrl) {
     .eq('slot', slot)
   revalidatePath('/about')
   revalidatePath('/admin/gallery')
+}
+
+// ── Email Settings ───────────────────────────────────────────────
+const SECRET_FIELDS = ['resend_api_key', 'imap_password', 'pop_password']
+
+// Never send raw secrets to the client — expose booleans + short previews.
+function sanitizeEmailSettings(row) {
+  if (!row) return null
+  const out = { ...row }
+  for (const f of SECRET_FIELDS) {
+    const val = row[f]
+    out[f] = ''
+    out[`has_${f}`] = !!val
+    out[`${f}_preview`] = val ? `${String(val).slice(0, 3)}••••${String(val).slice(-2)}` : ''
+  }
+  return out
+}
+
+export async function getEmailSettingsAdmin() {
+  await assertAdmin()
+  const { getEmailSettings } = await import('../../lib/email-settings')
+  const { row, tableMissing } = await getEmailSettings()
+  return { settings: sanitizeEmailSettings(row), tableMissing }
+}
+
+export async function saveEmailSettings(data) {
+  await assertAdmin()
+  const fields = { ...data, id: 1, updated_at: new Date().toISOString() }
+  // Blank secret = "leave unchanged" — drop so we don't overwrite with empty.
+  for (const f of SECRET_FIELDS) {
+    if (!fields[f]) delete fields[f]
+  }
+  // Strip client-only helper keys.
+  for (const k of Object.keys(fields)) {
+    if (k.startsWith('has_') || k.endsWith('_preview')) delete fields[k]
+  }
+  const { error } = await supabaseAdmin.from('email_settings').upsert(fields, { onConflict: 'id' })
+  if (error) return { error: error.message }
+  revalidatePath('/admin/settings')
+  return {}
+}
+
+export async function sendTestEmailAdmin(to) {
+  await assertAdmin()
+  const { sendTestEmail } = await import('../../lib/resend')
+  return sendTestEmail({ to })
 }
