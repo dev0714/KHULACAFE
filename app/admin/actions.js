@@ -537,7 +537,7 @@ export async function updateAboutImage(slot, imageUrl) {
 }
 
 // ── Email Settings ───────────────────────────────────────────────
-const SECRET_FIELDS = ['resend_api_key', 'imap_password', 'pop_password']
+const SECRET_FIELDS = ['resend_api_key', 'imap_password', 'pop_password', 'smtp_password']
 
 // Never send raw secrets to the client — expose booleans + short previews.
 function sanitizeEmailSettings(row) {
@@ -556,8 +556,12 @@ export async function getEmailSettingsAdmin() {
   await assertAdmin()
   const { getEmailSettings } = await import('../../lib/email-settings')
   const { row, tableMissing } = await getEmailSettings()
-  return { settings: sanitizeEmailSettings(row), tableMissing }
+  // Detect the pre-SMTP schema (row exists but new columns haven't been added).
+  const needsSmtpColumns = !!row && !('send_method' in row)
+  return { settings: sanitizeEmailSettings(row), tableMissing, needsSmtpColumns }
 }
+
+const SMTP_FIELDS = ['send_method', 'smtp_host', 'smtp_port', 'smtp_username', 'smtp_password', 'smtp_secure']
 
 export async function saveEmailSettings(data) {
   await assertAdmin()
@@ -570,8 +574,20 @@ export async function saveEmailSettings(data) {
   for (const k of Object.keys(fields)) {
     if (k.startsWith('has_') || k.endsWith('_preview')) delete fields[k]
   }
-  const { error } = await supabaseAdmin.from('email_settings').upsert(fields, { onConflict: 'id' })
+
+  let { error } = await supabaseAdmin.from('email_settings').upsert(fields, { onConflict: 'id' })
+
+  // SMTP columns not added yet — save everything else and tell them to run the SQL.
+  if (error && (error.code === 'PGRST204' || /smtp|send_method/i.test(error.message || ''))) {
+    const base = { ...fields }
+    for (const f of SMTP_FIELDS) delete base[f]
+    const retry = await supabaseAdmin.from('email_settings').upsert(base, { onConflict: 'id' })
+    if (retry.error) return { error: retry.error.message }
+    revalidatePath('/admin/settings')
+    return { warning: 'Saved — but SMTP is not enabled yet. Run the highlighted SQL in Supabase to add the SMTP columns, then set the sending method to SMTP and save again.' }
+  }
   if (error) return { error: error.message }
+
   revalidatePath('/admin/settings')
   return {}
 }

@@ -12,6 +12,6 @@ export default async function SettingsPage() {
   const payload = token ? await verifyToken(token) : null
   if (!payload) redirect('/staff-login')
 
-  const { settings, tableMissing } = await getEmailSettingsAdmin()
-  return <SettingsClient initial={settings} tableMissing={tableMissing} />
+  const { settings, tableMissing, needsSmtpColumns } = await getEmailSettingsAdmin()
+  return <SettingsClient initial={settings} tableMissing={tableMissing} needsSmtpColumns={needsSmtpColumns} />
 }
