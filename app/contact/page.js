@@ -32,10 +32,35 @@ export default function ContactPage() {
   }
 
   const contactInfo = [
-    { icon: '📍', label: 'Address', value: 'Cnr Old Main Road & St Johns Avenue, Dickswell Centre, Pinetown' },
-    { icon: '📞', label: 'Phone / WhatsApp', value: '061 489 4615' },
-    { icon: '✉️', label: 'Email', value: 'hello@khulacafe.co.za' },
-    { icon: '💬', label: 'WhatsApp Order', value: 'WhatsApp your order — we will deliver to you!' },
+    {
+      icon: '📍', label: 'Address',
+      value: 'Dickswell Centre, Cnr Old Main Road, Unit DC2, St Johns Ave, Pinetown, Durban, 3610',
+      href: 'https://www.google.com/maps/search/?api=1&query=Dickswell%20Centre%2C%20Cnr%20Old%20Main%20Road%2C%20St%20Johns%20Ave%2C%20Pinetown%2C%203610',
+      external: true,
+    },
+    { icon: '📞', label: 'Phone — tap to call', value: '061 489 4615', href: 'tel:0614894615' },
+    { icon: '✉️', label: 'Email', value: 'bookings@khulacafe.co.za', href: 'mailto:bookings@khulacafe.co.za' },
+    { icon: '💬', label: 'WhatsApp — tap to chat', value: 'Message us on WhatsApp', href: 'https://wa.me/27614894615?text=Hi%20Khula%20Cafe%20%F0%9F%91%8B', external: true },
+  ]
+
+  const iconStyle = { width: '22px', height: '22px', display: 'block' }
+  const socials = [
+    {
+      label: 'Instagram', href: 'https://instagram.com/khulacafe',
+      icon: (<svg viewBox="0 0 24 24" fill="currentColor" style={iconStyle}><path d="M12 2.2c3.2 0 3.58.01 4.85.07 1.17.05 1.8.25 2.22.41.56.22.96.48 1.38.9.42.42.68.82.9 1.38.16.42.36 1.05.41 2.22.06 1.27.07 1.65.07 4.85s-.01 3.58-.07 4.85c-.05 1.17-.25 1.8-.41 2.22-.22.56-.48.96-.9 1.38-.42.42-.82.68-1.38.9-.42.16-1.05.36-2.22.41-1.27.06-1.65.07-4.85.07s-3.58-.01-4.85-.07c-1.17-.05-1.8-.25-2.22-.41a3.7 3.7 0 0 1-1.38-.9 3.7 3.7 0 0 1-.9-1.38c-.16-.42-.36-1.05-.41-2.22C3.21 15.58 3.2 15.2 3.2 12s.01-3.58.07-4.85c.05-1.17.25-1.8.41-2.22.22-.56.48-.96.9-1.38.42-.42.82-.68 1.38-.9.42-.16 1.05-.36 2.22-.41C8.42 2.21 8.8 2.2 12 2.2zm0 1.8c-3.14 0-3.51.01-4.75.07-.9.04-1.38.19-1.7.32-.43.17-.74.37-1.06.69-.32.32-.52.63-.69 1.06-.13.32-.28.8-.32 1.7-.06 1.24-.07 1.61-.07 4.75s.01 3.51.07 4.75c.04.9.19 1.38.32 1.7.17.43.37.74.69 1.06.32.32.63.52 1.06.69.32.13.8.28 1.7.32 1.24.06 1.61.07 4.75.07s3.51-.01 4.75-.07c.9-.04 1.38-.19 1.7-.32.43-.17.74-.37 1.06-.69.32-.32.52-.63.69-1.06.13-.32.28-.8.32-1.7.06-1.24.07-1.61.07-4.75s-.01-3.51-.07-4.75c-.04-.9-.19-1.38-.32-1.7a2.86 2.86 0 0 0-.69-1.06 2.86 2.86 0 0 0-1.06-.69c-.32-.13-.8-.28-1.7-.32C15.51 4.01 15.14 4 12 4zm0 3.05A4.95 4.95 0 1 1 7.05 12 4.95 4.95 0 0 1 12 7.05zm0 1.8A3.15 3.15 0 1 0 15.15 12 3.15 3.15 0 0 0 12 8.85zM17.65 6.35a1.15 1.15 0 1 1-1.15 1.15 1.15 1.15 0 0 1 1.15-1.15z"/></svg>),
+    },
+    {
+      label: 'TikTok', href: 'https://www.tiktok.com/@khulacafe',
+      icon: (<svg viewBox="0 0 24 24" fill="currentColor" style={iconStyle}><path d="M16.6 5.82A4.28 4.28 0 0 1 15.54 3h-3.1v12.4a2.5 2.5 0 1 1-2.5-2.5c.2 0 .4.03.6.08V9.8a5.6 5.6 0 0 0-.6-.04A5.55 5.55 0 1 0 15.5 15.3V9.3a7.3 7.3 0 0 0 4.3 1.38V7.6a4.3 4.3 0 0 1-3.2-1.78z"/></svg>),
+    },
+    {
+      label: 'Facebook', href: 'https://facebook.com/khulacafe',
+      icon: (<svg viewBox="0 0 24 24" fill="currentColor" style={iconStyle}><path d="M13.5 21v-8h2.7l.4-3.1h-3.1V7.9c0-.9.25-1.5 1.55-1.5H17V3.62c-.29-.04-1.28-.12-2.43-.12-2.4 0-4.07 1.47-4.07 4.17V9.9H7.8V13h2.7v8z"/></svg>),
+    },
+    {
+      label: 'WhatsApp', href: 'https://wa.me/27614894615?text=Hi%20Khula%20Cafe%20%F0%9F%91%8B',
+      icon: (<svg viewBox="0 0 24 24" fill="currentColor" style={iconStyle}><path d="M17.5 14.4c-.3-.15-1.77-.87-2.04-.97-.27-.1-.47-.15-.67.15-.2.3-.77.96-.94 1.16-.17.2-.35.22-.65.08-.3-.15-1.26-.47-2.4-1.48-.89-.8-1.49-1.78-1.66-2.08-.17-.3-.02-.46.13-.6.13-.14.3-.35.45-.53.15-.17.2-.3.3-.5.1-.2.05-.37-.02-.52-.08-.15-.67-1.62-.92-2.22-.24-.58-.49-.5-.67-.51h-.57c-.2 0-.52.07-.8.37-.27.3-1.05 1.02-1.05 2.49 0 1.47 1.07 2.89 1.22 3.09.15.2 2.1 3.2 5.08 4.48.71.31 1.26.49 1.69.63.71.22 1.36.19 1.87.12.57-.09 1.77-.72 2.02-1.42.25-.7.25-1.29.17-1.42-.07-.12-.27-.2-.57-.35zM12 2a10 10 0 0 0-8.5 15.26L2 22l4.85-1.27A10 10 0 1 0 12 2zm0 1.8a8.2 8.2 0 0 1 6.96 12.56l-.2.32.66 2.42-2.48-.65-.31.18A8.2 8.2 0 1 1 12 3.8z"/></svg>),
+    },
   ]
 
   return (
@@ -57,19 +82,30 @@ export default function ContactPage() {
               </h2>
 
               <div style={{ display: 'flex', flexDirection: 'column', gap: '20px', marginBottom: '48px' }}>
-                {contactInfo.map((item, i) => (
-                  <div key={i} data-reveal data-delay={`${i * 80}`} style={{
+                {contactInfo.map((item, i) => {
+                  const cardStyle = {
                     display: 'flex', gap: '16px', alignItems: 'flex-start',
                     padding: '18px', background: '#1e1500', borderRadius: '12px',
-                    border: '1px solid #2e2000',
-                  }}>
-                    <span style={{ fontSize: '22px', marginTop: '2px' }}>{item.icon}</span>
-                    <div>
-                      <div style={{ fontSize: '10px', letterSpacing: '2px', textTransform: 'uppercase', color: '#f5c842', marginBottom: '4px' }}>{item.label}</div>
-                      <div style={{ fontSize: '14px', color: '#fafafa' }}>{item.value}</div>
-                    </div>
-                  </div>
-                ))}
+                    border: '1px solid #2e2000', textDecoration: 'none',
+                  }
+                  const inner = (
+                    <>
+                      <span style={{ fontSize: '22px', marginTop: '2px' }}>{item.icon}</span>
+                      <div>
+                        <div style={{ fontSize: '10px', letterSpacing: '2px', textTransform: 'uppercase', color: '#f5c842', marginBottom: '4px' }}>{item.label}</div>
+                        <div style={{ fontSize: '14px', color: '#fafafa', lineHeight: 1.5 }}>{item.value}</div>
+                      </div>
+                    </>
+                  )
+                  return item.href ? (
+                    <a key={i} href={item.href} {...(item.external ? { target: '_blank', rel: 'noopener noreferrer' } : {})}
+                      data-reveal data-delay={`${i * 80}`} style={cardStyle}>
+                      {inner}
+                    </a>
+                  ) : (
+                    <div key={i} data-reveal data-delay={`${i * 80}`} style={cardStyle}>{inner}</div>
+                  )
+                })}
               </div>
 
               {/* Hours */}
@@ -89,6 +125,27 @@ export default function ContactPage() {
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '4px' }}>
                   <span className="pulse-dot" style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#f5c842', display: 'block', flexShrink: 0 }} />
                   <span style={{ fontSize: '12px', color: 'rgba(255,255,255,0.6)' }}>Currently open & cooking</span>
+                </div>
+              </div>
+
+              {/* Socials */}
+              <div data-reveal style={{ marginTop: '32px' }}>
+                <h3 style={{ fontFamily: 'var(--font-playfair)', fontSize: '18px', color: '#fafafa', marginBottom: '4px' }}>Follow Us</h3>
+                <p style={{ fontSize: '13px', color: 'rgba(255,255,255,0.4)', marginBottom: '16px' }}>@khulacafe on Instagram, TikTok &amp; Facebook</p>
+                <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
+                  {socials.map(s => (
+                    <a key={s.label} href={s.href} target="_blank" rel="noopener noreferrer" aria-label={s.label} title={s.label} style={{
+                      width: '48px', height: '48px', borderRadius: '50%', flexShrink: 0,
+                      display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      background: '#1e1500', border: '1px solid #2e2000', color: '#f5c842',
+                      textDecoration: 'none', transition: 'transform 0.2s, border-color 0.2s',
+                    }}
+                      onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-3px)'; e.currentTarget.style.borderColor = '#c8940c' }}
+                      onMouseLeave={e => { e.currentTarget.style.transform = 'none'; e.currentTarget.style.borderColor = '#2e2000' }}
+                    >
+                      {s.icon}
+                    </a>
+                  ))}
                 </div>
               </div>
             </div>
