@@ -16,6 +16,7 @@ const navLinks = [
 export default function Navbar() {
   const [scrolled, setScrolled] = useState(false)
   const [mobileOpen, setMobileOpen] = useState(false)
+  const [account, setAccount] = useState(null) // null = loading, false = logged out, {name} = logged in
   const pathname = usePathname()
 
   useEffect(() => {
@@ -23,6 +24,19 @@ export default function Navbar() {
     window.addEventListener('scroll', onScroll, { passive: true })
     return () => window.removeEventListener('scroll', onScroll)
   }, [])
+
+  // Re-check login state on every navigation (covers login / logout).
+  useEffect(() => {
+    fetch('/api/customer/me')
+      .then(r => r.json())
+      .then(d => setAccount(d.authenticated ? { name: d.name } : false))
+      .catch(() => setAccount(false))
+  }, [pathname])
+
+  const accountLink = account
+    ? { href: '/account', label: 'My Account' }
+    : { href: '/register', label: 'Register' }
+  const allLinks = [...navLinks, accountLink]
 
   useEffect(() => {
     setMobileOpen(false)
@@ -60,7 +74,7 @@ export default function Navbar() {
           position: 'absolute', left: '50%', transform: 'translateX(-50%)',
           display: 'flex', gap: '36px', alignItems: 'center',
         }}>
-          {navLinks.map(link => {
+          {allLinks.map(link => {
             const active = pathname === link.href
             const activeColor = '#c8940c'
             const defaultColor = 'rgba(30,18,0,0.65)'
@@ -140,7 +154,7 @@ export default function Navbar() {
         transform: mobileOpen ? 'none' : 'translateY(-100%)',
         pointerEvents: mobileOpen ? 'auto' : 'none',
       }}>
-        {navLinks.map((link) => (
+        {allLinks.map((link) => (
           <Link key={link.href} href={link.href} onClick={() => setMobileOpen(false)} style={{
             textDecoration: 'none',
             fontFamily: 'var(--font-playfair)', fontSize: '28px', fontWeight: 600,
