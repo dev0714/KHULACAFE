@@ -2,7 +2,7 @@
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
-import { usePathname } from 'next/navigation'
+import { usePathname, useRouter } from 'next/navigation'
 
 const navLinks = [
   { href: '/', label: 'Home' },
@@ -18,6 +18,19 @@ export default function Navbar() {
   const [mobileOpen, setMobileOpen] = useState(false)
   const [account, setAccount] = useState(null) // null = loading, false = logged out, {name} = logged in
   const pathname = usePathname()
+  const router = useRouter()
+
+  // Robust Home navigation: always close the drawer; scroll to top if already
+  // home, otherwise navigate home. Prevents "nothing happens" on the home page.
+  function goHome(e) {
+    e.preventDefault()
+    setMobileOpen(false)
+    if (pathname === '/') {
+      window.scrollTo({ top: 0, behavior: 'smooth' })
+    } else {
+      router.push('/')
+    }
+  }
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 60)
@@ -59,7 +72,7 @@ export default function Navbar() {
         display: 'flex', alignItems: 'center', justifyContent: 'space-between',
       }}>
         {/* Logo */}
-        <Link href="/" style={{ textDecoration: 'none', lineHeight: 1 }}>
+        <Link href="/" onClick={goHome} style={{ textDecoration: 'none', lineHeight: 1 }}>
           <img
             src="/images/logo.png"
             alt="Khula Cafe"
@@ -80,7 +93,7 @@ export default function Navbar() {
             const defaultColor = 'rgba(30,18,0,0.65)'
             const hoverColor = '#0a0600'
             return (
-              <Link key={link.href} href={link.href} style={{
+              <Link key={link.href} href={link.href} onClick={link.href === '/' ? goHome : undefined} style={{
                 textDecoration: 'none',
                 fontSize: '11px', letterSpacing: '2px', textTransform: 'uppercase', fontWeight: 500,
                 color: active ? activeColor : defaultColor,
@@ -155,7 +168,7 @@ export default function Navbar() {
         pointerEvents: mobileOpen ? 'auto' : 'none',
       }}>
         {allLinks.map((link) => (
-          <Link key={link.href} href={link.href} onClick={() => setMobileOpen(false)} style={{
+          <Link key={link.href} href={link.href} onClick={link.href === '/' ? goHome : () => setMobileOpen(false)} style={{
             textDecoration: 'none',
             fontFamily: 'var(--font-playfair)', fontSize: '28px', fontWeight: 600,
             letterSpacing: '5px', textTransform: 'uppercase',
