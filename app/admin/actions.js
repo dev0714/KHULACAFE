@@ -597,3 +597,39 @@ export async function sendTestEmailAdmin(to) {
   const { sendTestEmail } = await import('../../lib/resend')
   return sendTestEmail({ to })
 }
+
+// ── Contact / Find Us Settings ───────────────────────────────────
+export async function getContactSettingsAdmin() {
+  await assertAdmin()
+  const { getContactSettings } = await import('../../lib/contact-settings')
+  return getContactSettings()
+}
+
+export async function saveContactSettings(data) {
+  await assertAdmin()
+  const clean = (v) => (typeof v === 'string' ? v.trim() : v) || null
+  const hours = Array.isArray(data.trading_hours)
+    ? data.trading_hours
+        .map(h => ({ day: (h.day || '').trim(), hours: (h.hours || '').trim() }))
+        .filter(h => h.day || h.hours)
+    : []
+
+  const fields = {
+    id: 1,
+    address: clean(data.address),
+    phone: clean(data.phone),
+    email: clean(data.email),
+    whatsapp: clean(data.whatsapp),
+    trading_hours: hours,
+    instagram: clean(data.instagram),
+    tiktok: clean(data.tiktok),
+    facebook: clean(data.facebook),
+    updated_at: new Date().toISOString(),
+  }
+
+  const { error } = await supabaseAdmin.from('contact_settings').upsert(fields, { onConflict: 'id' })
+  if (error) return { error: error.message }
+  revalidatePath('/contact')
+  revalidatePath('/admin/contact')
+  return {}
+}

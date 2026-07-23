@@ -14,6 +14,7 @@ const navItems = [
   { href: '/admin/customers', label: 'Customers', icon: '👥' },
   { href: '/admin/orders', label: 'Orders', icon: '📦' },
   { href: '/admin/messages', label: 'Messages', icon: '✉️' },
+  { href: '/admin/contact', label: 'Find Us', icon: '📍' },
   { href: '/admin/users', label: 'Users', icon: '🔑' },
   { href: '/admin/settings', label: 'Email Settings', icon: '⚙️' },
 ]
