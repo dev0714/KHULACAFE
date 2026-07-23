@@ -29,6 +29,7 @@ export default function BookPage() {
     selectedAddOns: [],
     specialRequest: '',
     specialSong: '',
+    occasionReason: '',
   })
   // Custom rand amounts per add-on (e.g. Gift Card — the customer sets the value)
   const [addonAmounts, setAddonAmounts] = useState({})
@@ -70,6 +71,10 @@ export default function BookPage() {
   const depositCents = selectedOccasion?.price_cents ?? 10000
   const totalOwing = (depositCents / 100) + totalAddOns
 
+  const ROMANTIC_REASONS = ['Proposal', 'Engagement', 'Anniversary', 'Date Night', "Valentine's Day", 'Birthday Surprise', 'Just Because']
+  const needsReason = /romantic/i.test(selectedOccasion?.label || '') || selectedOccasion?.category === 'Romantic'
+  const step1Ready = !!form.occasion && (!needsReason || !!form.occasionReason)
+
   const handleSubmit = async (e) => {
     e.preventDefault()
     setLoading(true)
@@ -89,6 +94,7 @@ export default function BookPage() {
         add_ons: selectedAddOns,
         special_song: form.specialSong || null,
         special_request: form.specialRequest || null,
+        occasion_reason: form.occasionReason || null,
         deposit_cents: depositCents,
       })
       setBookingRef(result.reference)
@@ -141,7 +147,7 @@ export default function BookPage() {
               {bookingRef || '—'}
             </p>
           </div>
-          <button onClick={() => { setSuccess(false); setStep(1); setForm({ occasion:'', date:'', time:'', guests:2, name:'', email:'', phone:'', selectedAddOns:[], specialRequest:'', specialSong:'' }) }}
+          <button onClick={() => { setSuccess(false); setStep(1); setAddonAmounts({}); setForm({ occasion:'', date:'', time:'', guests:2, name:'', email:'', phone:'', selectedAddOns:[], specialRequest:'', specialSong:'', occasionReason:'' }) }}
             style={{
               cursor: 'pointer', fontSize: '12px', letterSpacing: '3px', textTransform: 'uppercase',
               fontWeight: 600, color: '#0a0600', padding: '14px 40px', borderRadius: '50px',
@@ -234,13 +240,28 @@ export default function BookPage() {
                   </div>
                 )
               })}
-              <button disabled={!form.occasion} onClick={() => setStep(2)} style={{
-                cursor: form.occasion ? 'pointer' : 'not-allowed',
+              {needsReason && (
+                <div style={{ marginBottom: '32px', maxWidth: '360px' }}>
+                  <label style={labelStyle}>What's the romantic occasion?</label>
+                  <select
+                    value={form.occasionReason}
+                    onChange={e => setForm(f => ({ ...f, occasionReason: e.target.value }))}
+                    style={inputStyle}
+                    onFocus={e => e.target.style.borderColor = '#f5c842'}
+                    onBlur={e => e.target.style.borderColor = '#2e2000'}
+                  >
+                    <option value="">Select a reason…</option>
+                    {ROMANTIC_REASONS.map(r => <option key={r} value={r}>{r}</option>)}
+                  </select>
+                </div>
+              )}
+              <button disabled={!step1Ready} onClick={() => setStep(2)} style={{
+                cursor: step1Ready ? 'pointer' : 'not-allowed',
                 fontSize: '12px', letterSpacing: '3px', textTransform: 'uppercase',
                 fontWeight: 600, color: '#0a0600', padding: '16px 48px', borderRadius: '50px',
-                background: form.occasion ? 'linear-gradient(135deg, #f5c842, #c8940c)' : '#2e2000',
-                border: 'none', opacity: form.occasion ? 1 : 0.5, transition: 'all 0.2s',
-                boxShadow: form.occasion ? '0 6px 20px rgba(200,148,12,0.4)' : 'none',
+                background: step1Ready ? 'linear-gradient(135deg, #f5c842, #c8940c)' : '#2e2000',
+                border: 'none', opacity: step1Ready ? 1 : 0.5, transition: 'all 0.2s',
+                boxShadow: step1Ready ? '0 6px 20px rgba(200,148,12,0.4)' : 'none',
               }}>
                 Continue →
               </button>

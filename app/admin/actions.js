@@ -453,7 +453,7 @@ export async function deleteAdminUser(id) {
 
 // ── Public Booking Submission ────────────────────────────────────
 export async function createBooking(data) {
-  const { occasion_id, date, time, guests, customer_name, customer_email, customer_phone, add_ons, special_song, special_request, deposit_cents } = data
+  const { occasion_id, date, time, guests, customer_name, customer_email, customer_phone, add_ons, special_song, special_request, occasion_reason, deposit_cents } = data
   const { data: booking, error } = await supabaseAdmin
     .from('bookings')
     .insert({
@@ -467,6 +467,7 @@ export async function createBooking(data) {
       add_ons: add_ons || [],
       special_song: special_song || null,
       special_request: special_request || null,
+      occasion_reason: occasion_reason || null,
       deposit_cents: deposit_cents || 10000,
       status: 'pending',
     })
