@@ -37,34 +37,6 @@ export default function Footer() {
             <p style={{ fontSize: '13px', color: 'rgba(255,255,255,0.45)', lineHeight: 1.8, maxWidth: '260px' }}>
               Where memories are made, smiles are created, and every conversation begins over a great cup of coffee.
             </p>
-            <p style={{ fontSize: '12px', color: 'rgba(255,255,255,0.3)', lineHeight: 1.7, marginTop: '12px' }}>
-              📍 Cnr Old Main Road & St Johns Avenue<br />Dickswell Centre, Pinetown<br />📞 061 489 4615
-            </p>
-            {/* Social */}
-            <div style={{ display: 'flex', gap: '12px', marginTop: '24px' }}>
-              {[
-                { label: 'Facebook', href: '#', svg: <path d="M18 2h-3a5 5 0 0 0-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 0 1 1-1h3z" /> },
-                { label: 'Instagram', href: '#', svg: <><rect x="2" y="2" width="20" height="20" rx="5" ry="5"/><path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"/><line x1="17.5" y1="6.5" x2="17.51" y2="6.5"/></> },
-                { label: 'TikTok', href: '#', svg: <path d="M9 12a4 4 0 1 0 4 4V4a5 5 0 0 0 5 5" /> },
-                { label: 'WhatsApp', href: '#', svg: <><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/></> },
-              ].map(({ label, href, svg }) => (
-                <a key={label} href={href} aria-label={label}
-                  style={{
-                    width: '38px', height: '38px', borderRadius: '50%',
-                    background: 'rgba(245,200,66,0.08)', border: '1px solid rgba(245,200,66,0.25)',
-                    display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    cursor: 'pointer', transition: 'all 0.2s', textDecoration: 'none', flexShrink: 0,
-                  }}
-                  onMouseEnter={e => { e.currentTarget.style.background = 'rgba(245,200,66,0.18)'; e.currentTarget.style.borderColor = '#f5c842' }}
-                  onMouseLeave={e => { e.currentTarget.style.background = 'rgba(245,200,66,0.08)'; e.currentTarget.style.borderColor = 'rgba(245,200,66,0.25)' }}
-                >
-                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none"
-                    stroke="#f5c842" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-                    {svg}
-                  </svg>
-                </a>
-              ))}
-            </div>
           </div>
 
           {/* Links */}
