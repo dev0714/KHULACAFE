@@ -30,10 +30,27 @@ export default function BookPage() {
     specialRequest: '',
     specialSong: '',
   })
+  // Custom rand amounts per add-on (e.g. Gift Card — the customer sets the value)
+  const [addonAmounts, setAddonAmounts] = useState({})
   const [loading, setLoading] = useState(false)
   const [success, setSuccess] = useState(false)
   const [bookingRef, setBookingRef] = useState('')
   const [submitError, setSubmitError] = useState('')
+
+  // Scroll to the top of the page whenever the step changes, so the customer
+  // lands on the new section instead of staying scrolled at the bottom.
+  useEffect(() => {
+    if (typeof window !== 'undefined') window.scrollTo({ top: 0, behavior: 'smooth' })
+  }, [step])
+
+  const isCustomAmount = (a) => /gift\s*card/i.test(a?.label || '')
+  const addonPrice = (a) => {
+    if (isCustomAmount(a)) {
+      const v = parseFloat(addonAmounts[a.id])
+      return Number.isFinite(v) && v > 0 ? v : 0
+    }
+    return a.price
+  }
 
   const toggleAddOn = (id) => {
     setForm(f => ({
@@ -46,11 +63,12 @@ export default function BookPage() {
 
   const totalAddOns = form.selectedAddOns.reduce((sum, id) => {
     const a = addOns.find(a => a.id === id)
-    return sum + (a ? a.price : 0)
+    return sum + (a ? addonPrice(a) : 0)
   }, 0)
 
   const selectedOccasion = occasions.find(o => o.id === form.occasion)
   const depositCents = selectedOccasion?.price_cents ?? 10000
+  const totalOwing = (depositCents / 100) + totalAddOns
 
   const handleSubmit = async (e) => {
     e.preventDefault()
@@ -59,7 +77,7 @@ export default function BookPage() {
     try {
       const selectedAddOns = addOns
         .filter(a => form.selectedAddOns.includes(a.id))
-        .map(a => ({ id: a.id, label: a.label, icon: a.icon, price_cents: a.price_cents }))
+        .map(a => ({ id: a.id, label: a.label, icon: a.icon, price_cents: Math.round(addonPrice(a) * 100) }))
       const result = await createBooking({
         occasion_id: form.occasion || null,
         date: form.date,
@@ -334,20 +352,41 @@ export default function BookPage() {
               <div style={{ marginBottom: '24px' }}>
                 <label style={labelStyle}>Add-Ons (Optional)</label>
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '12px' }}>
-                  {addOns.map(addon => (
-                    <div key={addon.id} onClick={() => toggleAddOn(addon.id)} style={{
-                      background: form.selectedAddOns.includes(addon.id) ? 'rgba(200,148,12,0.2)' : '#1e1500',
-                      border: form.selectedAddOns.includes(addon.id) ? '1px solid #f5c842' : '1px solid #2e2000',
-                      borderRadius: '10px', padding: '16px', cursor: 'pointer',
-                      display: 'flex', alignItems: 'center', gap: '12px', transition: 'all 0.2s',
-                    }}>
-                      <span style={{ fontSize: '22px' }}>{addon.icon}</span>
-                      <div>
-                        <div style={{ fontSize: '13px', fontWeight: 500, color: '#fafafa' }}>{addon.label}</div>
-                        <div style={{ fontSize: '12px', color: '#f5c842' }}>{addon.price === 0 ? 'Free' : `R ${addon.price}`}</div>
+                  {addOns.map(addon => {
+                    const selected = form.selectedAddOns.includes(addon.id)
+                    const custom = isCustomAmount(addon)
+                    return (
+                      <div key={addon.id} style={{
+                        background: selected ? 'rgba(200,148,12,0.2)' : '#1e1500',
+                        border: selected ? '1px solid #f5c842' : '1px solid #2e2000',
+                        borderRadius: '10px', padding: '16px', transition: 'all 0.2s',
+                      }}>
+                        <div onClick={() => toggleAddOn(addon.id)} style={{ display: 'flex', alignItems: 'center', gap: '12px', cursor: 'pointer' }}>
+                          <span style={{ fontSize: '22px' }}>{addon.icon}</span>
+                          <div>
+                            <div style={{ fontSize: '13px', fontWeight: 500, color: '#fafafa' }}>{addon.label}</div>
+                            <div style={{ fontSize: '12px', color: '#f5c842' }}>
+                              {custom ? 'Choose an amount' : addon.price === 0 ? 'Free' : `R ${addon.price}`}
+                            </div>
+                          </div>
+                        </div>
+                        {custom && selected && (
+                          <div style={{ marginTop: '12px' }} onClick={e => e.stopPropagation()}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                              <span style={{ fontSize: '14px', color: '#f5c842', fontWeight: 600 }}>R</span>
+                              <input
+                                type="number" min="0" step="10" placeholder="Amount"
+                                value={addonAmounts[addon.id] ?? ''}
+                                onChange={e => setAddonAmounts(m => ({ ...m, [addon.id]: e.target.value }))}
+                                onClick={e => e.stopPropagation()}
+                                style={{ ...inputStyle, padding: '10px 12px' }}
+                              />
+                            </div>
+                          </div>
+                        )}
                       </div>
-                    </div>
-                  ))}
+                    )
+                  })}
                 </div>
               </div>
 
@@ -383,14 +422,21 @@ export default function BookPage() {
                   { label: 'Date', value: form.date },
                   { label: 'Time', value: form.time },
                   { label: 'Guests', value: form.guests },
-                  { label: 'Add-ons', value: totalAddOns > 0 ? `R ${totalAddOns}` : 'None' },
-                  { label: 'Deposit', value: `R${(depositCents / 100).toFixed(0)} (deducted from bill)` },
+                  { label: 'Add-ons', value: totalAddOns > 0 ? `R ${totalAddOns.toFixed(0)}` : 'None' },
+                  { label: 'Deposit (paid now)', value: `R${(depositCents / 100).toFixed(0)}` },
                 ].map(row => (
                   <div key={row.label} style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
                     <span style={{ fontSize: '13px', color: 'rgba(255,255,255,0.4)' }}>{row.label}</span>
                     <span style={{ fontSize: '13px', color: '#fafafa', fontWeight: 500 }}>{row.value}</span>
                   </div>
                 ))}
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '12px', paddingTop: '14px', borderTop: '1px solid #2e2000' }}>
+                  <span style={{ fontSize: '13px', letterSpacing: '1px', textTransform: 'uppercase', color: '#f5c842', fontWeight: 700 }}>Total Owing</span>
+                  <span style={{ fontFamily: 'var(--font-playfair)', fontSize: '22px', color: '#fafafa', fontWeight: 700 }}>R{totalOwing.toFixed(0)}</span>
+                </div>
+                <p style={{ fontSize: '11px', color: 'rgba(255,255,255,0.35)', margin: '6px 0 0', lineHeight: 1.5 }}>
+                  Deposit is paid now to secure your table and is deducted from your final bill. Add-ons are settled on the day.
+                </p>
               </div>
 
               {submitError && (
