@@ -1,5 +1,5 @@
 'use client'
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { supabase } from '../../lib/supabase-public'
 import { createBooking } from '../admin/actions'
 
@@ -76,6 +76,15 @@ export default function BookPage() {
   const ROMANTIC_REASONS = ['Proposal', 'Engagement', 'Anniversary', 'Date Night', "Valentine's Day", 'Birthday Surprise', 'Just Because']
   const needsReason = /romantic/i.test(selectedOccasion?.label || '') || selectedOccasion?.category === 'Romantic'
   const step1Ready = !!form.occasion && (!needsReason || !!form.occasionReason)
+
+  // When a Romantic occasion is picked, bring the (newly shown) reason dropdown
+  // into view so the customer sees the next step instead of a no-op click.
+  const reasonRef = useRef(null)
+  useEffect(() => {
+    if (needsReason && !form.occasionReason && reasonRef.current) {
+      reasonRef.current.scrollIntoView({ behavior: 'smooth', block: 'center' })
+    }
+  }, [form.occasion, needsReason])
 
   const handleSubmit = async (e) => {
     e.preventDefault()
@@ -250,7 +259,7 @@ export default function BookPage() {
                 )
               })}
               {needsReason && (
-                <div style={{ marginBottom: '32px', maxWidth: '360px' }}>
+                <div ref={reasonRef} style={{ marginBottom: '32px', maxWidth: '360px', scrollMarginTop: '90px' }}>
                   <label style={labelStyle}>What's the romantic occasion?</label>
                   <select
                     value={form.occasionReason}
