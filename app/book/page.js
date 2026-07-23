@@ -33,6 +33,8 @@ export default function BookPage() {
   })
   // Custom rand amounts per add-on (e.g. Gift Card — the customer sets the value)
   const [addonAmounts, setAddonAmounts] = useState({})
+  const [addonColors, setAddonColors] = useState({}) // addon id → chosen colour
+  const [lightbox, setLightbox] = useState(null) // full-screen image url
   const [loading, setLoading] = useState(false)
   const [success, setSuccess] = useState(false)
   const [bookingRef, setBookingRef] = useState('')
@@ -77,12 +79,19 @@ export default function BookPage() {
 
   const handleSubmit = async (e) => {
     e.preventDefault()
-    setLoading(true)
     setSubmitError('')
+    // Require a colour for any selected add-on that offers colour options
+    const missingColor = addOns.find(a =>
+      form.selectedAddOns.includes(a.id) && Array.isArray(a.colors) && a.colors.length > 0 && !addonColors[a.id])
+    if (missingColor) {
+      setSubmitError(`Please choose a colour for ${missingColor.label}.`)
+      return
+    }
+    setLoading(true)
     try {
       const selectedAddOns = addOns
         .filter(a => form.selectedAddOns.includes(a.id))
-        .map(a => ({ id: a.id, label: a.label, icon: a.icon, price_cents: Math.round(addonPrice(a) * 100) }))
+        .map(a => ({ id: a.id, label: a.label, icon: a.icon, price_cents: Math.round(addonPrice(a) * 100), color: addonColors[a.id] || null }))
       const result = await createBooking({
         occasion_id: form.occasion || null,
         date: form.date,
@@ -147,7 +156,7 @@ export default function BookPage() {
               {bookingRef || '—'}
             </p>
           </div>
-          <button onClick={() => { setSuccess(false); setStep(1); setAddonAmounts({}); setForm({ occasion:'', date:'', time:'', guests:2, name:'', email:'', phone:'', selectedAddOns:[], specialRequest:'', specialSong:'', occasionReason:'' }) }}
+          <button onClick={() => { setSuccess(false); setStep(1); setAddonAmounts({}); setAddonColors({}); setForm({ occasion:'', date:'', time:'', guests:2, name:'', email:'', phone:'', selectedAddOns:[], specialRequest:'', specialSong:'', occasionReason:'' }) }}
             style={{
               cursor: 'pointer', fontSize: '12px', letterSpacing: '3px', textTransform: 'uppercase',
               fontWeight: 600, color: '#0a0600', padding: '14px 40px', borderRadius: '50px',
@@ -372,25 +381,72 @@ export default function BookPage() {
 
               <div style={{ marginBottom: '24px' }}>
                 <label style={labelStyle}>Add-Ons (Optional)</label>
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '12px' }}>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
                   {addOns.map(addon => {
                     const selected = form.selectedAddOns.includes(addon.id)
                     const custom = isCustomAmount(addon)
+                    const images = Array.isArray(addon.images) ? addon.images : []
+                    const colors = Array.isArray(addon.colors) ? addon.colors : []
                     return (
                       <div key={addon.id} style={{
                         background: selected ? 'rgba(200,148,12,0.2)' : '#1e1500',
                         border: selected ? '1px solid #f5c842' : '1px solid #2e2000',
-                        borderRadius: '10px', padding: '16px', transition: 'all 0.2s',
+                        borderRadius: '12px', padding: '16px', transition: 'all 0.2s',
                       }}>
                         <div onClick={() => toggleAddOn(addon.id)} style={{ display: 'flex', alignItems: 'center', gap: '12px', cursor: 'pointer' }}>
-                          <span style={{ fontSize: '22px' }}>{addon.icon}</span>
-                          <div>
-                            <div style={{ fontSize: '13px', fontWeight: 500, color: '#fafafa' }}>{addon.label}</div>
-                            <div style={{ fontSize: '12px', color: '#f5c842' }}>
+                          <span style={{ fontSize: '22px', flexShrink: 0 }}>{addon.icon}</span>
+                          <div style={{ flex: 1, minWidth: 0 }}>
+                            <div style={{ fontSize: '14px', fontWeight: 500, color: '#fafafa' }}>{addon.label}</div>
+                            {addon.description && <div style={{ fontSize: '12px', color: 'rgba(255,255,255,0.45)', marginTop: '2px' }}>{addon.description}</div>}
+                            <div style={{ fontSize: '12px', color: '#f5c842', marginTop: '2px' }}>
                               {custom ? 'Choose an amount' : addon.price === 0 ? 'Free' : `R ${addon.price}`}
                             </div>
                           </div>
+                          <div style={{
+                            width: '22px', height: '22px', borderRadius: '6px', flexShrink: 0,
+                            border: selected ? 'none' : '1px solid #3d2a00',
+                            background: selected ? '#f5c842' : 'transparent',
+                            color: '#0a0600', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '14px', fontWeight: 700,
+                          }}>{selected ? '✓' : ''}</div>
                         </div>
+
+                        {/* Photo gallery */}
+                        {images.length > 0 && (
+                          <div style={{ display: 'flex', gap: '8px', overflowX: 'auto', marginTop: '12px', paddingBottom: '4px' }}>
+                            {images.map((url, i) => (
+                              <img key={i} src={url} alt="" onClick={(e) => { e.stopPropagation(); setLightbox(url) }}
+                                style={{ width: '84px', height: '84px', borderRadius: '8px', objectFit: 'cover', flexShrink: 0, cursor: 'zoom-in', border: '1px solid #2e2000' }} />
+                            ))}
+                          </div>
+                        )}
+
+                        {/* Colour picker */}
+                        {colors.length > 0 && (
+                          <div style={{ marginTop: '12px' }} onClick={e => e.stopPropagation()}>
+                            <div style={{ fontSize: '11px', letterSpacing: '1px', textTransform: 'uppercase', color: 'rgba(255,255,255,0.5)', marginBottom: '8px' }}>
+                              Choose a colour{selected ? ' *' : ''}
+                            </div>
+                            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
+                              {colors.map(c => {
+                                const active = addonColors[addon.id] === c
+                                return (
+                                  <button key={c} type="button"
+                                    onClick={() => { setAddonColors(m => ({ ...m, [addon.id]: c })); if (!selected) toggleAddOn(addon.id) }}
+                                    style={{
+                                      padding: '7px 14px', borderRadius: '20px', cursor: 'pointer', fontSize: '12px',
+                                      background: active ? 'linear-gradient(135deg, #f5c842, #c8940c)' : '#0a0600',
+                                      color: active ? '#0a0600' : 'rgba(255,255,255,0.7)',
+                                      border: `1px solid ${active ? '#f5c842' : '#2e2000'}`, fontWeight: active ? 700 : 400,
+                                    }}>
+                                    {c}
+                                  </button>
+                                )
+                              })}
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Custom amount (gift card) */}
                         {custom && selected && (
                           <div style={{ marginTop: '12px' }} onClick={e => e.stopPropagation()}>
                             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
@@ -486,6 +542,20 @@ export default function BookPage() {
 
         </div>
       </section>
+
+      {/* Image lightbox */}
+      {lightbox && (
+        <div onClick={() => setLightbox(null)} style={{
+          position: 'fixed', inset: 0, zIndex: 2000, background: 'rgba(0,0,0,0.9)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '24px', cursor: 'zoom-out',
+        }}>
+          <img src={lightbox} alt="" style={{ maxWidth: '100%', maxHeight: '100%', borderRadius: '12px', objectFit: 'contain' }} />
+          <button onClick={() => setLightbox(null)} style={{
+            position: 'fixed', top: '20px', right: '20px', width: '40px', height: '40px', borderRadius: '50%',
+            background: 'rgba(255,255,255,0.15)', border: 'none', color: '#fff', fontSize: '20px', cursor: 'pointer',
+          }}>✕</button>
+        </div>
+      )}
     </>
   )
 }

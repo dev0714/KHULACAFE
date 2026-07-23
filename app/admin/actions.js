@@ -186,14 +186,17 @@ export async function deleteOccasion(id) {
 // ── Booking Add-ons ──────────────────────────────────────────────
 export async function upsertAddon(data) {
   await assertAdmin()
+  let error
   if (data.id) {
     const { id, ...fields } = data
-    await supabaseAdmin.from('booking_addons').update(fields).eq('id', id)
+    ;({ error } = await supabaseAdmin.from('booking_addons').update(fields).eq('id', id))
   } else {
-    await supabaseAdmin.from('booking_addons').insert(data)
+    ;({ error } = await supabaseAdmin.from('booking_addons').insert(data))
   }
+  if (error) return { error: error.message }
   revalidatePath('/book')
   revalidatePath('/admin/bookings')
+  return {}
 }
 
 export async function deleteAddon(id) {
