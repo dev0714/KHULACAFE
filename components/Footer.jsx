@@ -1,6 +1,8 @@
 'use client'
 import Link from 'next/link'
 import Image from 'next/image'
+import { useState, useEffect } from 'react'
+import { DEFAULT_CONTACT } from '../lib/contact-links'
 
 const footerLinks = {
   Explore: [
@@ -18,6 +20,15 @@ const footerLinks = {
 }
 
 export default function Footer() {
+  const [hours, setHours] = useState(DEFAULT_CONTACT.trading_hours)
+
+  useEffect(() => {
+    fetch('/api/contact-settings')
+      .then(r => r.json())
+      .then(d => { if (Array.isArray(d?.trading_hours) && d.trading_hours.length) setHours(d.trading_hours) })
+      .catch(() => {})
+  }, [])
+
   return (
     <footer style={{ background: '#0a0600', borderTop: '1px solid #2e2000', paddingTop: '72px' }}>
       <div className="section-wrap">
@@ -68,13 +79,8 @@ export default function Footer() {
             <h4 style={{ fontSize: '11px', letterSpacing: '3px', textTransform: 'uppercase', color: '#f5c842', marginBottom: '20px' }}>
               Hours
             </h4>
-            {[
-              { day: 'Mon – Thu', hours: '08:00 – 21:00' },
-              { day: 'Fri – Sat', hours: '08:00 – 23:00' },
-              { day: 'Sunday', hours: '09:00 – 20:00' },
-              { day: 'Public Holidays', hours: '09:00 – 18:00' },
-            ].map(item => (
-              <div key={item.day} style={{ marginBottom: '10px' }}>
+            {hours.map((item, i) => (
+              <div key={i} style={{ marginBottom: '10px' }}>
                 <div style={{ fontSize: '11px', color: 'rgba(255,255,255,0.4)', letterSpacing: '1px' }}>{item.day}</div>
                 <div style={{ fontSize: '13px', color: 'rgba(255,255,255,0.7)', fontWeight: 500 }}>{item.hours}</div>
               </div>
