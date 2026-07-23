@@ -14,7 +14,17 @@ export default function MenuPage() {
   const [showGlance, setShowGlance] = useState(false)
   const tabsRef = useRef(null)
   const searchRef = useRef(null)
+  const stickyRef = useRef(null)
   const dragState = useRef({ down: false, startX: 0, scrollLeft: 0 })
+
+  // Scroll the list up so the picked category starts right below the sticky bar
+  // (which pins under the navbar), instead of leaving items cut off mid-scroll.
+  function scrollToMenuTop() {
+    const el = stickyRef.current
+    if (!el || typeof window === 'undefined') return
+    const y = Math.max(0, el.offsetTop - 62) // 62 = navbar height
+    window.scrollTo({ top: y, behavior: 'smooth' })
+  }
 
   function onMouseDown(e) {
     const el = tabsRef.current
@@ -119,8 +129,10 @@ export default function MenuPage() {
 
   function selectCategory(id) {
     setActiveCategory(id)
+    setActiveSubcategory(null)
     setShowGlance(false)
     setSearchQuery('')
+    scrollToMenuTop()
   }
 
   return (
@@ -133,7 +145,7 @@ export default function MenuPage() {
       </div>
 
       {/* Sticky bar: search + tabs */}
-      <div style={{
+      <div ref={stickyRef} style={{
         position: 'sticky', top: '62px', zIndex: 100,
         background: 'rgba(10,6,0,0.97)', backdropFilter: 'blur(20px)',
         borderBottom: '1px solid #2e2000',
@@ -191,7 +203,7 @@ export default function MenuPage() {
               {menuCategories.map(cat => {
                 const active = activeCategory === cat.id
                 return (
-                  <button key={cat.id} onClick={() => { setActiveCategory(cat.id); setActiveSubcategory(null) }} style={{
+                  <button key={cat.id} onClick={() => { setActiveCategory(cat.id); setActiveSubcategory(null); scrollToMenuTop() }} style={{
                     cursor: 'pointer', padding: '9px 16px', borderRadius: '22px',
                     fontSize: '12px', letterSpacing: '0.5px', fontWeight: 700,
                     background: active ? 'linear-gradient(135deg,#f5c842,#c8940c)' : '#1e1500',
@@ -212,7 +224,7 @@ export default function MenuPage() {
                 borderTop: '1px solid rgba(46,32,0,0.5)',
               }}>
                 <button
-                  onClick={() => setActiveSubcategory(null)}
+                  onClick={() => { setActiveSubcategory(null); scrollToMenuTop() }}
                   style={{
                     flexShrink: 0, padding: '6px 16px', borderRadius: '20px', border: 'none', cursor: 'pointer',
                     fontSize: '11px', fontWeight: 700, letterSpacing: '0.5px',
@@ -226,7 +238,7 @@ export default function MenuPage() {
                 {current.groups.filter(g => g.sub).map(g => (
                   <button
                     key={g.sub.id}
-                    onClick={() => setActiveSubcategory(g.sub.id)}
+                    onClick={() => { setActiveSubcategory(g.sub.id); scrollToMenuTop() }}
                     style={{
                       flexShrink: 0, padding: '6px 16px', borderRadius: '20px', border: 'none', cursor: 'pointer',
                       fontSize: '11px', fontWeight: 700, letterSpacing: '0.5px',
