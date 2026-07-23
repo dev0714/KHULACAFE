@@ -10,9 +10,16 @@ export async function GET(request) {
   }
   const { data } = await supabaseAdmin
     .from('customers')
-    .select('name, khula_bucks')
+    .select('id, name, email, phone, khula_bucks')
     .eq('id', payload.sub)
     .single()
   if (!data) return NextResponse.json({ authenticated: false })
-  return NextResponse.json({ authenticated: true, name: data.name, khulaBucks: data.khula_bucks })
+  return NextResponse.json({
+    authenticated: true,
+    id: data.id,
+    name: data.name,
+    email: data.email,
+    phone: data.phone,
+    khulaBucks: data.khula_bucks,
+  })
 }

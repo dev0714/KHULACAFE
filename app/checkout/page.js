@@ -53,6 +53,22 @@ export default function CheckoutPage() {
     if (items.length === 0) router.push('/cart')
   }, [items.length, router])
 
+  // Pre-fill details for a logged-in customer so their Khula Bucks are found.
+  useEffect(() => {
+    fetch('/api/customer/me')
+      .then(r => r.json())
+      .then(d => {
+        if (!d.authenticated) return
+        setForm(f => ({
+          ...f,
+          name: f.name || d.name || '',
+          email: f.email || d.email || '',
+          phone: f.phone || d.phone || '',
+        }))
+      })
+      .catch(() => {})
+  }, [])
+
   if (items.length === 0) return null
 
   async function handleDetailsSubmit(e) {
