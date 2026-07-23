@@ -1,7 +1,7 @@
 'use client'
 import { useState, useEffect, useRef } from 'react'
 import { supabase } from '../../lib/supabase-public'
-import { createBooking } from '../admin/actions'
+import { createBooking, validateVoucherPublic } from '../admin/actions'
 
 export default function BookPage() {
   const [occasions, setOccasions] = useState([])
@@ -35,6 +35,14 @@ export default function BookPage() {
   const [addonAmounts, setAddonAmounts] = useState({})
   const [addonColors, setAddonColors] = useState({}) // addon id → chosen colour
   const [lightbox, setLightbox] = useState(null) // full-screen image url
+  // Payment: voucher + Khula Bucks toward the deposit
+  const [voucherCode, setVoucherCode] = useState('')
+  const [voucherApplied, setVoucherApplied] = useState(null) // { code, amount_cents }
+  const [voucherError, setVoucherError] = useState('')
+  const [voucherChecking, setVoucherChecking] = useState(false)
+  const [loyalty, setLoyalty] = useState(null) // { customerId, khulaBucks }
+  const [useBucks, setUseBucks] = useState(false)
+  const [bucksToUse, setBucksToUse] = useState(0)
   const [loading, setLoading] = useState(false)
   const [success, setSuccess] = useState(false)
   const [bookingRef, setBookingRef] = useState('')
@@ -72,6 +80,36 @@ export default function BookPage() {
   const selectedOccasion = occasions.find(o => o.id === form.occasion)
   const depositCents = selectedOccasion?.price_cents ?? 10000
   const totalOwing = (depositCents / 100) + totalAddOns
+
+  // Deposit payment breakdown (voucher + Khula Bucks, 1 Buck = R1)
+  const depositRands = depositCents / 100
+  const voucherRands = voucherApplied ? Math.min(voucherApplied.amount_cents / 100, depositRands) : 0
+  const afterVoucher = Math.max(0, depositRands - voucherRands)
+  const bucksRands = useBucks && loyalty ? Math.min(bucksToUse, afterVoucher, loyalty.khulaBucks) : 0
+  const depositDue = Math.max(0, afterVoucher - bucksRands)
+
+  async function applyVoucher() {
+    setVoucherError('')
+    if (!voucherCode.trim()) return
+    setVoucherChecking(true)
+    try {
+      const res = await validateVoucherPublic(voucherCode)
+      if (res.valid) { setVoucherApplied({ code: res.code, amount_cents: res.amount_cents }); setVoucherError('') }
+      else { setVoucherApplied(null); setVoucherError(res.error || 'Invalid voucher.') }
+    } catch { setVoucherError('Could not check that voucher.') }
+    finally { setVoucherChecking(false) }
+  }
+  function removeVoucher() { setVoucherApplied(null); setVoucherCode(''); setVoucherError('') }
+
+  async function lookupBucks(email) {
+    if (!email?.trim()) { setLoyalty(null); setUseBucks(false); setBucksToUse(0); return }
+    try {
+      const res = await fetch(`/api/loyalty/lookup?email=${encodeURIComponent(email.trim())}`)
+      const data = await res.json()
+      if (data.found && data.khulaBucks > 0) setLoyalty({ customerId: data.customerId, khulaBucks: data.khulaBucks })
+      else { setLoyalty(null); setUseBucks(false); setBucksToUse(0) }
+    } catch { setLoyalty(null) }
+  }
 
   const ROMANTIC_REASONS = ['Proposal', 'Engagement', 'Anniversary', 'Date Night', "Valentine's Day", 'Birthday Surprise', 'Just Because']
   const needsReason = /romantic/i.test(selectedOccasion?.label || '') || selectedOccasion?.category === 'Romantic'
@@ -114,6 +152,9 @@ export default function BookPage() {
         special_request: form.specialRequest || null,
         occasion_reason: form.occasionReason || null,
         deposit_cents: depositCents,
+        voucher_code: voucherApplied?.code || null,
+        bucks_redeemed: bucksRands,
+        customer_id: loyalty?.customerId || null,
       })
       setBookingRef(result.reference)
       setSuccess(true)
@@ -165,7 +206,7 @@ export default function BookPage() {
               {bookingRef || '—'}
             </p>
           </div>
-          <button onClick={() => { setSuccess(false); setStep(1); setAddonAmounts({}); setAddonColors({}); setForm({ occasion:'', date:'', time:'', guests:2, name:'', email:'', phone:'', selectedAddOns:[], specialRequest:'', specialSong:'', occasionReason:'' }) }}
+          <button onClick={() => { setSuccess(false); setStep(1); setAddonAmounts({}); setAddonColors({}); setVoucherApplied(null); setVoucherCode(''); setVoucherError(''); setLoyalty(null); setUseBucks(false); setBucksToUse(0); setForm({ occasion:'', date:'', time:'', guests:2, name:'', email:'', phone:'', selectedAddOns:[], specialRequest:'', specialSong:'', occasionReason:'' }) }}
             style={{
               cursor: 'pointer', fontSize: '12px', letterSpacing: '3px', textTransform: 'uppercase',
               fontWeight: 600, color: '#0a0600', padding: '14px 40px', borderRadius: '50px',
@@ -382,7 +423,7 @@ export default function BookPage() {
                       onChange={e => setForm(f => ({ ...f, [field.key]: e.target.value }))}
                       style={inputStyle}
                       onFocus={e => e.target.style.borderColor = '#f5c842'}
-                      onBlur={e => e.target.style.borderColor = '#2e2000'}
+                      onBlur={e => { e.target.style.borderColor = '#2e2000'; if (field.key === 'email') lookupBucks(e.target.value) }}
                     />
                   </div>
                 ))}
@@ -498,6 +539,56 @@ export default function BookPage() {
                 />
               </div>
 
+              {/* Payment options — voucher + Khula Bucks toward deposit */}
+              <div style={{ marginBottom: '24px' }}>
+                <label style={labelStyle}>Voucher / Khula Bucks (optional)</label>
+
+                {/* Voucher */}
+                {voucherApplied ? (
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '10px', background: 'rgba(38,222,129,0.08)', border: '1px solid rgba(38,222,129,0.3)', borderRadius: '10px', padding: '12px 14px', marginBottom: '10px' }}>
+                    <span style={{ fontSize: '13px', color: '#26de81' }}>🎟️ Voucher <strong>{voucherApplied.code}</strong> applied — R{(voucherApplied.amount_cents / 100).toFixed(0)}</span>
+                    <button type="button" onClick={removeVoucher} style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,0.5)', cursor: 'pointer', fontSize: '13px' }}>Remove</button>
+                  </div>
+                ) : (
+                  <div style={{ display: 'flex', gap: '8px', marginBottom: '6px' }}>
+                    <input type="text" placeholder="Voucher code" value={voucherCode}
+                      onChange={e => { setVoucherCode(e.target.value.toUpperCase()); setVoucherError('') }}
+                      style={{ ...inputStyle, flex: 1 }}
+                      onFocus={e => e.target.style.borderColor = '#f5c842'}
+                      onBlur={e => e.target.style.borderColor = '#2e2000'} />
+                    <button type="button" onClick={applyVoucher} disabled={voucherChecking || !voucherCode.trim()} style={{
+                      padding: '0 22px', borderRadius: '10px', border: '1px solid #2e2000', cursor: 'pointer',
+                      background: '#1e1500', color: '#f5c842', fontWeight: 700, fontSize: '12px', whiteSpace: 'nowrap',
+                    }}>{voucherChecking ? '…' : 'Apply'}</button>
+                  </div>
+                )}
+                {voucherError && <p style={{ fontSize: '12px', color: '#ff6b6b', margin: '0 0 10px' }}>{voucherError}</p>}
+
+                {/* Khula Bucks */}
+                {loyalty && loyalty.khulaBucks > 0 && afterVoucher > 0 && (
+                  <div style={{ border: `1px solid ${useBucks ? 'rgba(245,200,66,0.5)' : '#2e2000'}`, borderRadius: '10px', padding: '14px', background: useBucks ? 'rgba(245,200,66,0.06)' : '#1e1500', marginTop: '4px' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <span style={{ fontSize: '13px', color: '#f5c842', fontWeight: 700 }}>💛 {loyalty.khulaBucks} Khula Bucks available</span>
+                      <button type="button" onClick={() => { setUseBucks(u => !u); setBucksToUse(useBucks ? 0 : Math.min(loyalty.khulaBucks, Math.floor(afterVoucher))) }}
+                        style={{ width: '46px', height: '25px', borderRadius: '13px', border: 'none', cursor: 'pointer', flexShrink: 0, background: useBucks ? 'linear-gradient(135deg,#f5c842,#c8940c)' : '#2e2000', position: 'relative' }}>
+                        <span style={{ position: 'absolute', top: '3px', width: '19px', height: '19px', borderRadius: '50%', background: '#fafafa', transition: 'left 0.2s', left: useBucks ? '24px' : '3px' }} />
+                      </button>
+                    </div>
+                    {useBucks && (
+                      <div style={{ marginTop: '12px' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '6px', fontSize: '12px' }}>
+                          <span style={{ color: 'rgba(255,255,255,0.5)' }}>Bucks to use</span>
+                          <span style={{ color: '#f5c842', fontWeight: 700 }}>{bucksRands} = R{bucksRands} off</span>
+                        </div>
+                        <input type="range" min={0} max={Math.min(loyalty.khulaBucks, Math.floor(afterVoucher))} step={1}
+                          value={bucksToUse} onChange={e => setBucksToUse(Number(e.target.value))}
+                          style={{ width: '100%', accentColor: '#f5c842', cursor: 'pointer' }} />
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+
               {/* Summary */}
               <div style={{ background: '#1e1500', border: '1px solid #2e2000', borderRadius: '12px', padding: '20px', marginBottom: '32px' }}>
                 <h4 style={{ fontSize: '11px', letterSpacing: '3px', textTransform: 'uppercase', color: '#f5c842', marginBottom: '16px' }}>
@@ -509,19 +600,21 @@ export default function BookPage() {
                   { label: 'Time', value: form.time },
                   { label: 'Guests', value: form.guests },
                   { label: 'Add-ons', value: totalAddOns > 0 ? `R ${totalAddOns.toFixed(0)}` : 'None' },
-                  { label: 'Deposit (paid now)', value: `R${(depositCents / 100).toFixed(0)}` },
+                  { label: 'Deposit', value: `R${(depositCents / 100).toFixed(0)}` },
+                  ...(voucherRands > 0 ? [{ label: `Voucher ${voucherApplied.code}`, value: `−R${voucherRands.toFixed(0)}`, good: true }] : []),
+                  ...(bucksRands > 0 ? [{ label: `Khula Bucks (${bucksRands})`, value: `−R${bucksRands.toFixed(0)}`, good: true }] : []),
                 ].map(row => (
                   <div key={row.label} style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
                     <span style={{ fontSize: '13px', color: 'rgba(255,255,255,0.4)' }}>{row.label}</span>
-                    <span style={{ fontSize: '13px', color: '#fafafa', fontWeight: 500 }}>{row.value}</span>
+                    <span style={{ fontSize: '13px', color: row.good ? '#26de81' : '#fafafa', fontWeight: 500 }}>{row.value}</span>
                   </div>
                 ))}
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '12px', paddingTop: '14px', borderTop: '1px solid #2e2000' }}>
-                  <span style={{ fontSize: '13px', letterSpacing: '1px', textTransform: 'uppercase', color: '#f5c842', fontWeight: 700 }}>Total Owing</span>
-                  <span style={{ fontFamily: 'var(--font-playfair)', fontSize: '22px', color: '#fafafa', fontWeight: 700 }}>R{totalOwing.toFixed(0)}</span>
+                  <span style={{ fontSize: '13px', letterSpacing: '1px', textTransform: 'uppercase', color: '#f5c842', fontWeight: 700 }}>Deposit Due Now</span>
+                  <span style={{ fontFamily: 'var(--font-playfair)', fontSize: '22px', color: '#fafafa', fontWeight: 700 }}>R{depositDue.toFixed(0)}</span>
                 </div>
                 <p style={{ fontSize: '11px', color: 'rgba(255,255,255,0.35)', margin: '6px 0 0', lineHeight: 1.5 }}>
-                  Deposit is paid now to secure your table and is deducted from your final bill. Add-ons are settled on the day.
+                  The deposit secures your table and is deducted from your final bill. Add-ons (R{totalAddOns.toFixed(0)}) are settled on the day.
                 </p>
               </div>
 
@@ -543,7 +636,7 @@ export default function BookPage() {
                   border: 'none', boxShadow: '0 6px 20px rgba(200,148,12,0.35)',
                   opacity: loading ? 0.7 : 1,
                 }}>
-                  {loading ? 'Confirming...' : `Confirm & Pay R${(depositCents / 100).toFixed(0)} Deposit`}
+                  {loading ? 'Confirming...' : depositDue === 0 ? 'Confirm Booking — Deposit Covered' : `Confirm & Pay R${depositDue.toFixed(0)} Deposit`}
                 </button>
               </div>
             </form>
