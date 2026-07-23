@@ -2,6 +2,9 @@
 import { useState, useEffect, useTransition, useCallback } from 'react'
 import { supabase } from '../../../lib/supabase-public'
 import { upsertOccasion, deleteOccasion, upsertAddon, deleteAddon, seedOccasions } from '../actions'
+import ImageUpload from '../../../components/admin/ImageUpload'
+
+const EMPTY_ADDON = { label: '', icon: '🎁', price_cents: 0, description: '', images: [], colors: [] }
 
 const inp = { width: '100%', padding: '10px 14px', background: '#0a0600', border: '1px solid #2e2000', borderRadius: '8px', color: '#fafafa', fontSize: '13px', outline: 'none', boxSizing: 'border-box' }
 const lbl = { display: 'block', fontSize: '10px', letterSpacing: '2px', color: '#f5c842', marginBottom: '6px', textTransform: 'uppercase' }
@@ -23,7 +26,8 @@ export default function BookingsAdmin() {
   const [bookingFilter, setBookingFilter] = useState('all')
 
   const [occForm, setOccForm] = useState({ label: '', emoji: '🎉', description: '', price_cents: 10000, category: 'Special Occasion' })
-  const [addonForm, setAddonForm] = useState({ label: '', icon: '🎁', price_cents: 0 })
+  const [addonForm, setAddonForm] = useState(EMPTY_ADDON)
+  const [newColor, setNewColor] = useState('')
   const [editOcc, setEditOcc] = useState(null)
   const [editAddon, setEditAddon] = useState(null)
   const [isPending, startTransition] = useTransition()
@@ -70,13 +74,46 @@ export default function BookingsAdmin() {
 
   function saveAddon() {
     startTransition(async () => {
-      const payload = { ...addonForm, sort_order: editAddon ? editAddon.sort_order : addons.length }
+      const payload = {
+        ...addonForm,
+        images: Array.isArray(addonForm.images) ? addonForm.images : [],
+        colors: Array.isArray(addonForm.colors) ? addonForm.colors : [],
+        sort_order: editAddon ? editAddon.sort_order : addons.length,
+      }
       if (editAddon) payload.id = editAddon.id
-      await upsertAddon(payload)
-      setAddonForm({ label: '', icon: '🎁', price_cents: 0 })
+      const result = await upsertAddon(payload)
+      if (result?.error) { alert(`Could not save add-on:\n${result.error}`); return }
+      setAddonForm(EMPTY_ADDON)
+      setNewColor('')
       setEditAddon(null)
       await loadAddons()
     })
+  }
+  function editAddonStart(a) {
+    setEditAddon(a)
+    setAddonForm({
+      label: a.label, icon: a.icon, price_cents: a.price_cents,
+      description: a.description || '',
+      images: Array.isArray(a.images) ? a.images : [],
+      colors: Array.isArray(a.colors) ? a.colors : [],
+    })
+    setNewColor('')
+    if (typeof window !== 'undefined') window.scrollTo({ top: 0, behavior: 'smooth' })
+  }
+  function addColor() {
+    const c = newColor.trim()
+    if (!c) return
+    setAddonForm(f => ({ ...f, colors: [...(f.colors || []), c] }))
+    setNewColor('')
+  }
+  function removeColor(i) {
+    setAddonForm(f => ({ ...f, colors: (f.colors || []).filter((_, idx) => idx !== i) }))
+  }
+  function addImage(url) {
+    if (url) setAddonForm(f => ({ ...f, images: [...(f.images || []), url] }))
+  }
+  function removeImage(i) {
+    setAddonForm(f => ({ ...f, images: (f.images || []).filter((_, idx) => idx !== i) }))
   }
   function removeAddon(id) {
     if (!confirm('Delete this add-on?')) return
@@ -172,7 +209,7 @@ export default function BookingsAdmin() {
                         </div>
                         {addOnsArr.length > 0 && (
                           <div style={{ marginTop: '8px', fontSize: '12px', color: 'rgba(255,255,255,0.4)' }}>
-                            Add-ons: {addOnsArr.map(a => a.label).join(', ')}
+                            Add-ons: {addOnsArr.map(a => a.color ? `${a.label} (${a.color})` : a.label).join(', ')}
                           </div>
                         )}
                         {b.special_request && (
@@ -315,30 +352,46 @@ export default function BookingsAdmin() {
 
       {/* ── ADD-ONS TAB ── */}
       {tab === 'addons' && (
-        <div style={{ maxWidth: '600px' }}>
+        <div style={{ maxWidth: '640px' }}>
           <p style={{ color: 'rgba(255,255,255,0.4)', fontSize: '13px', marginBottom: '20px', lineHeight: 1.6 }}>
-            Add-ons are optional extras customers can add to their reservation. Set to R0 for complimentary items.
+            Add-ons are optional extras customers can add to their reservation. Add photos and colour options so customers can see and choose. Set price to R0 for complimentary items.
           </p>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginBottom: '24px' }}>
-            {addons.map(a => (
-              <div key={a.id} style={{ padding: '14px 16px', background: '#1e1500', borderRadius: '10px', border: '1px solid #2e2000', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <span style={{ color: '#fafafa', fontSize: '14px' }}>{a.icon} {a.label}</span>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                  <span style={{ color: a.price_cents === 0 ? '#26de81' : '#f5c842', fontSize: '14px', fontWeight: 700 }}>
-                    {a.price_cents === 0 ? 'Free' : `R${(a.price_cents / 100).toFixed(2)}`}
-                  </span>
-                  <button onClick={() => { setEditAddon(a); setAddonForm({ label: a.label, icon: a.icon, price_cents: a.price_cents }) }} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '14px' }}>✏️</button>
-                  <button onClick={() => removeAddon(a.id)} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '14px' }}>🗑️</button>
+            {addons.map(a => {
+              const imgs = Array.isArray(a.images) ? a.images : []
+              const cols = Array.isArray(a.colors) ? a.colors : []
+              return (
+                <div key={a.id} style={{ padding: '14px 16px', background: '#1e1500', borderRadius: '10px', border: '1px solid #2e2000', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '12px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px', minWidth: 0 }}>
+                    {imgs[0]
+                      ? <img src={imgs[0]} alt="" style={{ width: '40px', height: '40px', borderRadius: '8px', objectFit: 'cover', flexShrink: 0 }} />
+                      : <span style={{ fontSize: '22px', width: '40px', textAlign: 'center', flexShrink: 0 }}>{a.icon}</span>}
+                    <div style={{ minWidth: 0 }}>
+                      <div style={{ color: '#fafafa', fontSize: '14px' }}>{a.label}</div>
+                      <div style={{ fontSize: '11px', color: 'rgba(255,255,255,0.4)' }}>
+                        {imgs.length > 0 && `${imgs.length} photo${imgs.length > 1 ? 's' : ''}`}
+                        {imgs.length > 0 && cols.length > 0 && ' · '}
+                        {cols.length > 0 && `${cols.length} colour${cols.length > 1 ? 's' : ''}`}
+                      </div>
+                    </div>
+                  </div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexShrink: 0 }}>
+                    <span style={{ color: a.price_cents === 0 ? '#26de81' : '#f5c842', fontSize: '14px', fontWeight: 700 }}>
+                      {a.price_cents === 0 ? 'Free' : `R${(a.price_cents / 100).toFixed(0)}`}
+                    </span>
+                    <button onClick={() => editAddonStart(a)} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '14px' }}>✏️</button>
+                    <button onClick={() => removeAddon(a.id)} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '14px' }}>🗑️</button>
+                  </div>
                 </div>
-              </div>
-            ))}
+              )
+            })}
           </div>
 
           <div style={{ background: '#1e1500', border: '1px solid #2e2000', borderRadius: '12px', padding: '20px' }}>
             <p style={{ color: '#f5c842', fontSize: '10px', letterSpacing: '2px', marginBottom: '16px', textTransform: 'uppercase' }}>
               {editAddon ? '✏️ Edit Add-on' : '+ Add Add-on'}
             </p>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '12px' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '16px' }}>
               <div style={{ gridColumn: '1/-1' }}>
                 <label style={lbl}>Label</label>
                 <input value={addonForm.label} onChange={e => setAddonForm(f => ({ ...f, label: e.target.value }))} placeholder="e.g. Balloon Arch" style={inp} />
@@ -354,10 +407,57 @@ export default function BookingsAdmin() {
                   onChange={e => setAddonForm(f => ({ ...f, price_cents: Math.round(parseFloat(e.target.value || 0) * 100) }))}
                   style={inp} />
               </div>
+              <div style={{ gridColumn: '1/-1' }}>
+                <label style={lbl}>Description (optional)</label>
+                <input value={addonForm.description} onChange={e => setAddonForm(f => ({ ...f, description: e.target.value }))} placeholder="Short description shown to customers" style={inp} />
+              </div>
             </div>
+
+            {/* Colours */}
+            <div style={{ marginBottom: '16px' }}>
+              <label style={lbl}>Colour Options</label>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', marginBottom: '10px' }}>
+                {(addonForm.colors || []).map((c, i) => (
+                  <span key={i} style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', padding: '6px 10px', borderRadius: '20px', background: '#2e2000', color: '#fafafa', fontSize: '12px' }}>
+                    {c}
+                    <button onClick={() => removeColor(i)} style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,0.5)', cursor: 'pointer', fontSize: '13px', lineHeight: 1 }}>✕</button>
+                  </span>
+                ))}
+                {(addonForm.colors || []).length === 0 && <span style={{ fontSize: '12px', color: 'rgba(255,255,255,0.3)' }}>No colours — add some below</span>}
+              </div>
+              <div style={{ display: 'flex', gap: '8px' }}>
+                <input value={newColor} onChange={e => setNewColor(e.target.value)}
+                  onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); addColor() } }}
+                  placeholder="e.g. Gold" style={{ ...inp, flex: 1 }} />
+                <button onClick={addColor} style={btnG}>+ Add</button>
+              </div>
+            </div>
+
+            {/* Photos */}
+            <div style={{ marginBottom: '18px' }}>
+              <label style={lbl}>Photos</label>
+              {(addonForm.images || []).length > 0 && (
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(80px, 1fr))', gap: '8px', marginBottom: '12px' }}>
+                  {(addonForm.images || []).map((url, i) => (
+                    <div key={i} style={{ position: 'relative', aspectRatio: '1', borderRadius: '8px', overflow: 'hidden', border: '1px solid #2e2000' }}>
+                      <img src={url} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                      <button onClick={() => removeImage(i)} style={{
+                        position: 'absolute', top: '4px', right: '4px', width: '22px', height: '22px', borderRadius: '50%',
+                        background: 'rgba(0,0,0,0.65)', border: 'none', color: '#fff', cursor: 'pointer', fontSize: '12px', lineHeight: 1,
+                      }}>✕</button>
+                    </div>
+                  ))}
+                </div>
+              )}
+              <p style={{ fontSize: '11px', color: 'rgba(255,255,255,0.4)', marginBottom: '8px' }}>Add up to 20 photos — upload one at a time.</p>
+              {(addonForm.images || []).length < 20 && (
+                <ImageUpload value="" onChange={addImage} folder="addons" />
+              )}
+            </div>
+
             <div style={{ display: 'flex', gap: '8px' }}>
               <button onClick={saveAddon} disabled={isPending || !addonForm.label} style={btnP}>{isPending ? '…' : editAddon ? 'Update' : 'Add Add-on'}</button>
-              {editAddon && <button onClick={() => { setEditAddon(null); setAddonForm({ label: '', icon: '🎁', price_cents: 0 }) }} style={btnG}>Cancel</button>}
+              {editAddon && <button onClick={() => { setEditAddon(null); setAddonForm(EMPTY_ADDON); setNewColor('') }} style={btnG}>Cancel</button>}
             </div>
           </div>
         </div>
