@@ -4,7 +4,7 @@ import { sendOrderConfirmation } from '../../../../lib/resend'
 
 export async function POST(request) {
   const body = await request.json()
-  const { customerName, customerEmail, customerPhone, deliveryType, deliveryAddress, notes, items, bucksRedeemed, customerId } = body
+  const { customerName, customerEmail, customerPhone, deliveryType, deliveryAddress, notes, items, bucksRedeemed, customerId, voucherCode } = body
 
   if (!customerName || !Array.isArray(items) || items.length === 0) {
     return NextResponse.json({ error: 'Customer name and at least one item are required' }, { status: 400 })
@@ -44,7 +44,20 @@ export async function POST(request) {
   )
   if (itemsError) return NextResponse.json({ error: itemsError.message }, { status: 500 })
 
-  // Handle Khula Bucks — redeem and/or earn
+  // ── Voucher — consume atomically (independent of loyalty) ──
+  let voucherCents = 0
+  const extraNotes = []
+  if (voucherCode) {
+    const { consumeVoucher } = await import('../../../../lib/vouchers')
+    const vres = await consumeVoucher(voucherCode, `Order ${order.id.slice(0, 8).toUpperCase()}`)
+    if (vres.amount_cents) {
+      voucherCents = Math.min(vres.amount_cents, totalCents)
+      extraNotes.push(`Voucher ${String(voucherCode).trim().toUpperCase()} −R${(voucherCents / 100).toFixed(2)}`)
+    }
+  }
+
+  // ── Khula Bucks — redeem and/or earn ──
+  let redeemedCents = 0
   if (customerEmail) {
     const { data: customer } = await supabaseAdmin
       .from('customers')
@@ -59,10 +72,11 @@ export async function POST(request) {
       const earnRate = cfg?.earn_rate_points_per_rand ?? 1
       const bucksPerHundred = cfg?.bucks_per_100_points ?? 10
 
-      // Redeem bucks first
-      const redeemedBucks = Math.max(0, Math.min(parseInt(bucksRedeemed) || 0, resolvedCustomer.khula_bucks))
-      const redeemedCents = redeemedBucks * 100
-      const netCents = Math.max(0, totalCents - redeemedCents)
+      // Cap redemption so voucher + bucks never exceed the total
+      const maxRedeemCents = Math.max(0, totalCents - voucherCents)
+      const redeemedBucks = Math.max(0, Math.min(parseInt(bucksRedeemed) || 0, resolvedCustomer.khula_bucks, Math.floor(maxRedeemCents / 100)))
+      redeemedCents = redeemedBucks * 100
+      const netCents = Math.max(0, totalCents - voucherCents - redeemedCents)
 
       // Earn bucks on the amount actually paid with real money
       const bucks = Math.floor((netCents / 100) * earnRate / 100 * bucksPerHundred)
@@ -82,8 +96,15 @@ export async function POST(request) {
     }
   }
 
+  if (extraNotes.length) {
+    const merged = [notes?.trim() || null, ...extraNotes].filter(Boolean).join(' · ')
+    await supabaseAdmin.from('orders').update({ notes: merged }).eq('id', order.id)
+  }
+
+  const netCents = Math.max(0, totalCents - voucherCents - redeemedCents)
+
   // Send confirmation email (non-blocking)
   sendOrderConfirmation({ order, items }).catch(() => {})
 
-  return NextResponse.json({ orderId: order.id })
+  return NextResponse.json({ orderId: order.id, netCents, voucherCents, redeemedCents })
 }
