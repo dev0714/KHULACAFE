@@ -456,7 +456,7 @@ export async function deleteAdminUser(id) {
 
 // ── Public Booking Submission ────────────────────────────────────
 export async function createBooking(data) {
-  const { occasion_id, date, time, guests, customer_name, customer_email, customer_phone, add_ons, special_song, special_request, occasion_reason, deposit_cents } = data
+  const { occasion_id, date, time, guests, customer_name, customer_email, customer_phone, add_ons, special_song, special_request, occasion_reason, deposit_cents, voucher_code, bucks_redeemed, customer_id } = data
   const { data: booking, error } = await supabaseAdmin
     .from('bookings')
     .insert({
@@ -477,6 +477,57 @@ export async function createBooking(data) {
     .select('*')
     .single()
   if (error) throw new Error(error.message)
+
+  // Apply voucher + Khula Bucks to the deposit (server-side, never trusting the
+  // client's claimed amounts). Records a human-readable payment_note.
+  try {
+    const gross = deposit_cents || 10000
+    let remaining = gross
+    const noteParts = [`Deposit R${(gross / 100).toFixed(0)}`]
+
+    if (voucher_code) {
+      const { consumeVoucher } = await import('../../lib/vouchers')
+      const res = await consumeVoucher(voucher_code, `Booking: ${customer_name} · ${date}`)
+      if (res.amount_cents) {
+        const applied = Math.min(res.amount_cents, remaining)
+        remaining -= applied
+        noteParts.push(`Voucher ${voucher_code.trim().toUpperCase()} −R${(applied / 100).toFixed(0)}`)
+      }
+    }
+
+    const wantBucks = Math.max(0, parseInt(bucks_redeemed) || 0)
+    if (wantBucks > 0 && (customer_id || customer_email)) {
+      let cust = null
+      if (customer_id) {
+        const { data: c } = await supabaseAdmin.from('customers').select('id, khula_bucks').eq('id', customer_id).maybeSingle()
+        cust = c
+      }
+      if (!cust && customer_email) {
+        const { data: c } = await supabaseAdmin.from('customers').select('id, khula_bucks').ilike('email', customer_email.trim()).maybeSingle()
+        cust = c
+      }
+      if (cust) {
+        const used = Math.min(wantBucks, cust.khula_bucks, Math.floor(remaining / 100))
+        if (used > 0) {
+          remaining -= used * 100
+          await supabaseAdmin.from('customers').update({ khula_bucks: cust.khula_bucks - used }).eq('id', cust.id)
+          await supabaseAdmin.from('transactions').insert({
+            customer_id: cust.id, type: 'redeem', amount_cents: null,
+            bucks_earned: 0, bucks_redeemed: used, notes: `Booking deposit: ${customer_name} · ${date}`,
+          })
+          noteParts.push(`Khula Bucks ${used} −R${used}`)
+        }
+      }
+    }
+
+    noteParts.push(`Due now: R${(remaining / 100).toFixed(0)}`)
+    const payment_note = noteParts.join(' · ')
+    const { error: upErr } = await supabaseAdmin.from('bookings').update({ payment_note }).eq('id', booking.id)
+    if (upErr && !/payment_note|PGRST204/i.test(upErr.message || '')) console.error('payment_note update failed:', upErr)
+    booking.payment_note = payment_note
+  } catch (e) {
+    console.error('booking voucher/bucks failed:', e)
+  }
 
   // Send the customer confirmation + notify staff. Awaited (serverless freezes
   // after the response) but never allowed to fail the booking itself.
@@ -640,4 +691,54 @@ export async function saveContactSettings(data) {
   revalidatePath('/contact')
   revalidatePath('/admin/contact')
   return {}
+}
+
+// ── Vouchers ─────────────────────────────────────────────────────
+export async function getVouchersAdmin() {
+  await assertAdmin()
+  const { data, error } = await supabaseAdmin
+    .from('vouchers')
+    .select('*')
+    .order('created_at', { ascending: false })
+  const tableMissing = error && (error.code === '42P01' || /vouchers/i.test(error.message || ''))
+  return { vouchers: data ?? [], tableMissing: !!tableMissing }
+}
+
+export async function createVoucher({ code, amount_cents, expires_at }) {
+  await assertAdmin()
+  const clean = (code || '').trim().toUpperCase()
+  if (!clean) return { error: 'Enter a voucher code.' }
+  if (!amount_cents || amount_cents <= 0) return { error: 'Enter an amount greater than R0.' }
+  const { error } = await supabaseAdmin.from('vouchers').insert({
+    code: clean,
+    amount_cents: Math.round(amount_cents),
+    expires_at: expires_at || null,
+  })
+  if (error) {
+    if (error.code === '23505') return { error: 'That code already exists.' }
+    if (error.code === '42P01') return { error: 'Vouchers table not set up yet — run the SQL first.' }
+    return { error: error.message }
+  }
+  revalidatePath('/admin/vouchers')
+  return {}
+}
+
+export async function setVoucherActive(id, active) {
+  await assertAdmin()
+  await supabaseAdmin.from('vouchers').update({ active }).eq('id', id)
+  revalidatePath('/admin/vouchers')
+  return {}
+}
+
+export async function deleteVoucher(id) {
+  await assertAdmin()
+  await supabaseAdmin.from('vouchers').delete().eq('id', id)
+  revalidatePath('/admin/vouchers')
+  return {}
+}
+
+// Public preview of a voucher (used by booking + checkout). No auth.
+export async function validateVoucherPublic(code) {
+  const { validateVoucher } = await import('../../lib/vouchers')
+  return validateVoucher(code)
 }
