@@ -159,7 +159,7 @@ export default function BookingsAdmin() {
                         </div>
                         <div style={{ display: 'flex', gap: '16px', flexWrap: 'wrap', marginBottom: '8px' }}>
                           <span style={{ color: '#f5c842', fontSize: '13px', fontWeight: 600 }}>
-                            {b.booking_occasions?.emoji} {b.booking_occasions?.label || 'Occasion'}
+                            {b.booking_occasions?.emoji} {b.booking_occasions?.label || 'Occasion'}{b.occasion_reason ? ` — ${b.occasion_reason}` : ''}
                           </span>
                           <span style={{ color: 'rgba(255,255,255,0.5)', fontSize: '13px' }}>
                             📅 {new Date(b.date).toLocaleDateString('en-ZA', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' })} at {b.time}
