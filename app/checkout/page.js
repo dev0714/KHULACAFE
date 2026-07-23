@@ -3,6 +3,7 @@ import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { useCart } from '../../lib/cart-context'
+import { validateVoucherPublic } from '../admin/actions'
 
 const inputStyle = {
   width: '100%', padding: '12px 14px', boxSizing: 'border-box',
@@ -27,6 +28,24 @@ export default function CheckoutPage() {
   const [loyaltyCustomer, setLoyaltyCustomer] = useState(null) // { customerId, name, khulaBucks }
   const [useBucks, setUseBucks] = useState(false)
   const [bucksToUse, setBucksToUse] = useState(0)
+
+  // Voucher
+  const [voucherCode, setVoucherCode] = useState('')
+  const [voucherApplied, setVoucherApplied] = useState(null) // { code, amount_cents }
+  const [voucherError, setVoucherError] = useState('')
+  const [voucherChecking, setVoucherChecking] = useState(false)
+
+  async function applyVoucher() {
+    setVoucherError('')
+    if (!voucherCode.trim()) return
+    setVoucherChecking(true)
+    try {
+      const res = await validateVoucherPublic(voucherCode)
+      if (res.valid) setVoucherApplied({ code: res.code, amount_cents: res.amount_cents })
+      else { setVoucherApplied(null); setVoucherError(res.error || 'Invalid voucher.') }
+    } catch { setVoucherError('Could not check that voucher.') }
+    finally { setVoucherChecking(false) }
+  }
 
   const set = (k, v) => setForm(f => ({ ...f, [k]: v }))
 
@@ -59,7 +78,8 @@ export default function CheckoutPage() {
 
   const redeemedBucks = useBucks ? bucksToUse : 0
   const redeemedCents = redeemedBucks * 100
-  const payableCents = Math.max(0, totalCents - redeemedCents)
+  const voucherCents = voucherApplied ? Math.min(voucherApplied.amount_cents, Math.max(0, totalCents - redeemedCents)) : 0
+  const payableCents = Math.max(0, totalCents - redeemedCents - voucherCents)
 
   async function handlePaystackCheckout() {
     setLoading(true)
@@ -78,19 +98,17 @@ export default function CheckoutPage() {
           items,
           bucksRedeemed: redeemedBucks,
           customerId: loyaltyCustomer?.customerId || null,
+          voucherCode: voucherApplied?.code || null,
         }),
       })
       const data = await res.json()
       if (!res.ok) throw new Error(data.error || 'Order failed')
 
-      // If fully paid with bucks, skip Paystack
-      if (payableCents === 0) {
-        clearCart()
-        router.push(`/order-confirmed/${data.orderId}`)
-        return
-      }
+      // Use the server's authoritative net (after bucks + voucher) for payment
+      const payNow = typeof data.netCents === 'number' ? data.netCents : payableCents
 
-      if (!form.email?.trim()) {
+      // If fully covered by bucks/voucher, or no email, skip Paystack
+      if (payNow === 0 || !form.email?.trim()) {
         clearCart()
         router.push(`/order-confirmed/${data.orderId}`)
         return
@@ -102,7 +120,7 @@ export default function CheckoutPage() {
         body: JSON.stringify({
           orderId: data.orderId,
           email: form.email.trim(),
-          amountCents: payableCents,
+          amountCents: payNow,
           customerName: form.name,
         }),
       })
@@ -211,6 +229,12 @@ export default function CheckoutPage() {
                   <span>R{(i.price_cents * i.qty / 100).toFixed(2)}</span>
                 </div>
               ))}
+              {voucherCents > 0 && (
+                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '13px', color: '#26de81', marginTop: '6px' }}>
+                  <span>🎟️ Voucher {voucherApplied.code}</span>
+                  <span>−R{(voucherCents / 100).toFixed(2)}</span>
+                </div>
+              )}
               {redeemedBucks > 0 && (
                 <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '13px', color: '#26de81', marginTop: '6px' }}>
                   <span>🎁 Khula Bucks ({redeemedBucks} bucks)</span>
@@ -219,10 +243,10 @@ export default function CheckoutPage() {
               )}
               <div style={{ borderTop: '1px solid #2e2000', paddingTop: '12px', marginTop: '12px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <span style={{ color: '#fafafa', fontWeight: 700 }}>
-                  {redeemedBucks > 0 ? 'You Pay' : 'Total'}
+                  {(redeemedBucks > 0 || voucherCents > 0) ? 'You Pay' : 'Total'}
                 </span>
                 <div style={{ textAlign: 'right' }}>
-                  {redeemedBucks > 0 && (
+                  {(redeemedBucks > 0 || voucherCents > 0) && (
                     <div style={{ color: 'rgba(255,255,255,0.35)', fontSize: '13px', textDecoration: 'line-through' }}>R{(totalCents / 100).toFixed(2)}</div>
                   )}
                   <span style={{ color: '#f5c842', fontFamily: 'var(--font-playfair)', fontSize: '20px', fontWeight: 700 }}>
@@ -230,6 +254,28 @@ export default function CheckoutPage() {
                   </span>
                 </div>
               </div>
+            </div>
+
+            {/* Voucher */}
+            <div style={{ background: '#1e1500', border: '1px solid #2e2000', borderRadius: '12px', padding: '16px 20px' }}>
+              <p style={{ fontSize: '10px', letterSpacing: '3px', color: 'rgba(255,255,255,0.3)', textTransform: 'uppercase', marginBottom: '12px' }}>Voucher</p>
+              {voucherApplied ? (
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '10px' }}>
+                  <span style={{ fontSize: '13px', color: '#26de81' }}>🎟️ <strong>{voucherApplied.code}</strong> applied — R{(voucherApplied.amount_cents / 100).toFixed(2)}</span>
+                  <button type="button" onClick={() => { setVoucherApplied(null); setVoucherCode(''); setVoucherError('') }} style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,0.5)', cursor: 'pointer', fontSize: '13px' }}>Remove</button>
+                </div>
+              ) : (
+                <div style={{ display: 'flex', gap: '8px' }}>
+                  <input type="text" placeholder="Voucher code" value={voucherCode}
+                    onChange={e => { setVoucherCode(e.target.value.toUpperCase()); setVoucherError('') }}
+                    style={{ ...inputStyle, flex: 1 }} />
+                  <button type="button" onClick={applyVoucher} disabled={voucherChecking || !voucherCode.trim()} style={{
+                    padding: '0 20px', borderRadius: '8px', border: '1px solid #2e2000', cursor: 'pointer',
+                    background: '#0a0600', color: '#f5c842', fontWeight: 700, fontSize: '12px', whiteSpace: 'nowrap',
+                  }}>{voucherChecking ? '…' : 'Apply'}</button>
+                </div>
+              )}
+              {voucherError && <p style={{ fontSize: '12px', color: '#ff6b6b', margin: '8px 0 0' }}>{voucherError}</p>}
             </div>
 
             {/* Khula Bucks panel */}
