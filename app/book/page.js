@@ -17,6 +17,24 @@ export default function BookPage() {
     })
   }, [])
 
+  // If the customer is logged in, pre-fill their details and load their Khula
+  // Bucks automatically so a returning member sees their balance without retyping.
+  useEffect(() => {
+    fetch('/api/customer/me')
+      .then(r => r.json())
+      .then(d => {
+        if (!d.authenticated) return
+        setForm(f => ({
+          ...f,
+          name: f.name || d.name || '',
+          email: f.email || d.email || '',
+          phone: f.phone || d.phone || '',
+        }))
+        if (d.khulaBucks > 0) setLoyalty({ customerId: d.id, khulaBucks: d.khulaBucks })
+      })
+      .catch(() => {})
+  }, [])
+
   const [step, setStep] = useState(1)
   const [form, setForm] = useState({
     occasion: '',
