@@ -484,24 +484,28 @@ export async function createBooking(data) {
       occasion = occ
     }
     const { sendBookingConfirmation, notifyStaff } = await import('../../lib/resend')
-    await sendBookingConfirmation({ booking, occasion })
-    await notifyStaff({
-      type: 'booking',
-      subject: `New booking ${booking.reference || ''} — ${booking.customer_name}`.trim(),
-      html: `
-        <h2 style="margin:0 0 8px">New reservation received</h2>
-        <table style="width:100%;font-size:14px;border-top:1px solid #eee;margin-top:12px">
-          <tr><td style="padding:6px 0;color:#888">Name</td><td style="padding:6px 0;text-align:right;font-weight:600">${booking.customer_name}</td></tr>
-          <tr><td style="padding:6px 0;color:#888">Occasion</td><td style="padding:6px 0;text-align:right;font-weight:600">${occasion ? `${occasion.emoji || ''} ${occasion.label}` : '—'}</td></tr>
-          <tr><td style="padding:6px 0;color:#888">Date / Time</td><td style="padding:6px 0;text-align:right;font-weight:600">${booking.date} at ${booking.time}</td></tr>
-          <tr><td style="padding:6px 0;color:#888">Guests</td><td style="padding:6px 0;text-align:right;font-weight:600">${booking.guests}</td></tr>
-          <tr><td style="padding:6px 0;color:#888">Email</td><td style="padding:6px 0;text-align:right;font-weight:600">${booking.customer_email || '—'}</td></tr>
-          <tr><td style="padding:6px 0;color:#888">Phone</td><td style="padding:6px 0;text-align:right;font-weight:600">${booking.customer_phone || '—'}</td></tr>
-          <tr><td style="padding:6px 0;color:#888">Reference</td><td style="padding:6px 0;text-align:right;font-weight:600">${booking.reference || '—'}</td></tr>
-        </table>
-        ${booking.special_request ? `<p style="margin-top:12px;color:#555"><strong>Special request:</strong> ${booking.special_request}</p>` : ''}
-      `,
-    })
+    // Don't make the customer wait on email delivery — the booking is saved.
+    const emails = Promise.allSettled([
+      sendBookingConfirmation({ booking, occasion }),
+      notifyStaff({
+        type: 'booking',
+        subject: `New booking ${booking.reference || ''} — ${booking.customer_name}`.trim(),
+        html: `
+          <h2 style="margin:0 0 8px">New reservation received</h2>
+          <table style="width:100%;font-size:14px;border-top:1px solid #eee;margin-top:12px">
+            <tr><td style="padding:6px 0;color:#888">Name</td><td style="padding:6px 0;text-align:right;font-weight:600">${booking.customer_name}</td></tr>
+            <tr><td style="padding:6px 0;color:#888">Occasion</td><td style="padding:6px 0;text-align:right;font-weight:600">${occasion ? `${occasion.emoji || ''} ${occasion.label}` : '—'}</td></tr>
+            <tr><td style="padding:6px 0;color:#888">Date / Time</td><td style="padding:6px 0;text-align:right;font-weight:600">${booking.date} at ${booking.time}</td></tr>
+            <tr><td style="padding:6px 0;color:#888">Guests</td><td style="padding:6px 0;text-align:right;font-weight:600">${booking.guests}</td></tr>
+            <tr><td style="padding:6px 0;color:#888">Email</td><td style="padding:6px 0;text-align:right;font-weight:600">${booking.customer_email || '—'}</td></tr>
+            <tr><td style="padding:6px 0;color:#888">Phone</td><td style="padding:6px 0;text-align:right;font-weight:600">${booking.customer_phone || '—'}</td></tr>
+            <tr><td style="padding:6px 0;color:#888">Reference</td><td style="padding:6px 0;text-align:right;font-weight:600">${booking.reference || '—'}</td></tr>
+          </table>
+          ${booking.special_request ? `<p style="margin-top:12px;color:#555"><strong>Special request:</strong> ${booking.special_request}</p>` : ''}
+        `,
+      }),
+    ]).catch(() => {})
+    await Promise.race([emails, new Promise(res => setTimeout(res, 3000))])
   } catch (e) {
     console.error('booking email failed:', e)
   }

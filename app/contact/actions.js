@@ -12,10 +12,12 @@ export async function submitContactMessage({ name, email, phone, message }) {
     throw new Error('Failed to save message. Please try again.')
   }
 
-  // Confirm to the customer + notify staff — never block the submission on email.
-  try {
-    await sendContactConfirmation({ name, email })
-    await notifyStaff({
+  // Confirm to the customer + notify staff, but DON'T make the customer wait on
+  // email delivery (which can be slow/unavailable). The message is already
+  // saved for staff. Cap the wait at 3s so the form responds fast.
+  const emails = Promise.allSettled([
+    sendContactConfirmation({ name, email }),
+    notifyStaff({
       type: 'contact',
       subject: `New contact message from ${name}`,
       html: `
@@ -27,8 +29,7 @@ export async function submitContactMessage({ name, email, phone, message }) {
         </table>
         <p style="margin-top:12px;color:#555;white-space:pre-wrap">${message}</p>
       `,
-    })
-  } catch (e) {
-    console.error('contact email failed:', e)
-  }
+    }),
+  ]).catch(() => {})
+  await Promise.race([emails, new Promise(res => setTimeout(res, 3000))])
 }
