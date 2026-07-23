@@ -182,43 +182,33 @@ export default function MenuPage() {
         {!searchQuery && !showGlance && (
           <>
             <div
-              ref={tabsRef}
               className="menu-tabs-bar"
               style={{
-                overflowX: 'auto', whiteSpace: 'nowrap',
-                scrollbarWidth: 'none', msOverflowStyle: 'none',
-                WebkitOverflowScrolling: 'touch',
-                padding: '0 32px',
-                cursor: 'grab', userSelect: 'none',
+                display: 'flex', flexWrap: 'wrap', gap: '8px',
+                padding: '14px 16px 4px',
               }}
-              onMouseDown={onMouseDown}
-              onMouseLeave={onMouseLeave}
-              onMouseUp={onMouseUp}
-              onMouseMove={onMouseMove}
             >
-              <div style={{ display: 'inline-flex', gap: '0' }}>
-                {menuCategories.map(cat => (
-                  <button key={cat.id} onClick={() => setActiveCategory(cat.id)} style={{
-                    background: 'none', border: 'none', cursor: 'pointer',
-                    padding: '16px 24px',
-                    fontSize: '11px', letterSpacing: '2px', textTransform: 'uppercase',
-                    fontWeight: 600,
-                    color: activeCategory === cat.id ? '#f5c842' : 'rgba(255,255,255,0.45)',
-                    borderBottom: activeCategory === cat.id ? '2px solid #f5c842' : '2px solid transparent',
-                    transition: 'all 0.2s', whiteSpace: 'nowrap',
+              {menuCategories.map(cat => {
+                const active = activeCategory === cat.id
+                return (
+                  <button key={cat.id} onClick={() => { setActiveCategory(cat.id); setActiveSubcategory(null) }} style={{
+                    cursor: 'pointer', padding: '9px 16px', borderRadius: '22px',
+                    fontSize: '12px', letterSpacing: '0.5px', fontWeight: 700,
+                    background: active ? 'linear-gradient(135deg,#f5c842,#c8940c)' : '#1e1500',
+                    color: active ? '#0a0600' : 'rgba(255,255,255,0.6)',
+                    border: `1px solid ${active ? 'transparent' : '#2e2000'}`,
+                    transition: 'all 0.15s', whiteSpace: 'nowrap',
                   }}>
                     {cat.icon} {cat.name}
                   </button>
-                ))}
-              </div>
+                )
+              })}
             </div>
 
             {/* Subcategory pill tabs — only shown when current category has named subs */}
             {current && current.groups?.some(g => g.sub) && (
               <div style={{
-                overflowX: 'auto', whiteSpace: 'nowrap',
-                scrollbarWidth: 'none', msOverflowStyle: 'none',
-                padding: '8px 16px', display: 'flex', gap: '6px',
+                padding: '8px 16px', display: 'flex', flexWrap: 'wrap', gap: '6px',
                 borderTop: '1px solid rgba(46,32,0,0.5)',
               }}>
                 <button
