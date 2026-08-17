@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server'
 import { supabaseAdmin } from '../../../../../lib/supabase-admin'
-import { callPaystackProxy } from '../../../../../lib/paystack-proxy'
+import { verifyTransaction } from '../../../../../lib/payments'
 
 export async function GET(request) {
   try {
@@ -11,11 +11,7 @@ export async function GET(request) {
       return NextResponse.json({ error: 'reference and orderId are required' }, { status: 400 })
     }
 
-    const data = await callPaystackProxy('paystack-transaction', 'verify', {
-      query: { reference },
-    })
-
-    const paid = data?.data?.status === 'success'
+    const { paid } = await verifyTransaction(reference)
 
     const { data: updatedOrder, error: updateError } = await supabaseAdmin
       .from('orders')

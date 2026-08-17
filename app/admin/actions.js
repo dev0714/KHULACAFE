@@ -742,3 +742,55 @@ export async function validateVoucherPublic(code) {
   const { validateVoucher } = await import('../../lib/vouchers')
   return validateVoucher(code)
 }
+
+// ── Payment Settings ─────────────────────────────────────────────
+function maskSecret(v) {
+  if (!v) return ''
+  const s = String(v)
+  return s.length > 8 ? `${s.slice(0, 4)}••••${s.slice(-3)}` : '••••'
+}
+
+export async function getPaymentSettingsAdmin() {
+  await assertAdmin()
+  const { data } = await supabaseAdmin.from('payment_settings').select('*').eq('id', 1).maybeSingle()
+  const row = data || {}
+  return {
+    provider: row.provider || 'paysync',
+    fn_base: row.fn_base || '',
+    credential_id: row.credential_id || '',
+    public_key: row.public_key || '',
+    site_url: row.site_url || '',
+    has_credential_key: !!row.credential_key,
+    credential_key_preview: maskSecret(row.credential_key),
+    has_secret_key: !!row.secret_key,
+    secret_key_preview: maskSecret(row.secret_key),
+  }
+}
+
+export async function savePaymentSettings(data) {
+  await assertAdmin()
+  const t = (v) => (typeof v === 'string' ? v.trim() : v) || null
+  const fields = {
+    id: 1,
+    provider: data.provider === 'paystack_direct' ? 'paystack_direct' : 'paysync',
+    fn_base: t(data.fn_base),
+    credential_id: t(data.credential_id),
+    public_key: t(data.public_key),
+    site_url: t(data.site_url),
+    updated_at: new Date().toISOString(),
+  }
+  // Secrets: only overwrite when a new value is provided (blank = keep existing).
+  if (data.credential_key && data.credential_key.trim()) fields.credential_key = data.credential_key.trim()
+  if (data.secret_key && data.secret_key.trim()) fields.secret_key = data.secret_key.trim()
+
+  const { error } = await supabaseAdmin.from('payment_settings').upsert(fields, { onConflict: 'id' })
+  if (error) return { error: error.message }
+  revalidatePath('/admin/payments')
+  return {}
+}
+
+export async function testPaymentConnectionAdmin() {
+  await assertAdmin()
+  const { testPaymentConnection } = await import('../../lib/payments')
+  return testPaymentConnection()
+}
