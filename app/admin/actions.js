@@ -752,18 +752,23 @@ function maskSecret(v) {
 
 export async function getPaymentSettingsAdmin() {
   await assertAdmin()
-  const { data } = await supabaseAdmin.from('payment_settings').select('*').eq('id', 1).maybeSingle()
-  const row = data || {}
+  const { data: row } = await supabaseAdmin.from('payment_settings').select('*').eq('id', 1).maybeSingle()
+  // Show the EFFECTIVE config (DB row, or the Vercel env vars it falls back to),
+  // so staff see what's actually in use — not a blank form.
+  const { getPaymentSettings } = await import('../../lib/payment-settings')
+  const s = await getPaymentSettings()
+  const dbHasValues = !!(row && (row.fn_base || row.credential_id || row.credential_key || row.secret_key || row.public_key || row.site_url))
   return {
-    provider: row.provider || 'paysync',
-    fn_base: row.fn_base || '',
-    credential_id: row.credential_id || '',
-    public_key: row.public_key || '',
-    site_url: row.site_url || '',
-    has_credential_key: !!row.credential_key,
-    credential_key_preview: maskSecret(row.credential_key),
-    has_secret_key: !!row.secret_key,
-    secret_key_preview: maskSecret(row.secret_key),
+    provider: s.provider || 'paysync',
+    fn_base: s.fn_base || '',
+    credential_id: s.credential_id || '',
+    public_key: s.public_key || '',
+    site_url: s.site_url || '',
+    has_credential_key: !!s.credential_key,
+    credential_key_preview: maskSecret(s.credential_key),
+    has_secret_key: !!s.secret_key,
+    secret_key_preview: maskSecret(s.secret_key),
+    usingEnv: !dbHasValues,
   }
 }
 
