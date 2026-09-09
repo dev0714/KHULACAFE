@@ -7,7 +7,20 @@ import { PageHeader, Card, Btn, Pill, Icon, Empty } from '../../../components/ad
 
 const blankCat = { name: '', icon: '🍽️', description: '' }
 const blankSub = { name: '', description: '' }
-const blankItemFor = (subId) => ({ name: '', description: '', price: 'Ask us', price_cents: '', badge: '', image_url: '', is_featured: false, subcategory_id: subId || '' })
+const blankItemFor = (subId) => ({ name: '', description: '', rands: '', poaLabel: 'Ask us', onRequest: false, customLabel: '', useCustomLabel: false, badge: '', image_url: '', is_featured: false, subcategory_id: subId || '' })
+
+const randLabel = (cents) => (cents % 100 === 0 ? `R${cents / 100}` : `R${(cents / 100).toFixed(2)}`)
+
+// One price in, both columns out. The menu label is derived from the charged
+// amount unless a custom label is deliberately switched on (e.g. two sizes).
+function priceFields(form) {
+  if (form.onRequest) return { price: (form.poaLabel || 'Ask us').trim(), price_cents: null }
+  const rands = Number(form.rands)
+  if (form.rands === '' || Number.isNaN(rands) || rands < 0) return { price: 'Ask us', price_cents: null }
+  const cents = Math.round(rands * 100)
+  const custom = form.useCustomLabel ? form.customLabel.trim() : ''
+  return { price: custom || randLabel(cents), price_cents: cents }
+}
 
 function Field({ label, children, span }) {
   return <div style={span ? { gridColumn: '1/-1' } : undefined}><label className="adm-label">{label}</label>{children}</div>
@@ -96,9 +109,10 @@ export default function MenuAdmin() {
   // ── Items ──
   function saveItem() {
     startTransition(async () => {
+      const { rands, poaLabel, onRequest, customLabel, useCustomLabel, ...rest } = itemForm
       const payload = {
-        ...itemForm,
-        price_cents: itemForm.price_cents !== '' ? Math.round(Number(itemForm.price_cents) * 100) : null,
+        ...rest,
+        ...priceFields(itemForm),
         category_id: selectedCat.id,
         subcategory_id: itemForm.subcategory_id || null,
         sort_order: editingItem ? editingItem.sort_order : items.length,
@@ -115,7 +129,19 @@ export default function MenuAdmin() {
   }
   function editItemStart(item) {
     setEditingItem(item)
-    setItemForm({ name: item.name, description: item.description || '', price: item.price, price_cents: item.price_cents ? (item.price_cents / 100).toString() : '', badge: item.badge || '', image_url: item.image_url || '', is_featured: item.is_featured, subcategory_id: item.subcategory_id || '' })
+    setItemForm({
+      name: item.name,
+      description: item.description || '',
+      rands: item.price_cents ? (item.price_cents / 100).toString() : '',
+      poaLabel: item.price_cents ? 'Ask us' : (item.price || 'Ask us'),
+      onRequest: !item.price_cents,
+      customLabel: item.price || '',
+      useCustomLabel: Boolean(item.price_cents) && (item.price || '') !== randLabel(item.price_cents),
+      badge: item.badge || '',
+      image_url: item.image_url || '',
+      is_featured: item.is_featured,
+      subcategory_id: item.subcategory_id || '',
+    })
     document.getElementById('item-editor')?.scrollIntoView({ behavior: 'smooth', block: 'start' })
   }
 
@@ -224,8 +250,13 @@ export default function MenuAdmin() {
                     <div style={{ padding: '14px', display: 'flex', flexDirection: 'column', gap: '8px', flex: 1 }}>
                       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '8px' }}>
                         <span style={{ fontSize: '13px', fontWeight: 600, lineHeight: 1.3 }}>{item.name}</span>
-                        <span style={{ fontSize: '13px', fontWeight: 700, color: 'var(--adm-gold)', whiteSpace: 'nowrap' }}>{item.price_cents ? `R${(item.price_cents / 100).toFixed(0)}` : item.price}</span>
+                        <span style={{ fontSize: '13px', fontWeight: 700, color: 'var(--adm-gold)', whiteSpace: 'nowrap' }}>{item.price || (item.price_cents ? randLabel(item.price_cents) : 'Ask us')}</span>
                       </div>
+                      {item.price_cents && (item.price || '') !== randLabel(item.price_cents) && (
+                        <span title="The menu label and the amount charged are different" style={{ fontSize: '10px', fontWeight: 600, color: 'var(--adm-red)', background: 'color-mix(in srgb, var(--adm-red) 12%, transparent)', border: '1px solid color-mix(in srgb, var(--adm-red) 35%, transparent)', borderRadius: '6px', padding: '4px 7px', alignSelf: 'flex-start' }}>
+                          Charges {randLabel(item.price_cents)}
+                        </span>
+                      )}
                       {item.description && <span style={{ fontSize: '11px', color: 'var(--adm-faint)', overflow: 'hidden', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' }}>{item.description}</span>}
                       <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '4px', marginTop: 'auto' }}>
                         <IconBtn title="Edit" onClick={() => editItemStart(item)}>{Icon.edit(13)}</IconBtn>
@@ -242,8 +273,42 @@ export default function MenuAdmin() {
               <p className="adm-th" style={{ marginBottom: '16px' }}>{editingItem ? `Edit item — ${editingItem.name}` : 'New item'}</p>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '14px' }}>
                 <Field label="Name"><input className="adm-input" value={itemForm.name} onChange={e => setItemForm(f => ({ ...f, name: e.target.value }))} /></Field>
-                <Field label="Display price (e.g. R85)"><input className="adm-input" value={itemForm.price} onChange={e => setItemForm(f => ({ ...f, price: e.target.value }))} /></Field>
-                <Field label="Cart price (R) — blank = 'Ask us'"><input className="adm-input" type="number" min="0" step="0.01" value={itemForm.price_cents} onChange={e => setItemForm(f => ({ ...f, price_cents: e.target.value }))} /></Field>
+                <Field label="Price (R)">
+                  {itemForm.onRequest ? (
+                    <input className="adm-input" value={itemForm.poaLabel} onChange={e => setItemForm(f => ({ ...f, poaLabel: e.target.value }))} placeholder="Ask us" />
+                  ) : (
+                    <div style={{ position: 'relative' }}>
+                      <span style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', fontSize: '13px', fontWeight: 700, color: 'var(--adm-muted)', pointerEvents: 'none' }}>R</span>
+                      <input className="adm-input" style={{ paddingLeft: '26px' }} type="number" min="0" step="0.01" value={itemForm.rands} onChange={e => setItemForm(f => ({ ...f, rands: e.target.value }))} placeholder="85" />
+                    </div>
+                  )}
+                  <label style={{ display: 'flex', alignItems: 'center', gap: '8px', margin: '8px 0 0', fontSize: '12px', color: 'var(--adm-faint)', cursor: 'pointer' }}>
+                    <input type="checkbox" checked={itemForm.onRequest} onChange={e => setItemForm(f => ({ ...f, onRequest: e.target.checked }))} />
+                    Price on request (no Add to cart)
+                  </label>
+                </Field>
+                <Field label="On the menu it shows">
+                  <div className="adm-input" style={{ display: 'flex', alignItems: 'center', gap: '10px', background: 'var(--adm-page)' }}>
+                    <span style={{ fontSize: '15px', fontWeight: 700, color: 'var(--adm-gold)' }}>{priceFields(itemForm).price}</span>
+                    <span style={{ fontSize: '11px', color: 'var(--adm-faint)' }}>
+                      {priceFields(itemForm).price_cents ? `Cart charges ${randLabel(priceFields(itemForm).price_cents)}` : 'No Add to cart button'}
+                    </span>
+                  </div>
+                  {!itemForm.onRequest && (
+                    <label style={{ display: 'flex', alignItems: 'center', gap: '8px', margin: '8px 0 0', fontSize: '12px', color: 'var(--adm-faint)', cursor: 'pointer' }}>
+                      <input type="checkbox" checked={itemForm.useCustomLabel} onChange={e => setItemForm(f => ({ ...f, useCustomLabel: e.target.checked, customLabel: e.target.checked ? (f.customLabel || priceFields({ ...f, useCustomLabel: false }).price) : '' }))} />
+                      Show different wording (e.g. two sizes)
+                    </label>
+                  )}
+                </Field>
+                {itemForm.useCustomLabel && !itemForm.onRequest && (
+                  <Field label="Menu wording" span>
+                    <input className="adm-input" value={itemForm.customLabel} onChange={e => setItemForm(f => ({ ...f, customLabel: e.target.value }))} placeholder="e.g. R35 Regular, R42 Large" />
+                    <p style={{ margin: '6px 0 0', fontSize: '11px', color: 'var(--adm-amber, var(--adm-gold))' }}>
+                      The cart still charges {itemForm.rands === '' ? 'nothing' : randLabel(Math.round(Number(itemForm.rands || 0) * 100))}. Make sure that matches what you wrote above.
+                    </p>
+                  </Field>
+                )}
                 <Field label="Sub-menu">
                   <select className="adm-input" value={itemForm.subcategory_id} onChange={e => setItemForm(f => ({ ...f, subcategory_id: e.target.value }))}>
                     <option value="">— None (uncategorised) —</option>
