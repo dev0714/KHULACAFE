@@ -193,6 +193,28 @@ export default function MenuPage() {
         {/* Category tabs — hidden when search active or glance open */}
         {!searchQuery && !showGlance && (
           <>
+            {/* Mobile: compact category dropdown (one row instead of a wall of chips) */}
+            <div className="menu-cat-select" style={{ padding: '10px 16px 4px' }}>
+              <div style={{ position: 'relative' }}>
+                <select
+                  value={activeCategory}
+                  onChange={e => { setActiveCategory(e.target.value); setActiveSubcategory(null); scrollToMenuTop() }}
+                  aria-label="Choose a menu category"
+                  style={{
+                    width: '100%', appearance: 'none', WebkitAppearance: 'none', cursor: 'pointer',
+                    padding: '11px 40px 11px 16px', borderRadius: '22px', border: 'none',
+                    background: 'linear-gradient(135deg,#f5c842,#c8940c)', color: '#0a0600',
+                    fontSize: '13px', fontWeight: 700, letterSpacing: '0.5px', outline: 'none',
+                  }}
+                >
+                  {menuCategories.map(cat => (
+                    <option key={cat.id} value={cat.id}>{cat.icon ? `${cat.icon} ` : ''}{cat.name}</option>
+                  ))}
+                </select>
+                <span style={{ position: 'absolute', right: '16px', top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none', color: '#0a0600', fontSize: '12px', fontWeight: 700 }}>▼</span>
+              </div>
+            </div>
+
             <div
               className="menu-tabs-bar"
               style={{
@@ -219,7 +241,7 @@ export default function MenuPage() {
 
             {/* Subcategory pill tabs — only shown when current category has named subs */}
             {current && current.groups?.some(g => g.sub) && (
-              <div style={{
+              <div className="menu-sub-bar" style={{
                 padding: '8px 16px', display: 'flex', flexWrap: 'wrap', gap: '6px',
                 borderTop: '1px solid rgba(46,32,0,0.5)',
               }}>
