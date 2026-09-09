@@ -3,30 +3,36 @@ import { useState, useEffect, useTransition, useCallback } from 'react'
 import { supabase } from '../../../lib/supabase-public'
 import { upsertOccasion, deleteOccasion, upsertAddon, deleteAddon, seedOccasions } from '../actions'
 import ImageUpload from '../../../components/admin/ImageUpload'
-import { PageHeader } from '../../../components/admin/ui'
+import { PageHeader, Card, Pill, Btn, Tabs, Icon, Empty } from '../../../components/admin/ui'
 
 const EMPTY_ADDON = { label: '', icon: '🎁', price_cents: 0, description: '', images: [], colors: [] }
+const EMPTY_OCC = { label: '', emoji: '🎉', description: '', price_cents: 10000, category: 'Special Occasion' }
+const CATEGORIES = ['Romantic', 'Business', 'Special Occasion']
 
-const inp = { width: '100%', padding: '10px 14px', background: '#0a0600', border: '1px solid #2e2000', borderRadius: '8px', color: '#fafafa', fontSize: '13px', outline: 'none', boxSizing: 'border-box' }
-const lbl = { display: 'block', fontSize: '10px', letterSpacing: '2px', color: '#f5c842', marginBottom: '6px', textTransform: 'uppercase' }
-const btnP = { padding: '10px 20px', borderRadius: '8px', border: 'none', cursor: 'pointer', background: 'linear-gradient(135deg, #f5c842, #c8940c)', color: '#0a0600', fontWeight: 700, fontSize: '12px' }
-const btnG = { padding: '10px 20px', borderRadius: '8px', border: 'none', cursor: 'pointer', background: '#2e2000', color: 'rgba(255,255,255,0.6)', fontSize: '12px' }
+const STATUS = {
+  pending:   { label: 'Pending',   color: '#f5c842' },
+  confirmed: { label: 'Confirmed', color: '#26de81' },
+  cancelled: { label: 'Cancelled', color: '#ff6b6b' },
+  completed: { label: 'Completed', color: 'rgba(255,255,255,0.45)' },
+}
 
-const STATUS_COLORS = {
-  pending:   { bg: 'rgba(245,200,66,0.1)',  border: 'rgba(245,200,66,0.3)',  text: '#f5c842' },
-  confirmed: { bg: 'rgba(38,222,129,0.1)',  border: 'rgba(38,222,129,0.3)',  text: '#26de81' },
-  cancelled: { bg: 'rgba(255,107,107,0.1)', border: 'rgba(255,107,107,0.3)', text: '#ff6b6b' },
-  completed: { bg: 'rgba(255,255,255,0.05)', border: '#2e2000',              text: 'rgba(255,255,255,0.4)' },
+function Field({ label, children, span }) {
+  return <div style={span ? { gridColumn: '1/-1' } : undefined}><label className="adm-label">{label}</label>{children}</div>
+}
+
+function fmtDate(d) {
+  return new Date(d).toLocaleDateString('en-ZA', { weekday: 'short', day: 'numeric', month: 'short' })
 }
 
 export default function BookingsAdmin() {
-  const [tab, setTab] = useState('bookings') // 'bookings' | 'occasions' | 'addons'
+  const [tab, setTab] = useState('bookings')
   const [occasions, setOccasions] = useState([])
   const [addons, setAddons] = useState([])
   const [bookings, setBookings] = useState([])
   const [bookingFilter, setBookingFilter] = useState('all')
+  const [search, setSearch] = useState('')
 
-  const [occForm, setOccForm] = useState({ label: '', emoji: '🎉', description: '', price_cents: 10000, category: 'Special Occasion' })
+  const [occForm, setOccForm] = useState(EMPTY_OCC)
   const [addonForm, setAddonForm] = useState(EMPTY_ADDON)
   const [newColor, setNewColor] = useState('')
   const [editOcc, setEditOcc] = useState(null)
@@ -52,6 +58,7 @@ export default function BookingsAdmin() {
 
   useEffect(() => { loadOccasions(); loadAddons(); loadBookings() }, [loadOccasions, loadAddons, loadBookings])
 
+  // ── Occasions ──
   function saveOcc() {
     startTransition(async () => {
       const payload = { ...occForm, sort_order: editOcc ? editOcc.sort_order : occasions.length }
@@ -59,8 +66,7 @@ export default function BookingsAdmin() {
       const result = await upsertOccasion(payload)
       if (result?.error) { alert(`Could not save occasion:\n${result.error}`); return }
       if (result?.warning) alert(result.warning)
-      setOccForm({ label: '', emoji: '🎉', description: '', price_cents: 10000, category: 'Special Occasion' })
-      setEditOcc(null)
+      setOccForm(EMPTY_OCC); setEditOcc(null)
       await loadOccasions()
     })
   }
@@ -72,7 +78,12 @@ export default function BookingsAdmin() {
       await loadOccasions()
     })
   }
+  function editOccStart(o) {
+    setEditOcc(o)
+    setOccForm({ label: o.label, emoji: o.emoji, description: o.description || '', price_cents: o.price_cents || 10000, category: o.category || 'Special Occasion' })
+  }
 
+  // ── Add-ons ──
   function saveAddon() {
     startTransition(async () => {
       const payload = {
@@ -84,19 +95,15 @@ export default function BookingsAdmin() {
       if (editAddon) payload.id = editAddon.id
       const result = await upsertAddon(payload)
       if (result?.error) { alert(`Could not save add-on:\n${result.error}`); return }
-      setAddonForm(EMPTY_ADDON)
-      setNewColor('')
-      setEditAddon(null)
+      setAddonForm(EMPTY_ADDON); setNewColor(''); setEditAddon(null)
       await loadAddons()
     })
   }
   function editAddonStart(a) {
     setEditAddon(a)
     setAddonForm({
-      label: a.label, icon: a.icon, price_cents: a.price_cents,
-      description: a.description || '',
-      images: Array.isArray(a.images) ? a.images : [],
-      colors: Array.isArray(a.colors) ? a.colors : [],
+      label: a.label, icon: a.icon, price_cents: a.price_cents, description: a.description || '',
+      images: Array.isArray(a.images) ? a.images : [], colors: Array.isArray(a.colors) ? a.colors : [],
     })
     setNewColor('')
     if (typeof window !== 'undefined') window.scrollTo({ top: 0, behavior: 'smooth' })
@@ -107,154 +114,117 @@ export default function BookingsAdmin() {
     setAddonForm(f => ({ ...f, colors: [...(f.colors || []), c] }))
     setNewColor('')
   }
-  function removeColor(i) {
-    setAddonForm(f => ({ ...f, colors: (f.colors || []).filter((_, idx) => idx !== i) }))
-  }
-  function addImage(url) {
-    if (url) setAddonForm(f => ({ ...f, images: [...(f.images || []), url] }))
-  }
-  function removeImage(i) {
-    setAddonForm(f => ({ ...f, images: (f.images || []).filter((_, idx) => idx !== i) }))
-  }
+  const removeColor = (i) => setAddonForm(f => ({ ...f, colors: (f.colors || []).filter((_, idx) => idx !== i) }))
+  const addImage = (url) => { if (url) setAddonForm(f => ({ ...f, images: [...(f.images || []), url] })) }
+  const removeImage = (i) => setAddonForm(f => ({ ...f, images: (f.images || []).filter((_, idx) => idx !== i) }))
   function removeAddon(id) {
     if (!confirm('Delete this add-on?')) return
     startTransition(async () => { await deleteAddon(id); await loadAddons() })
   }
 
+  // ── Bookings ──
   async function updateBookingStatus(id, status) {
     await supabase.from('bookings').update({ status }).eq('id', id)
     await loadBookings()
   }
 
-  const filtered = bookingFilter === 'all' ? bookings : bookings.filter(b => b.status === bookingFilter)
-
-  const counts = bookings.reduce((acc, b) => { acc[b.status] = (acc[b.status] || 0) + 1; return acc }, {})
-
-  const tabs = [
-    { key: 'bookings', label: `Bookings${bookings.length ? ` (${bookings.length})` : ''}` },
-    { key: 'occasions', label: 'Occasions' },
-    { key: 'addons', label: 'Add-ons' },
-  ]
+  const counts = bookings.reduce((a, b) => { a[b.status] = (a[b.status] || 0) + 1; return a }, {})
+  const filtered = bookings.filter(b => {
+    if (bookingFilter !== 'all' && b.status !== bookingFilter) return false
+    if (search.trim()) {
+      const q = search.toLowerCase()
+      return b.customer_name?.toLowerCase().includes(q) || b.reference?.toLowerCase().includes(q) || b.customer_email?.toLowerCase().includes(q)
+    }
+    return true
+  })
 
   return (
     <>
-      <PageHeader title="Bookings" subtitle="Reservations, occasions and event add-ons in one place." />
+      <PageHeader
+        title="Bookings"
+        subtitle="Reservations, occasions and event add-ons in one place."
+        actions={tab === 'bookings' && <Btn onClick={loadBookings}>{Icon.refresh(16)} Refresh</Btn>}
+      />
 
-      {/* Tab bar */}
-      <div style={{ display: 'flex', gap: '4px', background: '#1e1500', borderRadius: '10px', padding: '4px', border: '1px solid #2e2000', marginBottom: '24px', width: 'fit-content' }}>
-        {tabs.map(t => (
-          <button key={t.key} onClick={() => setTab(t.key)} style={{
-            padding: '9px 22px', borderRadius: '7px', border: 'none', cursor: 'pointer',
-            background: tab === t.key ? 'linear-gradient(135deg, #f5c842, #c8940c)' : 'transparent',
-            color: tab === t.key ? '#0a0600' : 'rgba(255,255,255,0.5)',
-            fontSize: '12px', fontWeight: tab === t.key ? 700 : 400, letterSpacing: '0.5px',
-            transition: 'all 0.15s',
-          }}>
-            {t.label}
-          </button>
-        ))}
+      <div style={{ marginBottom: '20px' }}>
+        <Tabs value={tab} onChange={setTab} items={[
+          { key: 'bookings', label: 'Bookings', count: bookings.length },
+          { key: 'occasions', label: 'Occasions', count: occasions.length },
+          { key: 'addons', label: 'Add-ons', count: addons.length },
+        ]} />
       </div>
 
-      {/* ── BOOKINGS TAB ── */}
+      {/* ── BOOKINGS ── */}
       {tab === 'bookings' && (
-        <div>
-          {/* Stats row */}
-          <div style={{ display: 'flex', gap: '12px', marginBottom: '20px', flexWrap: 'wrap' }}>
-            {[
-              { label: 'All', key: 'all', count: bookings.length },
-              { label: 'Pending', key: 'pending', count: counts.pending || 0 },
-              { label: 'Confirmed', key: 'confirmed', count: counts.confirmed || 0 },
-              { label: 'Cancelled', key: 'cancelled', count: counts.cancelled || 0 },
-            ].map(f => (
-              <button key={f.key} onClick={() => setBookingFilter(f.key)} style={{
-                padding: '8px 18px', borderRadius: '8px', border: `1px solid ${bookingFilter === f.key ? '#f5c842' : '#2e2000'}`,
-                background: bookingFilter === f.key ? 'rgba(245,200,66,0.1)' : '#1e1500',
-                color: bookingFilter === f.key ? '#f5c842' : 'rgba(255,255,255,0.45)',
-                fontSize: '12px', cursor: 'pointer',
-              }}>
-                {f.label} {f.count > 0 && <span style={{ fontWeight: 700 }}>{f.count}</span>}
-              </button>
-            ))}
-            <button onClick={loadBookings} style={{ marginLeft: 'auto', padding: '8px 14px', borderRadius: '8px', border: '1px solid #2e2000', background: '#1e1500', color: 'rgba(255,255,255,0.4)', fontSize: '12px', cursor: 'pointer' }}>↺ Refresh</button>
+        <>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '16px', marginBottom: '16px', flexWrap: 'wrap' }}>
+            <Tabs value={bookingFilter} onChange={setBookingFilter} items={[
+              { key: 'all', label: 'All', count: bookings.length },
+              { key: 'pending', label: 'Pending', count: counts.pending || 0 },
+              { key: 'confirmed', label: 'Confirmed', count: counts.confirmed || 0 },
+              { key: 'completed', label: 'Completed', count: counts.completed || 0 },
+              { key: 'cancelled', label: 'Cancelled', count: counts.cancelled || 0 },
+            ]} />
+            <div className="adm-search" style={{ width: '260px' }}>
+              <span className="adm-search-ico">{Icon.search(16)}</span>
+              <input className="adm-input" value={search} onChange={e => setSearch(e.target.value)} placeholder="Search name or reference…" />
+            </div>
           </div>
 
-          {filtered.length === 0 ? (
-            <div style={{ textAlign: 'center', padding: '60px', color: 'rgba(255,255,255,0.25)', fontSize: '14px' }}>
-              No bookings yet
-            </div>
-          ) : (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+          {filtered.length === 0 ? <Card><Empty>No bookings here yet.</Empty></Card> : (
+            <div className="adm-stagger" style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
               {filtered.map(b => {
-                const sc = STATUS_COLORS[b.status] || STATUS_COLORS.pending
-                const addOnsArr = Array.isArray(b.add_ons) ? b.add_ons : []
+                const st = STATUS[b.status] || STATUS.pending
+                const addOns = Array.isArray(b.add_ons) ? b.add_ons : []
                 return (
-                  <div key={b.id} style={{ background: '#1e1500', border: '1px solid #2e2000', borderRadius: '12px', padding: '20px' }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '16px', flexWrap: 'wrap' }}>
-                      <div style={{ flex: 1, minWidth: '200px' }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '6px' }}>
-                          <span style={{ fontFamily: 'var(--font-playfair)', color: '#fafafa', fontSize: '16px', fontWeight: 600 }}>{b.customer_name}</span>
-                          <span style={{ fontSize: '10px', letterSpacing: '2px', padding: '3px 8px', borderRadius: '20px', background: sc.bg, border: `1px solid ${sc.border}`, color: sc.text, textTransform: 'uppercase' }}>{b.status}</span>
-                        </div>
-                        <div style={{ display: 'flex', gap: '16px', flexWrap: 'wrap', marginBottom: '8px' }}>
-                          <span style={{ color: '#f5c842', fontSize: '13px', fontWeight: 600 }}>
-                            {b.booking_occasions?.emoji} {b.booking_occasions?.label || 'Occasion'}{b.occasion_reason ? ` — ${b.occasion_reason}` : ''}
-                          </span>
-                          <span style={{ color: 'rgba(255,255,255,0.5)', fontSize: '13px' }}>
-                            📅 {new Date(b.date).toLocaleDateString('en-ZA', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' })} at {b.time}
-                          </span>
-                          <span style={{ color: 'rgba(255,255,255,0.5)', fontSize: '13px' }}>👥 {b.guests} guests</span>
-                        </div>
-                        <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
-                          {b.customer_email && <span style={{ color: 'rgba(255,255,255,0.4)', fontSize: '12px' }}>✉ {b.customer_email}</span>}
-                          {b.customer_phone && <span style={{ color: 'rgba(255,255,255,0.4)', fontSize: '12px' }}>📞 {b.customer_phone}</span>}
-                        </div>
-                        {addOnsArr.length > 0 && (
-                          <div style={{ marginTop: '8px', fontSize: '12px', color: 'rgba(255,255,255,0.4)' }}>
-                            Add-ons: {addOnsArr.map(a => a.color ? `${a.label} (${a.color})` : a.label).join(', ')}
-                          </div>
-                        )}
-                        {b.special_request && (
-                          <div style={{ marginTop: '6px', fontSize: '12px', color: 'rgba(255,255,255,0.4)', fontStyle: 'italic' }}>
-                            "{b.special_request}"
-                          </div>
-                        )}
-                      </div>
-                      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '8px', flexShrink: 0 }}>
-                        <div style={{ textAlign: 'right' }}>
-                          <div style={{ color: '#f5c842', fontSize: '18px', fontWeight: 700, fontFamily: 'var(--font-playfair)' }}>
-                            R{(b.deposit_cents / 100).toFixed(2)}
-                          </div>
-                          <div style={{ color: 'rgba(255,255,255,0.3)', fontSize: '10px', letterSpacing: '1px' }}>DEPOSIT</div>
-                        </div>
-                        <div style={{ fontSize: '10px', color: 'rgba(255,255,255,0.25)', letterSpacing: '1px' }}>REF: {b.reference}</div>
-                        <select
-                          value={b.status}
-                          onChange={e => updateBookingStatus(b.id, e.target.value)}
-                          style={{ ...inp, width: 'auto', fontSize: '11px', padding: '6px 10px', cursor: 'pointer' }}
-                        >
-                          {['pending', 'confirmed', 'cancelled', 'completed'].map(s => (
-                            <option key={s} value={s}>{s.charAt(0).toUpperCase() + s.slice(1)}</option>
-                          ))}
-                        </select>
-                      </div>
+                  <Card key={b.id} className="hover" style={{ padding: '18px 22px', display: 'grid', gridTemplateColumns: '110px minmax(0,1.2fr) minmax(0,1.2fr) minmax(0,1.1fr) auto', gap: '18px', alignItems: 'center' }}>
+                    <div style={{ display: 'flex', flexDirection: 'column' }}>
+                      <span style={{ fontSize: '12px', color: 'var(--adm-faint)' }}>{fmtDate(b.date)}</span>
+                      <span style={{ fontFamily: 'var(--font-playfair)', fontSize: '20px', fontWeight: 700 }}>{b.time}</span>
+                      <span style={{ fontSize: '11px', color: 'var(--adm-faint)' }}>{b.guests} guests</span>
                     </div>
-                  </div>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '3px', minWidth: 0 }}>
+                      <span style={{ fontSize: '14px', fontWeight: 600 }}>{b.customer_name}</span>
+                      <span style={{ fontSize: '12px', color: 'var(--adm-gold)', fontWeight: 600 }}>
+                        {b.booking_occasions?.emoji} {b.booking_occasions?.label || 'Occasion'}{b.occasion_reason ? ` · ${b.occasion_reason}` : ''}
+                      </span>
+                      <span style={{ fontSize: '11px', color: 'var(--adm-faint)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                        {b.customer_email || ''}{b.customer_email && b.customer_phone ? ' · ' : ''}{b.customer_phone || ''}
+                      </span>
+                      <span style={{ fontSize: '11px', color: 'var(--adm-faint)', letterSpacing: '1px' }}>REF {b.reference}</span>
+                    </div>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '3px', minWidth: 0 }}>
+                      <span className="adm-th">Add-ons</span>
+                      <span style={{ fontSize: '12px', color: 'var(--adm-muted)' }}>{addOns.length ? addOns.map(a => a.color ? `${a.label} (${a.color})` : a.label).join(', ') : '—'}</span>
+                      {b.special_song && <span style={{ fontSize: '11px', color: 'var(--adm-faint)' }}>Song: {b.special_song}</span>}
+                      {b.special_request && <span style={{ fontSize: '11px', color: 'var(--adm-faint)', fontStyle: 'italic' }}>“{b.special_request}”</span>}
+                    </div>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '3px', minWidth: 0 }}>
+                      <span className="adm-th">Payment</span>
+                      <span style={{ fontFamily: 'var(--font-playfair)', fontSize: '18px', fontWeight: 700, color: 'var(--adm-gold)' }}>R{(b.deposit_cents / 100).toFixed(0)} <span style={{ fontFamily: 'var(--font-poppins)', fontSize: '11px', color: 'var(--adm-faint)', fontWeight: 400 }}>deposit</span></span>
+                      {b.payment_note && <span style={{ fontSize: '11px', color: 'var(--adm-muted)' }}>{b.payment_note}</span>}
+                    </div>
+                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '8px' }}>
+                      <Pill color={st.color}>{st.label}</Pill>
+                      <select value={b.status} onChange={e => updateBookingStatus(b.id, e.target.value)} className="adm-input" style={{ width: 'auto', height: '34px', fontSize: '12px', cursor: 'pointer' }}>
+                        {Object.entries(STATUS).map(([k, v]) => <option key={k} value={k}>{v.label}</option>)}
+                      </select>
+                    </div>
+                  </Card>
                 )
               })}
             </div>
           )}
-        </div>
+        </>
       )}
 
-      {/* ── OCCASIONS TAB ── */}
+      {/* ── OCCASIONS ── */}
       {tab === 'occasions' && (
-        <div style={{ maxWidth: '640px' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '20px', gap: '12px', flexWrap: 'wrap' }}>
-            <p style={{ color: 'rgba(255,255,255,0.4)', fontSize: '13px', lineHeight: 1.6, margin: 0 }}>
-              Occasions appear on the booking form grouped by category. Set a deposit per type.
-            </p>
-            <button
-              onClick={() => {
+        <div className="admin-chart-grid" style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1.4fr) minmax(0, 1fr)', gap: '16px', alignItems: 'start' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
+              <p style={{ color: 'var(--adm-muted)', fontSize: '13px', margin: 0 }}>Occasions appear on the booking form grouped by category, each with its own deposit.</p>
+              <Btn className="adm-btn-sm" disabled={isPending} onClick={() => {
                 if (!confirm('This will replace ALL current occasions with the default set. Continue?')) return
                 startTransition(async () => {
                   const result = await seedOccasions()
@@ -262,205 +232,136 @@ export default function BookingsAdmin() {
                   if (result?.warning) alert(result.warning)
                   await loadOccasions()
                 })
-              }}
-              disabled={isPending}
-              style={{ ...btnG, fontSize: '11px', whiteSpace: 'nowrap', flexShrink: 0 }}
-            >
-              ↺ Load Defaults
-            </button>
-          </div>
-
-          {/* Grouped by category */}
-          {['Romantic', 'Business', 'Special Occasion'].map(cat => {
-            const catItems = occasions.filter(o => (o.category || 'Special Occasion') === cat)
-            if (catItems.length === 0) return null
-            return (
-              <div key={cat} style={{ marginBottom: '24px' }}>
-                <p style={{ fontSize: '10px', letterSpacing: '2px', textTransform: 'uppercase', color: '#f5c842', marginBottom: '8px' }}>{cat}</p>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                  {catItems.map(o => (
-                    <div key={o.id} style={{ padding: '12px 16px', background: '#1e1500', borderRadius: '10px', border: '1px solid #2e2000', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                      <div>
-                        <span style={{ color: '#fafafa', fontSize: '14px' }}>{o.emoji} {o.label}</span>
-                        {o.description && <p style={{ color: 'rgba(255,255,255,0.4)', fontSize: '12px', margin: '2px 0 0' }}>{o.description}</p>}
+              }}>{Icon.refresh(14)} Load defaults</Btn>
+            </div>
+            {[...CATEGORIES, null].map(cat => {
+              const items = cat
+                ? occasions.filter(o => (o.category || 'Special Occasion') === cat)
+                : occasions.filter(o => !CATEGORIES.includes(o.category) && o.category)
+              if (items.length === 0) return null
+              return (
+                <Card key={cat || 'other'} style={{ overflow: 'hidden' }}>
+                  <div style={{ padding: '12px 18px', borderBottom: '1px solid var(--adm-border)' }}><span className="adm-th">{cat || 'Other'}</span></div>
+                  {items.map(o => (
+                    <div key={o.id} className="adm-table-row adm-row" style={{ gridTemplateColumns: 'minmax(0,1fr) 70px auto', padding: '12px 18px' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '12px', minWidth: 0 }}>
+                        <span style={{ fontSize: '20px', width: '28px', textAlign: 'center' }}>{o.emoji}</span>
+                        <div style={{ display: 'flex', flexDirection: 'column', minWidth: 0 }}>
+                          <span style={{ fontSize: '13px', fontWeight: 500 }}>{o.label}</span>
+                          {o.description && <span style={{ fontSize: '12px', color: 'var(--adm-faint)' }}>{o.description}</span>}
+                        </div>
                       </div>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexShrink: 0 }}>
-                        <span style={{ color: '#f5c842', fontSize: '13px', fontWeight: 700 }}>R{((o.price_cents || 0) / 100).toFixed(0)}</span>
-                        <button onClick={() => { setEditOcc(o); setOccForm({ label: o.label, emoji: o.emoji, description: o.description || '', price_cents: o.price_cents || 10000, category: o.category || 'Special Occasion' }) }} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '14px' }}>✏️</button>
-                        <button onClick={() => removeOcc(o.id)} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '14px' }}>🗑️</button>
+                      <span style={{ color: 'var(--adm-gold)', fontSize: '13px', fontWeight: 700 }}>R{((o.price_cents || 0) / 100).toFixed(0)}</span>
+                      <div style={{ display: 'flex', gap: '6px' }}>
+                        <button className="adm-iconbtn" style={{ width: '32px', height: '32px' }} onClick={() => editOccStart(o)} title="Edit">{Icon.edit(14)}</button>
+                        <button className="adm-iconbtn" style={{ width: '32px', height: '32px', color: 'var(--adm-red)' }} onClick={() => removeOcc(o.id)} title="Delete">{Icon.trash(14)}</button>
                       </div>
                     </div>
                   ))}
-                </div>
-              </div>
-            )
-          })}
-          {/* Uncategorised */}
-          {occasions.filter(o => !['Romantic','Business','Special Occasion'].includes(o.category)).map(o => (
-            <div key={o.id} style={{ padding: '12px 16px', background: '#1e1500', borderRadius: '10px', border: '1px solid #2e2000', display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
-              <div>
-                <span style={{ color: '#fafafa', fontSize: '14px' }}>{o.emoji} {o.label}</span>
-                {o.description && <p style={{ color: 'rgba(255,255,255,0.4)', fontSize: '12px', margin: '2px 0 0' }}>{o.description}</p>}
-              </div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexShrink: 0 }}>
-                <span style={{ color: '#f5c842', fontSize: '13px', fontWeight: 700 }}>R{((o.price_cents || 0) / 100).toFixed(0)}</span>
-                <button onClick={() => { setEditOcc(o); setOccForm({ label: o.label, emoji: o.emoji, description: o.description || '', price_cents: o.price_cents || 10000, category: o.category || 'Special Occasion' }) }} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '14px' }}>✏️</button>
-                <button onClick={() => removeOcc(o.id)} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '14px' }}>🗑️</button>
-              </div>
-            </div>
-          ))}
+                </Card>
+              )
+            })}
+            {occasions.length === 0 && <Card><Empty>No occasions yet — add one or load the defaults.</Empty></Card>}
+          </div>
 
-          <div style={{ background: '#1e1500', border: '1px solid #2e2000', borderRadius: '12px', padding: '20px', marginTop: '8px' }}>
-            <p style={{ color: '#f5c842', fontSize: '10px', letterSpacing: '2px', marginBottom: '16px', textTransform: 'uppercase' }}>
-              {editOcc ? '✏️ Edit Occasion' : '+ Add Occasion'}
-            </p>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '12px' }}>
-              <div style={{ gridColumn: '1/-1' }}>
-                <label style={lbl}>Label</label>
-                <input value={occForm.label} onChange={e => setOccForm(f => ({ ...f, label: e.target.value }))} placeholder="e.g. Birthday Celebration" style={inp} />
-              </div>
-              <div>
-                <label style={lbl}>Emoji</label>
-                <input value={occForm.emoji} onChange={e => setOccForm(f => ({ ...f, emoji: e.target.value }))} style={inp} />
-              </div>
-              <div>
-                <label style={lbl}>Deposit Price (R)</label>
-                <input type="number" min="0" step="1"
-                  value={Math.round((occForm.price_cents || 0) / 100)}
-                  onChange={e => setOccForm(f => ({ ...f, price_cents: Math.round(parseFloat(e.target.value || 0) * 100) }))}
-                  style={inp} />
-              </div>
-              <div>
-                <label style={lbl}>Category</label>
-                <select value={occForm.category} onChange={e => setOccForm(f => ({ ...f, category: e.target.value }))} style={inp}>
-                  <option>Romantic</option>
-                  <option>Business</option>
-                  <option>Special Occasion</option>
+          <Card style={{ padding: '22px', position: 'sticky', top: '84px' }}>
+            <p className="adm-th" style={{ marginBottom: '16px' }}>{editOcc ? 'Edit occasion' : 'New occasion'}</p>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '14px' }}>
+              <Field label="Label" span><input className="adm-input" value={occForm.label} onChange={e => setOccForm(f => ({ ...f, label: e.target.value }))} placeholder="e.g. Birthday Celebration" /></Field>
+              <Field label="Emoji"><input className="adm-input" value={occForm.emoji} onChange={e => setOccForm(f => ({ ...f, emoji: e.target.value }))} /></Field>
+              <Field label="Deposit (R)"><input className="adm-input" type="number" min="0" step="1" value={Math.round((occForm.price_cents || 0) / 100)} onChange={e => setOccForm(f => ({ ...f, price_cents: Math.round(parseFloat(e.target.value || 0) * 100) }))} /></Field>
+              <Field label="Category" span>
+                <select className="adm-input" value={occForm.category} onChange={e => setOccForm(f => ({ ...f, category: e.target.value }))}>
+                  {CATEGORIES.map(c => <option key={c}>{c}</option>)}
                 </select>
-              </div>
-              <div style={{ gridColumn: '1/-1' }}>
-                <label style={lbl}>Description</label>
-                <input value={occForm.description} onChange={e => setOccForm(f => ({ ...f, description: e.target.value }))} placeholder="Short description shown to customers" style={inp} />
-              </div>
+              </Field>
+              <Field label="Description" span><input className="adm-input" value={occForm.description} onChange={e => setOccForm(f => ({ ...f, description: e.target.value }))} placeholder="Short description shown to customers" /></Field>
             </div>
             <div style={{ display: 'flex', gap: '8px' }}>
-              <button onClick={saveOcc} disabled={isPending || !occForm.label} style={btnP}>{isPending ? '…' : editOcc ? 'Update' : 'Add Occasion'}</button>
-              {editOcc && <button onClick={() => { setEditOcc(null); setOccForm({ label: '', emoji: '🎉', description: '', price_cents: 10000, category: 'Special Occasion' }) }} style={btnG}>Cancel</button>}
+              <Btn variant="primary" onClick={saveOcc} disabled={isPending || !occForm.label}>{isPending ? 'Saving…' : editOcc ? 'Update occasion' : 'Add occasion'}</Btn>
+              {editOcc && <Btn onClick={() => { setEditOcc(null); setOccForm(EMPTY_OCC) }}>Cancel</Btn>}
             </div>
-          </div>
+          </Card>
         </div>
       )}
 
-      {/* ── ADD-ONS TAB ── */}
+      {/* ── ADD-ONS ── */}
       {tab === 'addons' && (
-        <div style={{ maxWidth: '640px' }}>
-          <p style={{ color: 'rgba(255,255,255,0.4)', fontSize: '13px', marginBottom: '20px', lineHeight: 1.6 }}>
-            Add-ons are optional extras customers can add to their reservation. Add photos and colour options so customers can see and choose. Set price to R0 for complimentary items.
-          </p>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginBottom: '24px' }}>
+        <div className="admin-chart-grid" style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1.2fr) minmax(0, 1fr)', gap: '16px', alignItems: 'start' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+            <p style={{ color: 'var(--adm-muted)', fontSize: '13px', margin: '0 0 6px' }}>Optional extras customers can add to a reservation. Add photos and colour options so they can see and choose. Set price to R0 for complimentary items.</p>
+            {addons.length === 0 && <Card><Empty>No add-ons yet.</Empty></Card>}
             {addons.map(a => {
               const imgs = Array.isArray(a.images) ? a.images : []
               const cols = Array.isArray(a.colors) ? a.colors : []
               return (
-                <div key={a.id} style={{ padding: '14px 16px', background: '#1e1500', borderRadius: '10px', border: '1px solid #2e2000', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '12px' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px', minWidth: 0 }}>
-                    {imgs[0]
-                      ? <img src={imgs[0]} alt="" style={{ width: '40px', height: '40px', borderRadius: '8px', objectFit: 'cover', flexShrink: 0 }} />
-                      : <span style={{ fontSize: '22px', width: '40px', textAlign: 'center', flexShrink: 0 }}>{a.icon}</span>}
-                    <div style={{ minWidth: 0 }}>
-                      <div style={{ color: '#fafafa', fontSize: '14px' }}>{a.label}</div>
-                      <div style={{ fontSize: '11px', color: 'rgba(255,255,255,0.4)' }}>
-                        {imgs.length > 0 && `${imgs.length} photo${imgs.length > 1 ? 's' : ''}`}
-                        {imgs.length > 0 && cols.length > 0 && ' · '}
-                        {cols.length > 0 && `${cols.length} colour${cols.length > 1 ? 's' : ''}`}
-                      </div>
-                    </div>
-                  </div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexShrink: 0 }}>
-                    <span style={{ color: a.price_cents === 0 ? '#26de81' : '#f5c842', fontSize: '14px', fontWeight: 700 }}>
-                      {a.price_cents === 0 ? 'Free' : `R${(a.price_cents / 100).toFixed(0)}`}
+                <Card key={a.id} className="hover" style={{ padding: '14px 16px', display: 'flex', alignItems: 'center', gap: '14px' }}>
+                  {imgs[0]
+                    ? <img src={imgs[0]} alt="" style={{ width: '48px', height: '48px', borderRadius: '10px', objectFit: 'cover', flexShrink: 0 }} />
+                    : <div style={{ width: '48px', height: '48px', borderRadius: '10px', background: 'var(--adm-page)', border: '1px solid var(--adm-border)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '22px', flexShrink: 0 }}>{a.icon}</div>}
+                  <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: '2px' }}>
+                    <span style={{ fontSize: '14px', fontWeight: 600 }}>{a.label}</span>
+                    {a.description && <span style={{ fontSize: '12px', color: 'var(--adm-muted)' }}>{a.description}</span>}
+                    <span style={{ fontSize: '11px', color: 'var(--adm-faint)' }}>
+                      {imgs.length ? `${imgs.length} photo${imgs.length > 1 ? 's' : ''}` : 'No photos'}{' · '}{cols.length ? `${cols.length} colour${cols.length > 1 ? 's' : ''}` : 'No colours'}
                     </span>
-                    <button onClick={() => editAddonStart(a)} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '14px' }}>✏️</button>
-                    <button onClick={() => removeAddon(a.id)} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '14px' }}>🗑️</button>
                   </div>
-                </div>
+                  <span style={{ color: a.price_cents === 0 ? 'var(--adm-green)' : 'var(--adm-gold)', fontSize: '14px', fontWeight: 700, flexShrink: 0 }}>{a.price_cents === 0 ? 'Free' : `R${(a.price_cents / 100).toFixed(0)}`}</span>
+                  <div style={{ display: 'flex', gap: '6px', flexShrink: 0 }}>
+                    <button className="adm-iconbtn" style={{ width: '32px', height: '32px' }} onClick={() => editAddonStart(a)} title="Edit">{Icon.edit(14)}</button>
+                    <button className="adm-iconbtn" style={{ width: '32px', height: '32px', color: 'var(--adm-red)' }} onClick={() => removeAddon(a.id)} title="Delete">{Icon.trash(14)}</button>
+                  </div>
+                </Card>
               )
             })}
           </div>
 
-          <div style={{ background: '#1e1500', border: '1px solid #2e2000', borderRadius: '12px', padding: '20px' }}>
-            <p style={{ color: '#f5c842', fontSize: '10px', letterSpacing: '2px', marginBottom: '16px', textTransform: 'uppercase' }}>
-              {editAddon ? '✏️ Edit Add-on' : '+ Add Add-on'}
-            </p>
+          <Card style={{ padding: '22px', position: 'sticky', top: '84px' }}>
+            <p className="adm-th" style={{ marginBottom: '16px' }}>{editAddon ? 'Edit add-on' : 'New add-on'}</p>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '16px' }}>
-              <div style={{ gridColumn: '1/-1' }}>
-                <label style={lbl}>Label</label>
-                <input value={addonForm.label} onChange={e => setAddonForm(f => ({ ...f, label: e.target.value }))} placeholder="e.g. Balloon Arch" style={inp} />
-              </div>
-              <div>
-                <label style={lbl}>Icon (emoji)</label>
-                <input value={addonForm.icon} onChange={e => setAddonForm(f => ({ ...f, icon: e.target.value }))} style={inp} />
-              </div>
-              <div>
-                <label style={lbl}>Price (R) — 0 = free</label>
-                <input type="number" min="0" step="0.01"
-                  value={(addonForm.price_cents / 100).toFixed(2)}
-                  onChange={e => setAddonForm(f => ({ ...f, price_cents: Math.round(parseFloat(e.target.value || 0) * 100) }))}
-                  style={inp} />
-              </div>
-              <div style={{ gridColumn: '1/-1' }}>
-                <label style={lbl}>Description (optional)</label>
-                <input value={addonForm.description} onChange={e => setAddonForm(f => ({ ...f, description: e.target.value }))} placeholder="Short description shown to customers" style={inp} />
-              </div>
+              <Field label="Label" span><input className="adm-input" value={addonForm.label} onChange={e => setAddonForm(f => ({ ...f, label: e.target.value }))} placeholder="e.g. Balloon Arch" /></Field>
+              <Field label="Icon (emoji)"><input className="adm-input" value={addonForm.icon} onChange={e => setAddonForm(f => ({ ...f, icon: e.target.value }))} /></Field>
+              <Field label="Price (R) — 0 = free"><input className="adm-input" type="number" min="0" step="0.01" value={(addonForm.price_cents / 100).toFixed(2)} onChange={e => setAddonForm(f => ({ ...f, price_cents: Math.round(parseFloat(e.target.value || 0) * 100) }))} /></Field>
+              <Field label="Description (optional)" span><input className="adm-input" value={addonForm.description} onChange={e => setAddonForm(f => ({ ...f, description: e.target.value }))} placeholder="Short description shown to customers" /></Field>
             </div>
 
-            {/* Colours */}
             <div style={{ marginBottom: '16px' }}>
-              <label style={lbl}>Colour Options</label>
+              <label className="adm-label">Colour options</label>
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', marginBottom: '10px' }}>
                 {(addonForm.colors || []).map((c, i) => (
-                  <span key={i} style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', padding: '6px 10px', borderRadius: '20px', background: '#2e2000', color: '#fafafa', fontSize: '12px' }}>
-                    {c}
-                    <button onClick={() => removeColor(i)} style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,0.5)', cursor: 'pointer', fontSize: '13px', lineHeight: 1 }}>✕</button>
+                  <span key={i} className="adm-pill" style={{ background: 'var(--adm-surface2)', color: 'var(--adm-text)', paddingRight: '6px' }}>
+                    {c}<button onClick={() => removeColor(i)} style={{ background: 'none', border: 'none', color: 'var(--adm-faint)', cursor: 'pointer', display: 'flex', padding: 0 }}>{Icon.x(12)}</button>
                   </span>
                 ))}
-                {(addonForm.colors || []).length === 0 && <span style={{ fontSize: '12px', color: 'rgba(255,255,255,0.3)' }}>No colours — add some below</span>}
+                {(addonForm.colors || []).length === 0 && <span style={{ fontSize: '12px', color: 'var(--adm-faint)' }}>No colours yet — add some below.</span>}
               </div>
               <div style={{ display: 'flex', gap: '8px' }}>
-                <input value={newColor} onChange={e => setNewColor(e.target.value)}
-                  onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); addColor() } }}
-                  placeholder="e.g. Gold" style={{ ...inp, flex: 1 }} />
-                <button onClick={addColor} style={btnG}>+ Add</button>
+                <input className="adm-input" value={newColor} onChange={e => setNewColor(e.target.value)} onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); addColor() } }} placeholder="e.g. Gold" />
+                <Btn onClick={addColor}>{Icon.plus(14)} Add</Btn>
               </div>
             </div>
 
-            {/* Photos */}
             <div style={{ marginBottom: '18px' }}>
-              <label style={lbl}>Photos</label>
+              <label className="adm-label">Photos</label>
               {(addonForm.images || []).length > 0 && (
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(80px, 1fr))', gap: '8px', marginBottom: '12px' }}>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(76px, 1fr))', gap: '8px', marginBottom: '12px' }}>
                   {(addonForm.images || []).map((url, i) => (
-                    <div key={i} style={{ position: 'relative', aspectRatio: '1', borderRadius: '8px', overflow: 'hidden', border: '1px solid #2e2000' }}>
+                    <div key={i} style={{ position: 'relative', aspectRatio: '1', borderRadius: '10px', overflow: 'hidden', border: '1px solid var(--adm-border)' }}>
                       <img src={url} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                      <button onClick={() => removeImage(i)} style={{
-                        position: 'absolute', top: '4px', right: '4px', width: '22px', height: '22px', borderRadius: '50%',
-                        background: 'rgba(0,0,0,0.65)', border: 'none', color: '#fff', cursor: 'pointer', fontSize: '12px', lineHeight: 1,
-                      }}>✕</button>
+                      <button onClick={() => removeImage(i)} style={{ position: 'absolute', top: '4px', right: '4px', width: '22px', height: '22px', borderRadius: '50%', background: 'rgba(0,0,0,0.65)', border: 'none', color: '#fff', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>{Icon.x(12)}</button>
                     </div>
                   ))}
                 </div>
               )}
-              <p style={{ fontSize: '11px', color: 'rgba(255,255,255,0.4)', marginBottom: '8px' }}>Add up to 20 photos — upload one at a time.</p>
-              {(addonForm.images || []).length < 20 && (
-                <ImageUpload value="" onChange={addImage} folder="addons" />
-              )}
+              <p style={{ fontSize: '11px', color: 'var(--adm-faint)', margin: '0 0 8px' }}>Up to 20 photos — upload one at a time.</p>
+              {(addonForm.images || []).length < 20 && <ImageUpload value="" onChange={addImage} folder="addons" />}
             </div>
 
             <div style={{ display: 'flex', gap: '8px' }}>
-              <button onClick={saveAddon} disabled={isPending || !addonForm.label} style={btnP}>{isPending ? '…' : editAddon ? 'Update' : 'Add Add-on'}</button>
-              {editAddon && <button onClick={() => { setEditAddon(null); setAddonForm(EMPTY_ADDON); setNewColor('') }} style={btnG}>Cancel</button>}
+              <Btn variant="primary" onClick={saveAddon} disabled={isPending || !addonForm.label}>{isPending ? 'Saving…' : editAddon ? 'Update add-on' : 'Add add-on'}</Btn>
+              {editAddon && <Btn onClick={() => { setEditAddon(null); setAddonForm(EMPTY_ADDON); setNewColor('') }}>Cancel</Btn>}
             </div>
-          </div>
+          </Card>
         </div>
       )}
     </>

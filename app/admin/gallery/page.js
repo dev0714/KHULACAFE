@@ -3,25 +3,21 @@ import { useState, useEffect, useTransition, useCallback } from 'react'
 import { supabase } from '../../../lib/supabase-public'
 import { upsertGalleryItem, deleteGalleryItem, getAboutImages, updateAboutImage } from '../actions'
 import ImageUpload from '../../../components/admin/ImageUpload'
-import { PageHeader } from '../../../components/admin/ui'
-
-const inputStyle = { width: '100%', padding: '10px 14px', background: '#0a0600', border: '1px solid #2e2000', borderRadius: '8px', color: '#fafafa', fontSize: '13px', outline: 'none', boxSizing: 'border-box' }
-const labelStyle = { display: 'block', fontSize: '10px', letterSpacing: '2px', color: '#f5c842', marginBottom: '6px', textTransform: 'uppercase' }
+import { PageHeader, Card, Btn, Tabs, Icon, Empty } from '../../../components/admin/ui'
 
 const ABOUT_SLOTS = [
-  { key: 'main',         label: 'Main Photo (large)',   hint: 'Tall banner — shown full width on the right', aspect: 3/4 },
-  { key: 'bottom_left',  label: 'Bottom Left Photo',    hint: 'Smaller square, bottom-left',                aspect: 1 },
-  { key: 'bottom_right', label: 'Bottom Right Photo',   hint: 'Smaller square, bottom-right',               aspect: 1 },
+  { key: 'main',         label: 'Main photo (large)', hint: 'Tall banner — shown full width on the right.', aspect: 3 / 4 },
+  { key: 'bottom_left',  label: 'Bottom left photo',  hint: 'Smaller square, bottom-left.',                aspect: 1 },
+  { key: 'bottom_right', label: 'Bottom right photo', hint: 'Smaller square, bottom-right.',               aspect: 1 },
 ]
+const blankForm = { label: '', icon: '📸', image_url: '' }
 
 function AboutPhotosTab() {
   const [images, setImages] = useState({})
   const [saving, setSaving] = useState({})
   const [success, setSuccess] = useState({})
 
-  useEffect(() => {
-    getAboutImages().then(setImages)
-  }, [])
+  useEffect(() => { getAboutImages().then(setImages) }, [])
 
   async function handleSave(slot, url) {
     setSaving(s => ({ ...s, [slot]: true }))
@@ -33,47 +29,25 @@ function AboutPhotosTab() {
   }
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '24px', maxWidth: '520px' }}>
-      {ABOUT_SLOTS.map((slot) => {
-        const { key, label, hint } = slot
-        return (
-        <div key={key} style={{ background: '#1e1500', border: '1px solid #2e2000', borderRadius: '12px', padding: '20px' }}>
-          <p style={{ color: '#f5c842', fontSize: '11px', letterSpacing: '2px', textTransform: 'uppercase', marginBottom: '4px' }}>{label}</p>
-          <p style={{ color: 'rgba(255,255,255,0.3)', fontSize: '11px', marginBottom: '14px' }}>{hint}</p>
-
-          {images[key] && (
-            <img src={images[key]} alt={label} style={{ width: '100%', height: '160px', objectFit: 'cover', borderRadius: '8px', marginBottom: '12px', border: '1px solid #2e2000' }} />
-          )}
-
-          <ImageUpload
-            value={images[key] || ''}
-            onChange={url => setImages(m => ({ ...m, [key]: url }))}
-            folder="about"
-            aspect={slot.aspect}
-          />
-
-          <button
-            onClick={() => handleSave(key, images[key] || null)}
-            disabled={saving[key]}
-            style={{
-              marginTop: '12px', padding: '10px 20px', borderRadius: '8px', border: 'none',
-              background: saving[key] ? '#2e2000' : 'linear-gradient(135deg, #f5c842, #c8940c)',
-              color: saving[key] ? 'rgba(255,255,255,0.4)' : '#0a0600',
-              fontWeight: 700, fontSize: '11px', letterSpacing: '1px', cursor: saving[key] ? 'not-allowed' : 'pointer',
-            }}
-          >
-            {saving[key] ? 'Saving…' : success[key] ? '✓ Saved' : 'Save Photo'}
-          </button>
-        </div>
-        )
-      })}
+    <div className="adm-stagger" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: '16px' }}>
+      {ABOUT_SLOTS.map(slot => (
+        <Card key={slot.key} style={{ padding: '20px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
+          <div>
+            <p className="adm-th" style={{ marginBottom: '4px' }}>{slot.label}</p>
+            <p style={{ color: 'var(--adm-faint)', fontSize: '12px', margin: 0 }}>{slot.hint}</p>
+          </div>
+          {images[slot.key] && <img src={images[slot.key]} alt={slot.label} style={{ width: '100%', height: '160px', objectFit: 'cover', borderRadius: '10px', border: '1px solid var(--adm-border)' }} />}
+          <ImageUpload value={images[slot.key] || ''} onChange={url => setImages(m => ({ ...m, [slot.key]: url }))} folder="about" aspect={slot.aspect} />
+          <div><Btn variant="primary" className="adm-btn-sm" onClick={() => handleSave(slot.key, images[slot.key] || null)} disabled={saving[slot.key]}>{saving[slot.key] ? 'Saving…' : success[slot.key] ? '✓ Saved' : 'Save photo'}</Btn></div>
+        </Card>
+      ))}
     </div>
   )
 }
 
 export default function GalleryAdmin() {
   const [items, setItems] = useState([])
-  const [form, setForm] = useState({ label: '', icon: '📸', image_url: '' })
+  const [form, setForm] = useState(blankForm)
   const [editing, setEditing] = useState(null)
   const [tab, setTab] = useState('gallery')
   const [isPending, startTransition] = useTransition()
@@ -91,65 +65,66 @@ export default function GalleryAdmin() {
       const payload = { ...form, is_atmosphere: tab === 'atmosphere', sort_order: editing ? editing.sort_order : items.length }
       if (editing) payload.id = editing.id
       await upsertGalleryItem(payload)
-      setForm({ label: '', icon: '📸', image_url: '' })
-      setEditing(null)
+      setForm(blankForm); setEditing(null)
       await load()
     })
   }
-
   function remove(id) {
     if (!confirm('Delete this item?')) return
     startTransition(async () => { await deleteGalleryItem(id); await load() })
   }
+  function switchTab(k) { setTab(k); setEditing(null); setForm(blankForm) }
 
   return (
     <>
-      <PageHeader title="Gallery" subtitle="Photos for the public gallery and the About page atmosphere." />
+      <PageHeader
+        title="Gallery"
+        subtitle="Photos for the public gallery, the home page atmosphere, and the About page."
+        actions={tab !== 'about' && <Btn variant="primary" onClick={() => { setEditing(null); setForm(blankForm); document.getElementById('gallery-editor')?.scrollIntoView({ behavior: 'smooth' }) }}>{Icon.plus(16)} Add photo</Btn>}
+      />
 
-      <div style={{ display: 'flex', gap: '8px', marginBottom: '28px' }}>
-        {[
-          { key: 'gallery',    label: '📸 Gallery' },
-          { key: 'atmosphere', label: '🏛️ Home Atmosphere' },
-          { key: 'about',      label: '🖼️ About Photos' },
-        ].map(t => (
-          <button key={t.key} onClick={() => { setTab(t.key); setEditing(null); setForm({ label: '', icon: '📸', image_url: '' }) }} style={{ padding: '10px 24px', borderRadius: '8px', border: 'none', cursor: 'pointer', background: tab === t.key ? 'linear-gradient(135deg, #f5c842, #c8940c)' : '#2e2000', color: tab === t.key ? '#0a0600' : 'rgba(255,255,255,0.6)', fontWeight: tab === t.key ? 700 : 400, fontSize: '12px', letterSpacing: '1px' }}>
-            {t.label}
-          </button>
-        ))}
+      <div style={{ marginBottom: '20px' }}>
+        <Tabs value={tab} onChange={switchTab} items={[
+          { key: 'gallery', label: 'Gallery', count: tab === 'gallery' ? items.length : undefined },
+          { key: 'atmosphere', label: 'Home atmosphere', count: tab === 'atmosphere' ? items.length : undefined },
+          { key: 'about', label: 'About photos' },
+        ]} />
       </div>
 
       {tab === 'about' ? <AboutPhotosTab /> : (
-        <>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))', gap: '14px', marginBottom: '32px' }}>
-            {items.map(item => (
-              <div key={item.id} style={{ background: '#1e1500', border: '1px solid #2e2000', borderRadius: '12px', overflow: 'hidden' }}>
-                <div style={{ height: '120px', background: '#0a0600', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '36px' }}>
-                  {item.image_url ? <img src={item.image_url} alt={item.label} style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : item.icon}
-                </div>
-                <div style={{ padding: '10px 12px' }}>
-                  <p style={{ color: '#fafafa', fontSize: '12px', marginBottom: '8px' }}>{item.label}</p>
-                  <div style={{ display: 'flex', gap: '6px' }}>
-                    <button onClick={() => { setEditing(item); setForm({ label: item.label, icon: item.icon, image_url: item.image_url || '' }) }} style={{ flex: 1, padding: '5px', background: '#2e2000', border: 'none', borderRadius: '6px', cursor: 'pointer', color: '#f5c842', fontSize: '11px' }}>Edit</button>
-                    <button onClick={() => remove(item.id)} style={{ flex: 1, padding: '5px', background: 'none', border: '1px solid #2e2000', borderRadius: '6px', cursor: 'pointer', color: 'rgba(255,255,255,0.4)', fontSize: '11px' }}>Delete</button>
+        <div className="admin-chart-grid" style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) 360px', gap: '16px', alignItems: 'start' }}>
+          {items.length === 0 ? <Card><Empty>No photos in this section yet.</Empty></Card> : (
+            <div className="adm-stagger" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))', gap: '14px' }}>
+              {items.map(item => (
+                <Card key={item.id} className="hover" style={{ overflow: 'hidden', display: 'flex', flexDirection: 'column', border: editing?.id === item.id ? '1px solid var(--adm-gold2)' : undefined }}>
+                  <div style={{ height: '130px', background: 'var(--adm-page)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '32px' }}>
+                    {item.image_url ? <img src={item.image_url} alt={item.label} style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : item.icon}
                   </div>
-                </div>
-              </div>
-            ))}
-          </div>
+                  <div style={{ padding: '12px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px' }}>
+                    <span style={{ fontSize: '12px', fontWeight: 500, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{item.label}</span>
+                    <span style={{ display: 'flex', gap: '2px', flexShrink: 0 }}>
+                      <button type="button" className="adm-iconbtn" style={{ width: '30px', height: '30px', borderRadius: '8px' }} title="Edit" onClick={() => { setEditing(item); setForm({ label: item.label, icon: item.icon, image_url: item.image_url || '' }) }}>{Icon.edit(13)}</button>
+                      <button type="button" className="adm-iconbtn" style={{ width: '30px', height: '30px', borderRadius: '8px', color: 'var(--adm-red)' }} title="Delete" onClick={() => remove(item.id)}>{Icon.trash(13)}</button>
+                    </span>
+                  </div>
+                </Card>
+              ))}
+            </div>
+          )}
 
-          <div style={{ background: '#1e1500', border: '1px solid #2e2000', borderRadius: '12px', padding: '24px', maxWidth: '440px' }}>
-            <p style={{ color: '#f5c842', fontSize: '10px', letterSpacing: '2px', marginBottom: '14px' }}>{editing ? 'EDIT ITEM' : 'ADD ITEM'}</p>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-              <div><label style={labelStyle}>Label</label><input value={form.label} onChange={e => setForm(f => ({ ...f, label: e.target.value }))} style={inputStyle} /></div>
-              <div><label style={labelStyle}>Fallback Icon</label><input value={form.icon} onChange={e => setForm(f => ({ ...f, icon: e.target.value }))} style={inputStyle} /></div>
-              <div><label style={labelStyle}>Image</label><ImageUpload value={form.image_url} onChange={url => setForm(f => ({ ...f, image_url: url }))} folder="gallery" aspect={4/3} /></div>
+          <Card id="gallery-editor" style={{ padding: '22px', position: 'sticky', top: '84px' }}>
+            <p className="adm-th" style={{ marginBottom: '16px' }}>{editing ? 'Edit photo' : 'New photo'}</p>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+              <div><label className="adm-label">Label</label><input className="adm-input" value={form.label} onChange={e => setForm(f => ({ ...f, label: e.target.value }))} /></div>
+              <div><label className="adm-label">Fallback icon</label><input className="adm-input" value={form.icon} onChange={e => setForm(f => ({ ...f, icon: e.target.value }))} /></div>
+              <div><label className="adm-label">Image</label><ImageUpload value={form.image_url} onChange={url => setForm(f => ({ ...f, image_url: url }))} folder="gallery" aspect={4 / 3} /></div>
               <div style={{ display: 'flex', gap: '8px', marginTop: '4px' }}>
-                <button onClick={save} disabled={isPending || !form.label} style={{ padding: '10px 20px', borderRadius: '8px', border: 'none', cursor: 'pointer', background: 'linear-gradient(135deg, #f5c842, #c8940c)', color: '#0a0600', fontWeight: 700, fontSize: '12px' }}>{isPending ? '…' : editing ? 'Update' : 'Add'}</button>
-                {editing && <button onClick={() => { setEditing(null); setForm({ label: '', icon: '📸', image_url: '' }) }} style={{ padding: '10px 20px', borderRadius: '8px', border: 'none', cursor: 'pointer', background: '#2e2000', color: 'rgba(255,255,255,0.6)', fontSize: '12px' }}>Cancel</button>}
+                <Btn variant="primary" onClick={save} disabled={isPending || !form.label}>{isPending ? 'Saving…' : editing ? 'Update photo' : 'Add photo'}</Btn>
+                {editing && <Btn onClick={() => { setEditing(null); setForm(blankForm) }}>Cancel</Btn>}
               </div>
             </div>
-          </div>
-        </>
+          </Card>
+        </div>
       )}
     </>
   )
