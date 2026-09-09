@@ -154,6 +154,17 @@ html { overflow-x: clip; }
 /* ── Hide scrollbar on menu tabs ── */
 .menu-tabs-bar::-webkit-scrollbar { display: none; }
 
+/* ── Cart page on phones ── */
+@media (max-width: 700px) {
+  .cart-page { padding: 96px 0 40px !important; }
+  .cart-wrap { padding-left: 14px !important; padding-right: 14px !important; }
+  .cart-title { font-size: 27px !important; }
+  .cart-item { padding: 12px !important; }
+  .cart-summary { padding: 18px 16px !important; }
+  .cart-total { font-size: 25px !important; }
+  .cart-cta { font-size: 11px !important; letter-spacing: 1.5px !important; padding: 15px 10px !important; }
+}
+
 /* ── Menu category picker: dropdown on phones, chip grid on larger screens ── */
 .menu-cat-select { display: none; }
 @media (max-width: 700px) {
