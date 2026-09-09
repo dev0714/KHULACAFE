@@ -3,12 +3,18 @@ import { useState, useEffect, useTransition, useCallback } from 'react'
 import { supabase } from '../../../lib/supabase-public'
 import { upsertCategory, deleteCategory, upsertSubcategory, deleteSubcategory, upsertMenuItem, deleteMenuItem } from '../actions'
 import ImageUpload from '../../../components/admin/ImageUpload'
-import { PageHeader } from '../../../components/admin/ui'
+import { PageHeader, Card, Btn, Pill, Icon, Empty } from '../../../components/admin/ui'
 
-const inputStyle = { width: '100%', padding: '10px 14px', background: '#0a0600', border: '1px solid #2e2000', borderRadius: '8px', color: '#fafafa', fontSize: '13px', outline: 'none', boxSizing: 'border-box' }
-const labelStyle = { display: 'block', fontSize: '10px', letterSpacing: '2px', color: '#f5c842', marginBottom: '6px', textTransform: 'uppercase' }
-const btn = (primary) => ({ padding: '10px 20px', borderRadius: '8px', border: 'none', cursor: 'pointer', fontSize: '12px', background: primary ? 'linear-gradient(135deg, #f5c842, #c8940c)' : '#2e2000', color: primary ? '#0a0600' : 'rgba(255,255,255,0.7)', fontWeight: primary ? 700 : 400 })
-const panel = { background: '#1e1500', border: '1px solid #2e2000', borderRadius: '12px', padding: '20px', display: 'flex', flexDirection: 'column', gap: '0' }
+const blankCat = { name: '', icon: '🍽️', description: '' }
+const blankSub = { name: '', description: '' }
+const blankItemFor = (subId) => ({ name: '', description: '', price: 'Ask us', price_cents: '', badge: '', image_url: '', is_featured: false, subcategory_id: subId || '' })
+
+function Field({ label, children, span }) {
+  return <div style={span ? { gridColumn: '1/-1' } : undefined}><label className="adm-label">{label}</label>{children}</div>
+}
+const IconBtn = ({ onClick, title, danger, children }) => (
+  <button type="button" onClick={onClick} title={title} className="adm-iconbtn" style={{ width: '30px', height: '30px', borderRadius: '8px', color: danger ? 'var(--adm-red)' : undefined }}>{children}</button>
+)
 
 export default function MenuAdmin() {
   const [categories, setCategories] = useState([])
@@ -17,61 +23,45 @@ export default function MenuAdmin() {
   const [selectedSub, setSelectedSub] = useState(null)
   const [items, setItems] = useState([])
 
-  const [catForm, setCatForm] = useState({ name: '', icon: '🍽️', description: '' })
+  const [catForm, setCatForm] = useState(blankCat)
   const [editingCat, setEditingCat] = useState(null)
-
-  const [subForm, setSubForm] = useState({ name: '', description: '' })
+  const [subForm, setSubForm] = useState(blankSub)
   const [editingSub, setEditingSub] = useState(null)
-
-  const [itemForm, setItemForm] = useState({ name: '', description: '', price: 'Ask us', price_cents: '', badge: '', image_url: '', is_featured: false, subcategory_id: '' })
+  const [showSubForm, setShowSubForm] = useState(false)
+  const [itemForm, setItemForm] = useState(blankItemFor(''))
   const [editingItem, setEditingItem] = useState(null)
-
   const [isPending, startTransition] = useTransition()
 
   const loadCategories = useCallback(async () => {
     const { data } = await supabase.from('menu_categories').select('*').order('sort_order')
     setCategories(data || [])
   }, [])
-
   const loadSubcategories = useCallback(async (catId) => {
     const { data } = await supabase.from('menu_subcategories').select('*').eq('category_id', catId).order('sort_order')
     setSubcategories(data || [])
     setSelectedSub(null)
   }, [])
-
   const loadItems = useCallback(async (catId, subId) => {
     let q = supabase.from('menu_items').select('*').eq('category_id', catId).order('sort_order')
-    if (subId) q = q.eq('subcategory_id', subId)
-    else q = q.is('subcategory_id', null)
+    q = subId ? q.eq('subcategory_id', subId) : q.is('subcategory_id', null)
     const { data } = await q
     setItems(data || [])
   }, [])
 
   useEffect(() => { loadCategories() }, [loadCategories])
-
   useEffect(() => {
-    if (selectedCat) {
-      loadSubcategories(selectedCat.id)
-      loadItems(selectedCat.id, null)
-    } else {
-      setSubcategories([])
-      setSelectedSub(null)
-      setItems([])
-    }
+    if (selectedCat) { loadSubcategories(selectedCat.id); loadItems(selectedCat.id, null) }
+    else { setSubcategories([]); setSelectedSub(null); setItems([]) }
   }, [selectedCat, loadSubcategories, loadItems])
+  useEffect(() => { if (selectedCat) loadItems(selectedCat.id, selectedSub?.id ?? null) }, [selectedSub, selectedCat, loadItems])
 
-  useEffect(() => {
-    if (selectedCat) loadItems(selectedCat.id, selectedSub?.id ?? null)
-  }, [selectedSub, selectedCat, loadItems])
-
-  // ── Category actions ──
+  // ── Categories ──
   function saveCategory() {
     startTransition(async () => {
       const payload = { ...catForm, sort_order: editingCat ? editingCat.sort_order : categories.length }
       if (editingCat) payload.id = editingCat.id
       await upsertCategory(payload)
-      setCatForm({ name: '', icon: '🍽️', description: '' })
-      setEditingCat(null)
+      setCatForm(blankCat); setEditingCat(null)
       await loadCategories()
     })
   }
@@ -79,19 +69,18 @@ export default function MenuAdmin() {
     if (!confirm('Delete this category and all its subcategories and items?')) return
     startTransition(async () => {
       await deleteCategory(id)
-      if (selectedCat?.id === id) { setSelectedCat(null) }
+      if (selectedCat?.id === id) setSelectedCat(null)
       await loadCategories()
     })
   }
 
-  // ── Subcategory actions ──
+  // ── Sub-menus ──
   function saveSub() {
     startTransition(async () => {
       const payload = { ...subForm, category_id: selectedCat.id, sort_order: editingSub ? editingSub.sort_order : subcategories.length }
       if (editingSub) payload.id = editingSub.id
       await upsertSubcategory(payload)
-      setSubForm({ name: '', description: '' })
-      setEditingSub(null)
+      setSubForm(blankSub); setEditingSub(null); setShowSubForm(false)
       await loadSubcategories(selectedCat.id)
     })
   }
@@ -104,7 +93,7 @@ export default function MenuAdmin() {
     })
   }
 
-  // ── Item actions ──
+  // ── Items ──
   function saveItem() {
     startTransition(async () => {
       const payload = {
@@ -116,8 +105,7 @@ export default function MenuAdmin() {
       }
       if (editingItem) payload.id = editingItem.id
       await upsertMenuItem(payload)
-      setItemForm({ name: '', description: '', price: 'Ask us', price_cents: '', badge: '', image_url: '', is_featured: false, subcategory_id: selectedSub?.id || '' })
-      setEditingItem(null)
+      setItemForm(blankItemFor(selectedSub?.id)); setEditingItem(null)
       await loadItems(selectedCat.id, selectedSub?.id ?? null)
     })
   }
@@ -125,149 +113,158 @@ export default function MenuAdmin() {
     if (!confirm('Delete this item?')) return
     startTransition(async () => { await deleteMenuItem(id); await loadItems(selectedCat.id, selectedSub?.id ?? null) })
   }
-
-  const blankItem = { name: '', description: '', price: 'Ask us', price_cents: '', badge: '', image_url: '', is_featured: false, subcategory_id: selectedSub?.id || '' }
+  function editItemStart(item) {
+    setEditingItem(item)
+    setItemForm({ name: item.name, description: item.description || '', price: item.price, price_cents: item.price_cents ? (item.price_cents / 100).toString() : '', badge: item.badge || '', image_url: item.image_url || '', is_featured: item.is_featured, subcategory_id: item.subcategory_id || '' })
+    document.getElementById('item-editor')?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+  }
 
   return (
     <>
-      <PageHeader title="Menu" subtitle="Categories, sub-menus and every dish on the menu." />
+      <PageHeader
+        title="Menu"
+        subtitle="Categories, sub-menus and every dish on the menu."
+        actions={selectedCat && <Btn variant="primary" onClick={() => { setEditingItem(null); setItemForm(blankItemFor(selectedSub?.id)); document.getElementById('item-editor')?.scrollIntoView({ behavior: 'smooth', block: 'start' }) }}>{Icon.plus(16)} Add item</Btn>}
+      />
 
-      <div style={{ display: 'grid', gridTemplateColumns: '240px 240px 1fr', gap: '16px', alignItems: 'start' }}>
-
-        {/* ── PANEL 1: Categories ── */}
-        <div style={panel}>
-          <p style={{ color: '#f5c842', fontSize: '10px', letterSpacing: '2px', textTransform: 'uppercase', marginBottom: '12px', fontWeight: 700 }}>Categories</p>
-
-          <div style={{ marginBottom: '12px' }}>
-            {categories.map(cat => (
-              <div key={cat.id} onClick={() => { setSelectedCat(cat); setEditingCat(null) }}
-                style={{ padding: '9px 10px', borderRadius: '7px', cursor: 'pointer', marginBottom: '3px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: selectedCat?.id === cat.id ? '#2e2000' : 'transparent', border: `1px solid ${selectedCat?.id === cat.id ? '#f5c842' : 'transparent'}` }}>
-                <span style={{ color: '#fafafa', fontSize: '12px', flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{cat.icon} {cat.name}</span>
-                <div style={{ flexShrink: 0 }}>
-                  <button onClick={e => { e.stopPropagation(); setEditingCat(cat); setCatForm({ name: cat.name, icon: cat.icon, description: cat.description || '' }) }} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '12px' }}>✏️</button>
-                  <button onClick={e => { e.stopPropagation(); removeCat(cat.id) }} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '12px' }}>🗑️</button>
-                </div>
-              </div>
-            ))}
-          </div>
-
-          <div style={{ borderTop: '1px solid #2e2000', paddingTop: '12px' }}>
-            <p style={{ color: '#f5c842', fontSize: '9px', letterSpacing: '2px', marginBottom: '8px', textTransform: 'uppercase' }}>{editingCat ? 'Edit' : 'Add'} Category</p>
-            <input placeholder="Name" value={catForm.name} onChange={e => setCatForm(f => ({ ...f, name: e.target.value }))} style={{ ...inputStyle, marginBottom: '6px' }} />
-            <input placeholder="Icon emoji" value={catForm.icon} onChange={e => setCatForm(f => ({ ...f, icon: e.target.value }))} style={{ ...inputStyle, marginBottom: '6px' }} />
-            <input placeholder="Description" value={catForm.description} onChange={e => setCatForm(f => ({ ...f, description: e.target.value }))} style={{ ...inputStyle, marginBottom: '10px' }} />
-            <div style={{ display: 'flex', gap: '6px' }}>
-              <button onClick={saveCategory} disabled={isPending || !catForm.name} style={btn(true)}>{isPending ? '…' : editingCat ? 'Update' : 'Add'}</button>
-              {editingCat && <button onClick={() => { setEditingCat(null); setCatForm({ name: '', icon: '🍽️', description: '' }) }} style={btn(false)}>Cancel</button>}
+      <div className="admin-menu-grid" style={{ display: 'grid', gridTemplateColumns: '260px minmax(0, 1fr)', gap: '16px', alignItems: 'start' }}>
+        {/* ── Categories column ── */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', position: 'sticky', top: '84px' }}>
+          <Card style={{ padding: '10px' }}>
+            <div className="adm-th" style={{ padding: '6px 12px 10px' }}>Categories</div>
+            {categories.length === 0 && <p style={{ fontSize: '12px', color: 'var(--adm-faint)', padding: '6px 12px' }}>No categories yet.</p>}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+              {categories.map(cat => {
+                const sel = selectedCat?.id === cat.id
+                return (
+                  <div key={cat.id} onClick={() => { setSelectedCat(cat); setEditingCat(null); setEditingItem(null); setItemForm(blankItemFor('')) }}
+                    className={`adm-nav-item${sel ? ' active' : ''}`} style={{ cursor: 'pointer', justifyContent: 'space-between', padding: '8px 8px 8px 12px' }}>
+                    <span style={{ display: 'flex', alignItems: 'center', gap: '10px', minWidth: 0 }}>
+                      <span>{cat.icon}</span>
+                      <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{cat.name}</span>
+                    </span>
+                    <span style={{ display: 'flex', gap: '2px', flexShrink: 0 }}>
+                      <IconBtn title="Edit" onClick={e => { e.stopPropagation(); setEditingCat(cat); setCatForm({ name: cat.name, icon: cat.icon, description: cat.description || '' }) }}>{Icon.edit(13)}</IconBtn>
+                      <IconBtn title="Delete" danger onClick={e => { e.stopPropagation(); removeCat(cat.id) }}>{Icon.trash(13)}</IconBtn>
+                    </span>
+                  </div>
+                )
+              })}
             </div>
-          </div>
+          </Card>
+
+          <Card style={{ padding: '18px' }}>
+            <p className="adm-th" style={{ marginBottom: '14px' }}>{editingCat ? 'Edit category' : 'New category'}</p>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+              <input className="adm-input" placeholder="Name" value={catForm.name} onChange={e => setCatForm(f => ({ ...f, name: e.target.value }))} />
+              <div style={{ display: 'grid', gridTemplateColumns: '64px 1fr', gap: '8px' }}>
+                <input className="adm-input" placeholder="Icon" value={catForm.icon} onChange={e => setCatForm(f => ({ ...f, icon: e.target.value }))} style={{ textAlign: 'center' }} />
+                <input className="adm-input" placeholder="Description" value={catForm.description} onChange={e => setCatForm(f => ({ ...f, description: e.target.value }))} />
+              </div>
+              <div style={{ display: 'flex', gap: '8px' }}>
+                <Btn variant="primary" className="adm-btn-sm" onClick={saveCategory} disabled={isPending || !catForm.name}>{isPending ? '…' : editingCat ? 'Update' : 'Add category'}</Btn>
+                {editingCat && <Btn className="adm-btn-sm" onClick={() => { setEditingCat(null); setCatForm(blankCat) }}>Cancel</Btn>}
+              </div>
+            </div>
+          </Card>
         </div>
 
-        {/* ── PANEL 2: Subcategories ── */}
+        {/* ── Items column ── */}
         {!selectedCat ? (
-          <div style={{ ...panel, alignItems: 'center', justifyContent: 'center', minHeight: '120px' }}>
-            <p style={{ color: 'rgba(255,255,255,0.25)', fontSize: '12px', textAlign: 'center' }}>Select a category</p>
-          </div>
+          <Card><Empty>Select a category on the left to manage its dishes.</Empty></Card>
         ) : (
-          <div style={panel}>
-            <p style={{ color: '#f5c842', fontSize: '10px', letterSpacing: '2px', textTransform: 'uppercase', marginBottom: '12px', fontWeight: 700 }}>Sub-menus</p>
-            <p style={{ color: 'rgba(255,255,255,0.3)', fontSize: '11px', marginBottom: '10px' }}>{selectedCat.icon} {selectedCat.name}</p>
-
-            {/* "All items" row */}
-            <div onClick={() => setSelectedSub(null)}
-              style={{ padding: '9px 10px', borderRadius: '7px', cursor: 'pointer', marginBottom: '3px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: !selectedSub ? '#2e2000' : 'transparent', border: `1px solid ${!selectedSub ? '#f5c842' : 'transparent'}` }}>
-              <span style={{ color: '#fafafa', fontSize: '12px' }}>📋 Uncategorised items</span>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', minWidth: 0 }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+              <span style={{ fontFamily: 'var(--font-playfair)', fontSize: '20px', fontWeight: 700 }}>{selectedCat.icon} {selectedCat.name}</span>
+              <span style={{ fontSize: '12px', color: 'var(--adm-faint)' }}>{items.length} item{items.length !== 1 ? 's' : ''}{selectedSub ? ` in ${selectedSub.name}` : ' uncategorised'} · {subcategories.length} sub-menu{subcategories.length !== 1 ? 's' : ''}</span>
             </div>
 
-            {subcategories.map(sub => (
-              <div key={sub.id} onClick={() => { setSelectedSub(sub); setEditingSub(null) }}
-                style={{ padding: '9px 10px', borderRadius: '7px', cursor: 'pointer', marginBottom: '3px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: selectedSub?.id === sub.id ? '#2e2000' : 'transparent', border: `1px solid ${selectedSub?.id === sub.id ? '#f5c842' : 'transparent'}` }}>
-                <span style={{ color: '#fafafa', fontSize: '12px', flex: 1 }}>📂 {sub.name}</span>
-                <div style={{ flexShrink: 0 }}>
-                  <button onClick={e => { e.stopPropagation(); setEditingSub(sub); setSubForm({ name: sub.name, description: sub.description || '' }) }} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '12px' }}>✏️</button>
-                  <button onClick={e => { e.stopPropagation(); removeSub(sub.id) }} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '12px' }}>🗑️</button>
-                </div>
-              </div>
-            ))}
-
-            <div style={{ borderTop: '1px solid #2e2000', paddingTop: '12px', marginTop: '8px' }}>
-              <p style={{ color: '#f5c842', fontSize: '9px', letterSpacing: '2px', marginBottom: '8px', textTransform: 'uppercase' }}>{editingSub ? 'Edit' : 'Add'} Sub-menu</p>
-              <input placeholder="Name (e.g. Starters)" value={subForm.name} onChange={e => setSubForm(f => ({ ...f, name: e.target.value }))} style={{ ...inputStyle, marginBottom: '6px' }} />
-              <input placeholder="Description (optional)" value={subForm.description} onChange={e => setSubForm(f => ({ ...f, description: e.target.value }))} style={{ ...inputStyle, marginBottom: '10px' }} />
-              <div style={{ display: 'flex', gap: '6px' }}>
-                <button onClick={saveSub} disabled={isPending || !subForm.name} style={btn(true)}>{isPending ? '…' : editingSub ? 'Update' : 'Add'}</button>
-                {editingSub && <button onClick={() => { setEditingSub(null); setSubForm({ name: '', description: '' }) }} style={btn(false)}>Cancel</button>}
-              </div>
+            {/* Sub-menu pills */}
+            <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', alignItems: 'center' }}>
+              <button type="button" onClick={() => { setSelectedSub(null); setEditingSub(null) }} className={`adm-tab${!selectedSub ? ' active' : ''}`} style={{ border: '1px solid var(--adm-border)', borderRadius: '20px', background: !selectedSub ? undefined : 'var(--adm-surface)' }}>Uncategorised</button>
+              {subcategories.map(sub => {
+                const on = selectedSub?.id === sub.id
+                return (
+                  <span key={sub.id} style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', borderRadius: '20px', border: '1px solid var(--adm-border)', background: on ? undefined : 'var(--adm-surface)', paddingRight: on ? '4px' : 0, overflow: 'hidden' }}>
+                    <button type="button" onClick={() => { setSelectedSub(sub); setEditingSub(null) }} className={`adm-tab${on ? ' active' : ''}`} style={{ borderRadius: '20px' }}>{sub.name}</button>
+                    {on && (
+                      <>
+                        <button type="button" title="Edit sub-menu" onClick={() => { setEditingSub(sub); setSubForm({ name: sub.name, description: sub.description || '' }); setShowSubForm(true) }} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--adm-muted)', display: 'flex', padding: '4px' }}>{Icon.edit(13)}</button>
+                        <button type="button" title="Delete sub-menu" onClick={() => removeSub(sub.id)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--adm-red)', display: 'flex', padding: '4px' }}>{Icon.trash(13)}</button>
+                      </>
+                    )}
+                  </span>
+                )
+              })}
+              <Btn className="adm-btn-sm" onClick={() => { setEditingSub(null); setSubForm(blankSub); setShowSubForm(s => !s) }}>{Icon.plus(14)} Sub-menu</Btn>
             </div>
-          </div>
-        )}
 
-        {/* ── PANEL 3: Items ── */}
-        {!selectedCat ? (
-          <div style={{ ...panel, alignItems: 'center', justifyContent: 'center', minHeight: '120px' }}>
-            <p style={{ color: 'rgba(255,255,255,0.25)', fontSize: '12px', textAlign: 'center' }}>Select a category</p>
-          </div>
-        ) : (
-          <div style={panel}>
-            <h2 style={{ color: '#f5c842', fontSize: '12px', letterSpacing: '2px', textTransform: 'uppercase', marginBottom: '4px' }}>
-              {selectedCat.icon} {selectedCat.name}{selectedSub ? ` › ${selectedSub.name}` : ' › Uncategorised'}
-            </h2>
-            <p style={{ color: 'rgba(255,255,255,0.3)', fontSize: '11px', marginBottom: '14px' }}>
-              {items.length} item{items.length !== 1 ? 's' : ''}
-            </p>
+            {showSubForm && (
+              <Card style={{ padding: '16px', display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap' }}>
+                <span className="adm-th" style={{ marginRight: '4px' }}>{editingSub ? 'Edit sub-menu' : 'New sub-menu'}</span>
+                <input className="adm-input" style={{ flex: 1, minWidth: '160px' }} placeholder="Name (e.g. Starters)" value={subForm.name} onChange={e => setSubForm(f => ({ ...f, name: e.target.value }))} />
+                <input className="adm-input" style={{ flex: 1.4, minWidth: '160px' }} placeholder="Description (optional)" value={subForm.description} onChange={e => setSubForm(f => ({ ...f, description: e.target.value }))} />
+                <Btn variant="primary" onClick={saveSub} disabled={isPending || !subForm.name}>{isPending ? '…' : editingSub ? 'Update' : 'Add'}</Btn>
+                <Btn onClick={() => { setShowSubForm(false); setEditingSub(null); setSubForm(blankSub) }}>Cancel</Btn>
+              </Card>
+            )}
 
-            {items.map(item => (
-              <div key={item.id} style={{ padding: '12px 14px', background: '#0a0600', borderRadius: '8px', border: '1px solid #2e2000', marginBottom: '6px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <div style={{ display: 'flex', gap: '12px', alignItems: 'center', minWidth: 0 }}>
-                  {item.image_url && <img src={item.image_url} style={{ width: '40px', height: '40px', borderRadius: '6px', objectFit: 'cover', flexShrink: 0 }} alt="" />}
-                  <div style={{ minWidth: 0 }}>
-                    <div style={{ color: '#fafafa', fontSize: '13px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{item.name}</div>
-                    <div style={{ color: 'rgba(255,255,255,0.4)', fontSize: '11px' }}>
-                      {item.price}
-                      {item.price_cents ? <span style={{ color: '#26de81', marginLeft: '6px' }}>R{(item.price_cents / 100).toFixed(2)}</span> : null}
-                      {item.badge ? ` · ${item.badge}` : ''}{item.is_featured ? ' · ⭐' : ''}
+            {/* Dish grid */}
+            {items.length === 0 ? (
+              <Card><Empty>No items here yet — add one below.</Empty></Card>
+            ) : (
+              <div className="adm-stagger" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: '14px' }}>
+                {items.map(item => (
+                  <Card key={item.id} className="hover" style={{ overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
+                    <div style={{ height: '128px', background: 'linear-gradient(135deg, var(--adm-surface2), var(--adm-page))', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--adm-faint)', position: 'relative' }}>
+                      {item.image_url ? <img src={item.image_url} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : Icon.image(26)}
+                      {item.badge && <span style={{ position: 'absolute', top: '10px', left: '10px', background: 'var(--adm-gold)', color: 'var(--adm-page)', fontSize: '9px', fontWeight: 700, letterSpacing: '1px', textTransform: 'uppercase', padding: '4px 8px', borderRadius: '20px' }}>{item.badge}</span>}
+                      {item.is_featured && <span style={{ position: 'absolute', top: '10px', right: '10px' }}><Pill color="var(--adm-gold)">Favourite</Pill></span>}
                     </div>
-                  </div>
-                </div>
-                <div style={{ flexShrink: 0 }}>
-                  <button onClick={() => {
-                    setEditingItem(item)
-                    setItemForm({ name: item.name, description: item.description || '', price: item.price, price_cents: item.price_cents ? (item.price_cents / 100).toString() : '', badge: item.badge || '', image_url: item.image_url || '', is_featured: item.is_featured, subcategory_id: item.subcategory_id || '' })
-                  }} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '13px', marginRight: '4px' }}>✏️</button>
-                  <button onClick={() => removeItem(item.id)} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '13px' }}>🗑️</button>
-                </div>
+                    <div style={{ padding: '14px', display: 'flex', flexDirection: 'column', gap: '8px', flex: 1 }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '8px' }}>
+                        <span style={{ fontSize: '13px', fontWeight: 600, lineHeight: 1.3 }}>{item.name}</span>
+                        <span style={{ fontSize: '13px', fontWeight: 700, color: 'var(--adm-gold)', whiteSpace: 'nowrap' }}>{item.price_cents ? `R${(item.price_cents / 100).toFixed(0)}` : item.price}</span>
+                      </div>
+                      {item.description && <span style={{ fontSize: '11px', color: 'var(--adm-faint)', overflow: 'hidden', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' }}>{item.description}</span>}
+                      <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '4px', marginTop: 'auto' }}>
+                        <IconBtn title="Edit" onClick={() => editItemStart(item)}>{Icon.edit(13)}</IconBtn>
+                        <IconBtn title="Delete" danger onClick={() => removeItem(item.id)}>{Icon.trash(13)}</IconBtn>
+                      </div>
+                    </div>
+                  </Card>
+                ))}
               </div>
-            ))}
+            )}
 
-            <div style={{ borderTop: '1px solid #2e2000', paddingTop: '20px', marginTop: '12px' }}>
-              <p style={{ color: '#f5c842', fontSize: '10px', letterSpacing: '2px', marginBottom: '14px', textTransform: 'uppercase' }}>{editingItem ? 'Edit' : 'Add'} Item</p>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', marginBottom: '10px' }}>
-                <div><label style={labelStyle}>Name</label><input value={itemForm.name} onChange={e => setItemForm(f => ({ ...f, name: e.target.value }))} style={inputStyle} /></div>
-                <div><label style={labelStyle}>Display Price (e.g. R85)</label><input value={itemForm.price} onChange={e => setItemForm(f => ({ ...f, price: e.target.value }))} style={inputStyle} /></div>
-                <div><label style={labelStyle}>Cart Price in Rands</label><input type="number" min="0" step="0.01" value={itemForm.price_cents} onChange={e => setItemForm(f => ({ ...f, price_cents: e.target.value }))} placeholder="Leave blank = 'Ask us'" style={inputStyle} /></div>
-                <div>
-                  <label style={labelStyle}>Sub-menu</label>
-                  <select value={itemForm.subcategory_id} onChange={e => setItemForm(f => ({ ...f, subcategory_id: e.target.value }))} style={inputStyle}>
+            {/* Item editor */}
+            <Card id="item-editor" style={{ padding: '22px' }}>
+              <p className="adm-th" style={{ marginBottom: '16px' }}>{editingItem ? `Edit item — ${editingItem.name}` : 'New item'}</p>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '14px' }}>
+                <Field label="Name"><input className="adm-input" value={itemForm.name} onChange={e => setItemForm(f => ({ ...f, name: e.target.value }))} /></Field>
+                <Field label="Display price (e.g. R85)"><input className="adm-input" value={itemForm.price} onChange={e => setItemForm(f => ({ ...f, price: e.target.value }))} /></Field>
+                <Field label="Cart price (R) — blank = 'Ask us'"><input className="adm-input" type="number" min="0" step="0.01" value={itemForm.price_cents} onChange={e => setItemForm(f => ({ ...f, price_cents: e.target.value }))} /></Field>
+                <Field label="Sub-menu">
+                  <select className="adm-input" value={itemForm.subcategory_id} onChange={e => setItemForm(f => ({ ...f, subcategory_id: e.target.value }))}>
                     <option value="">— None (uncategorised) —</option>
                     {subcategories.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
                   </select>
-                </div>
-                <div style={{ gridColumn: '1/-1' }}><label style={labelStyle}>Description</label><input value={itemForm.description} onChange={e => setItemForm(f => ({ ...f, description: e.target.value }))} style={inputStyle} /></div>
-                <div><label style={labelStyle}>Badge (optional)</label><input value={itemForm.badge} onChange={e => setItemForm(f => ({ ...f, badge: e.target.value }))} placeholder="Fan Fav" style={inputStyle} /></div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', paddingTop: '18px' }}>
-                  <input type="checkbox" id="feat" checked={itemForm.is_featured} onChange={e => setItemForm(f => ({ ...f, is_featured: e.target.checked }))} />
-                  <label htmlFor="feat" style={{ color: 'rgba(255,255,255,0.6)', fontSize: '12px' }}>Khula Favourite ⭐</label>
-                </div>
+                </Field>
+                <Field label="Description" span><input className="adm-input" value={itemForm.description} onChange={e => setItemForm(f => ({ ...f, description: e.target.value }))} /></Field>
+                <Field label="Badge (optional)"><input className="adm-input" value={itemForm.badge} onChange={e => setItemForm(f => ({ ...f, badge: e.target.value }))} placeholder="e.g. Fan Fav" /></Field>
+                <label style={{ display: 'flex', alignItems: 'center', gap: '10px', paddingTop: '22px', fontSize: '13px', color: 'var(--adm-muted)', cursor: 'pointer' }}>
+                  <input type="checkbox" checked={itemForm.is_featured} onChange={e => setItemForm(f => ({ ...f, is_featured: e.target.checked }))} /> Mark as Khula favourite
+                </label>
               </div>
-              <div style={{ marginBottom: '14px' }}>
-                <label style={labelStyle}>Image</label>
-                <ImageUpload value={itemForm.image_url} onChange={url => setItemForm(f => ({ ...f, image_url: url }))} folder="menu" aspect={4/3} />
+              <div style={{ marginBottom: '16px' }}>
+                <label className="adm-label">Photo</label>
+                <ImageUpload value={itemForm.image_url} onChange={url => setItemForm(f => ({ ...f, image_url: url }))} folder="menu" aspect={4 / 3} />
               </div>
               <div style={{ display: 'flex', gap: '8px' }}>
-                <button onClick={saveItem} disabled={isPending || !itemForm.name} style={btn(true)}>{isPending ? '…' : editingItem ? 'Update Item' : 'Add Item'}</button>
-                {editingItem && <button onClick={() => { setEditingItem(null); setItemForm(blankItem) }} style={btn(false)}>Cancel</button>}
+                <Btn variant="primary" onClick={saveItem} disabled={isPending || !itemForm.name}>{isPending ? 'Saving…' : editingItem ? 'Update item' : 'Add item'}</Btn>
+                {editingItem && <Btn onClick={() => { setEditingItem(null); setItemForm(blankItemFor(selectedSub?.id)) }}>Cancel</Btn>}
               </div>
-            </div>
+            </Card>
           </div>
         )}
       </div>
