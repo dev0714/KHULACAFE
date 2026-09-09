@@ -4,47 +4,51 @@ import { usePathname, useRouter } from 'next/navigation'
 import { useState, useEffect } from 'react'
 import { getOrderCounts } from '../../app/admin/actions'
 import { getUnreadMessageCount } from '../../app/admin/messages/actions'
+import { Icon } from './ui'
 
-const navItems = [
-  { href: '/admin', label: 'Dashboard', icon: '🏠', exact: true },
-  { href: '/admin/menu', label: 'Menu', icon: '🍽️' },
-  { href: '/admin/gallery', label: 'Gallery', icon: '📸' },
-  { href: '/admin/loyalty', label: 'Khula Bucks', icon: '💛' },
-  { href: '/admin/bookings', label: 'Bookings', icon: '📅' },
-  { href: '/admin/customers', label: 'Customers', icon: '👥' },
-  { href: '/admin/orders', label: 'Orders', icon: '📦' },
-  { href: '/admin/messages', label: 'Messages', icon: '✉️' },
-  { href: '/admin/contact', label: 'Find Us', icon: '📍' },
-  { href: '/admin/vouchers', label: 'Vouchers', icon: '🎟️' },
-  { href: '/admin/payments', label: 'Payments', icon: '💳' },
-  { href: '/admin/users', label: 'Users', icon: '🔑' },
-  { href: '/admin/settings', label: 'Email Settings', icon: '⚙️' },
+export const NAV_GROUPS = [
+  { group: 'Operations', items: [
+    { href: '/admin', label: 'Dashboard', icon: 'grid', exact: true },
+    { href: '/admin/orders', label: 'Orders', icon: 'receipt', badge: 'orders' },
+    { href: '/admin/bookings', label: 'Bookings', icon: 'calendar' },
+    { href: '/admin/messages', label: 'Messages', icon: 'mail', badge: 'messages' },
+  ]},
+  { group: 'Content', items: [
+    { href: '/admin/menu', label: 'Menu', icon: 'utensils' },
+    { href: '/admin/gallery', label: 'Gallery', icon: 'image' },
+    { href: '/admin/contact', label: 'Find Us', icon: 'pin' },
+  ]},
+  { group: 'Customers', items: [
+    { href: '/admin/customers', label: 'Customers', icon: 'users' },
+    { href: '/admin/loyalty', label: 'Khula Bucks', icon: 'coin' },
+    { href: '/admin/vouchers', label: 'Vouchers', icon: 'ticket' },
+  ]},
+  { group: 'Settings', items: [
+    { href: '/admin/payments', label: 'Payments', icon: 'card' },
+    { href: '/admin/settings', label: 'Email', icon: 'settings' },
+    { href: '/admin/users', label: 'Staff Users', icon: 'key' },
+  ]},
 ]
+
+export const ALL_NAV = NAV_GROUPS.flatMap(g => g.items)
 
 export default function AdminSidebar() {
   const pathname = usePathname()
   const router = useRouter()
-  const [activeOrders, setActiveOrders] = useState(0)
-  const [unreadMessages, setUnreadMessages] = useState(0)
+  const [counts, setCounts] = useState({ orders: 0, messages: 0 })
   const [open, setOpen] = useState(false)
 
   useEffect(() => {
-    getOrderCounts().then(c => {
-      setActiveOrders((c.received ?? 0) + (c.making ?? 0) + (c.out_for_delivery ?? 0))
-    }).catch(() => {})
-    getUnreadMessageCount().then(setUnreadMessages).catch(() => {})
-
-    const interval = setInterval(() => {
-      getOrderCounts().then(c => {
-        setActiveOrders((c.received ?? 0) + (c.making ?? 0) + (c.out_for_delivery ?? 0))
-      }).catch(() => {})
-      getUnreadMessageCount().then(setUnreadMessages).catch(() => {})
-    }, 30000)
+    const refresh = () => {
+      getOrderCounts().then(c => setCounts(p => ({ ...p, orders: (c.received ?? 0) + (c.making ?? 0) + (c.out_for_delivery ?? 0) }))).catch(() => {})
+      getUnreadMessageCount().then(n => setCounts(p => ({ ...p, messages: n }))).catch(() => {})
+    }
+    refresh()
+    const interval = setInterval(refresh, 30000)
     return () => clearInterval(interval)
   }, [])
 
   useEffect(() => { setOpen(false) }, [pathname])
-
   useEffect(() => {
     document.body.style.overflow = open ? 'hidden' : ''
     return () => { document.body.style.overflow = '' }
@@ -56,62 +60,48 @@ export default function AdminSidebar() {
     router.refresh()
   }
 
+  const isActive = (item) => item.exact ? pathname === item.href : pathname.startsWith(item.href)
+
   const navContent = (
     <>
-      <div style={{ padding: '0 24px 32px', borderBottom: '1px solid #2e2000', display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between' }}>
-        <div>
-          <img src="/images/logo.png" alt="Khula" width={48} height={60} style={{ display: 'block' }} />
-          <p style={{ fontSize: '10px', letterSpacing: '3px', color: '#f5c842', marginTop: '12px', textTransform: 'uppercase' }}>Admin</p>
+      <div style={{ padding: '0 6px 18px', margin: '0 8px', borderBottom: '1px solid var(--adm-border)', display: 'flex', alignItems: 'center', gap: '12px' }}>
+        <img src="/images/logo.png" alt="Khula" width={40} height={50} style={{ display: 'block', flexShrink: 0 }} />
+        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '2px' }}>
+          <span style={{ fontFamily: 'var(--font-playfair)', fontSize: '16px', fontWeight: 700, color: 'var(--adm-text)' }}>Khula Cafe</span>
+          <span style={{ fontSize: '10px', letterSpacing: '2px', color: 'var(--adm-gold)', textTransform: 'uppercase' }}>Admin</span>
         </div>
         <button onClick={() => setOpen(false)} className="admin-drawer-close" aria-label="Close menu"
-          style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'rgba(255,255,255,0.4)', fontSize: '20px', lineHeight: 1, padding: '4px', marginTop: '4px' }}>
-          ✕
+          style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--adm-faint)', padding: '4px', display: 'flex' }}>
+          {Icon.x(18)}
         </button>
       </div>
 
-      <nav style={{ flex: 1, padding: '24px 12px', display: 'flex', flexDirection: 'column', gap: '4px', overflowY: 'auto' }}>
-        {navItems.map(item => {
-          const active = item.exact ? pathname === item.href : pathname.startsWith(item.href)
-          const isOrders = item.href === '/admin/orders'
-          const isMessages = item.href === '/admin/messages'
-          const badge = isOrders ? activeOrders : isMessages ? unreadMessages : 0
-          return (
-            <Link key={item.href} href={item.href} style={{
-              textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '10px',
-              padding: '11px 12px', borderRadius: '8px', fontSize: '13px',
-              background: active ? '#2e2000' : 'transparent',
-              color: active ? '#f5c842' : 'rgba(255,255,255,0.6)',
-              transition: 'all 0.2s',
-            }}>
-              <span>{item.icon}</span>
-              <span style={{ flex: 1 }}>{item.label}</span>
-              {badge > 0 && (
-                <span style={{
-                  background: '#f5c842', color: '#0a0600', borderRadius: '50%',
-                  width: '18px', height: '18px', display: 'flex', alignItems: 'center',
-                  justifyContent: 'center', fontSize: '10px', fontWeight: 700, flexShrink: 0,
-                }}>
-                  {badge}
-                </span>
-              )}
-            </Link>
-          )
-        })}
+      <nav style={{ flex: 1, padding: '10px 8px', overflowY: 'auto' }}>
+        {NAV_GROUPS.map(g => (
+          <div key={g.group}>
+            <div className="adm-nav-group">{g.group}</div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+              {g.items.map(item => {
+                const badge = item.badge ? counts[item.badge] : 0
+                return (
+                  <Link key={item.href} href={item.href} className={`adm-nav-item${isActive(item) ? ' active' : ''}`}>
+                    {Icon[item.icon](18)}
+                    <span style={{ flex: 1 }}>{item.label}</span>
+                    {badge > 0 && <span className="adm-badge">{badge}</span>}
+                  </Link>
+                )
+              })}
+            </div>
+          </div>
+        ))}
       </nav>
 
-      <div style={{ padding: '24px 12px', borderTop: '1px solid #2e2000' }}>
-        <Link href="/" target="_blank" style={{
-          textDecoration: 'none', display: 'block', padding: '10px 12px',
-          fontSize: '12px', color: 'rgba(255,255,255,0.4)', marginBottom: '8px',
-        }}>
-          ↗ View Site
+      <div style={{ margin: '0 8px', padding: '14px 6px 0', borderTop: '1px solid var(--adm-border)', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+        <Link href="/" target="_blank" className="adm-nav-item" style={{ padding: '8px 12px' }}>
+          {Icon.ext(16)}<span>View site</span>
         </Link>
-        <button onClick={handleSignOut} style={{
-          width: '100%', padding: '10px 12px', background: 'none',
-          border: '1px solid #2e2000', borderRadius: '8px', cursor: 'pointer',
-          fontSize: '12px', color: 'rgba(255,255,255,0.5)', textAlign: 'left',
-        }}>
-          Sign Out
+        <button onClick={handleSignOut} className="adm-nav-item" style={{ background: 'none', border: 'none', cursor: 'pointer', width: '100%', textAlign: 'left', padding: '8px 12px', fontFamily: 'inherit' }}>
+          {Icon.logout(16)}<span>Sign out</span>
         </button>
       </div>
     </>
@@ -120,38 +110,34 @@ export default function AdminSidebar() {
   return (
     <>
       {/* Desktop sidebar */}
-      <aside className="admin-sidebar-desktop" style={{
-        width: '220px', flexShrink: 0, background: '#140e00',
-        borderRight: '1px solid #2e2000', minHeight: '100vh',
-        display: 'flex', flexDirection: 'column', padding: '32px 0',
+      <aside className="admin-sidebar-desktop adm-aside-in" style={{
+        width: '240px', flexShrink: 0, background: 'var(--adm-side)',
+        borderRight: '1px solid var(--adm-border)', minHeight: '100vh',
+        display: 'flex', flexDirection: 'column', padding: '22px 6px',
+        position: 'sticky', top: 0, height: '100vh',
       }}>
         {navContent}
       </aside>
 
       {/* Mobile top bar */}
       <div className="admin-topbar">
-        <img src="/images/logo.png" alt="Khula" width={36} height={45} style={{ display: 'block' }} />
-        <span style={{ fontSize: '11px', letterSpacing: '3px', color: '#f5c842', textTransform: 'uppercase' }}>Admin</span>
-        <button onClick={() => setOpen(true)} aria-label="Open menu"
-          style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '6px', display: 'flex', flexDirection: 'column', gap: '5px' }}>
-          {[0,1,2].map(i => (
-            <span key={i} style={{ display: 'block', width: '22px', height: '2px', background: '#f5c842', borderRadius: '2px' }} />
-          ))}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+          <img src="/images/logo.png" alt="Khula" width={32} height={40} style={{ display: 'block' }} />
+          <span style={{ fontSize: '11px', letterSpacing: '3px', color: 'var(--adm-gold)', textTransform: 'uppercase' }}>Admin</span>
+        </div>
+        <button onClick={() => setOpen(true)} aria-label="Open menu" className="adm-iconbtn" style={{ color: 'var(--adm-gold)' }}>
+          {Icon.menu(22)}
+          {(counts.orders + counts.messages) > 0 && <span className="adm-ping" />}
         </button>
       </div>
 
       {/* Overlay */}
       {open && (
-        <div onClick={() => setOpen(false)} style={{
-          position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.65)', zIndex: 1199,
-          backdropFilter: 'blur(4px)',
-        }} />
+        <div onClick={() => setOpen(false)} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.65)', zIndex: 1199, backdropFilter: 'blur(4px)' }} />
       )}
 
       {/* Mobile drawer */}
-      <aside className="admin-sidebar-mobile" style={{
-        transform: open ? 'translateX(0)' : 'translateX(-100%)',
-      }}>
+      <aside className="admin-sidebar-mobile" style={{ transform: open ? 'translateX(0)' : 'translateX(-100%)', padding: '22px 6px' }}>
         {navContent}
       </aside>
     </>
