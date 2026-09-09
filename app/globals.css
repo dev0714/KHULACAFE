@@ -154,6 +154,15 @@ html { overflow-x: clip; }
 /* ── Hide scrollbar on menu tabs ── */
 .menu-tabs-bar::-webkit-scrollbar { display: none; }
 
+/* ── Menu category picker: dropdown on phones, chip grid on larger screens ── */
+.menu-cat-select { display: none; }
+@media (max-width: 700px) {
+  .menu-cat-select { display: block; }
+  .menu-tabs-bar { display: none !important; }
+  .menu-sub-bar { padding: 6px 12px !important; gap: 4px !important; }
+  .menu-sub-bar button { padding: 5px 12px !important; font-size: 10px !important; }
+}
+
 /* ── Custom scrollbar ── */
 ::-webkit-scrollbar { width: 5px; }
 ::-webkit-scrollbar-track { background: var(--bg-dark); }
