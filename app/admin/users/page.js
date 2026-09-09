@@ -85,7 +85,7 @@ export default function UsersPage() {
   return (
     <>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '28px' }}>
-        <h1 style={{ fontFamily: 'var(--font-playfair)', color: '#fafafa', fontSize: '28px', margin: 0 }}>User Management</h1>
+        <h1 className="adm-h1" style={{ margin: 0 }}>Staff Users</h1>
       </div>
 
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 380px', gap: '24px', alignItems: 'start' }}>

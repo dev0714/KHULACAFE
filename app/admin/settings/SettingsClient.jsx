@@ -1,6 +1,7 @@
 'use client'
 import { useState, useTransition } from 'react'
 import { saveEmailSettings, sendTestEmailAdmin } from '../actions'
+import { PageHeader } from '../../../components/admin/ui'
 
 const CREATE_SQL = `CREATE TABLE IF NOT EXISTS "Khulacafe".email_settings (
   id int PRIMARY KEY DEFAULT 1,
@@ -125,10 +126,7 @@ export default function SettingsClient({ initial, tableMissing, needsSmtpColumns
 
   return (
     <div style={{ maxWidth: '680px' }}>
-      <h1 style={{ fontFamily: 'var(--font-playfair)', fontSize: '28px', color: '#fafafa', marginBottom: '6px' }}>Email Settings</h1>
-      <p style={{ color: 'rgba(255,255,255,0.4)', fontSize: '13px', marginBottom: '28px', lineHeight: 1.6 }}>
-        Configure how Khula Cafe sends booking, order, and contact-form emails. Changes take effect immediately — no redeploy needed.
-      </p>
+      <PageHeader title="Email" subtitle="How Khula Cafe sends booking, order and contact-form emails. Changes take effect immediately." />
 
       {needsSmtpColumns && <SqlCard title="Enable SMTP — one-time database update" sql={UPGRADE_SQL} />}
 

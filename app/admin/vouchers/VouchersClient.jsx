@@ -1,6 +1,7 @@
 'use client'
 import { useState, useTransition } from 'react'
 import { createVoucher, setVoucherActive, deleteVoucher } from '../actions'
+import { PageHeader } from '../../../components/admin/ui'
 
 const CREATE_SQL = `CREATE TABLE IF NOT EXISTS "Khulacafe".vouchers (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -78,10 +79,7 @@ export default function VouchersClient({ initial, tableMissing }) {
 
   return (
     <div style={{ maxWidth: '680px' }}>
-      <h1 style={{ fontFamily: 'var(--font-playfair)', fontSize: '28px', color: '#fafafa', marginBottom: '6px' }}>Vouchers</h1>
-      <p style={{ color: 'rgba(255,255,255,0.4)', fontSize: '13px', marginBottom: '24px', lineHeight: 1.6 }}>
-        Create gift voucher codes worth a fixed amount. Customers enter the code at checkout or on the booking deposit. Each voucher can be used once.
-      </p>
+      <PageHeader title="Vouchers" subtitle="Gift voucher codes worth a fixed amount — redeemable at checkout or on a booking deposit, once each." />
 
       {/* Create */}
       <div style={card}>
