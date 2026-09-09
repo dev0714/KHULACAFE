@@ -3,6 +3,7 @@ import { useState, useEffect, useTransition, useCallback } from 'react'
 import { supabase } from '../../../lib/supabase-public'
 import { upsertOccasion, deleteOccasion, upsertAddon, deleteAddon, seedOccasions } from '../actions'
 import ImageUpload from '../../../components/admin/ImageUpload'
+import { PageHeader } from '../../../components/admin/ui'
 
 const EMPTY_ADDON = { label: '', icon: '🎁', price_cents: 0, description: '', images: [], colors: [] }
 
@@ -137,7 +138,7 @@ export default function BookingsAdmin() {
 
   return (
     <>
-      <h1 style={{ fontFamily: 'var(--font-playfair)', color: '#fafafa', fontSize: '28px', marginBottom: '24px' }}>Reservations</h1>
+      <PageHeader title="Bookings" subtitle="Reservations, occasions and event add-ons in one place." />
 
       {/* Tab bar */}
       <div style={{ display: 'flex', gap: '4px', background: '#1e1500', borderRadius: '10px', padding: '4px', border: '1px solid #2e2000', marginBottom: '24px', width: 'fit-content' }}>

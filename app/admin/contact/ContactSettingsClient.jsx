@@ -1,6 +1,7 @@
 'use client'
 import { useState, useTransition } from 'react'
 import { saveContactSettings } from '../actions'
+import { PageHeader } from '../../../components/admin/ui'
 
 const inp = { width: '100%', padding: '10px 14px', background: '#0a0600', border: '1px solid #2e2000', borderRadius: '8px', color: '#fafafa', fontSize: '13px', outline: 'none', boxSizing: 'border-box' }
 const lbl = { display: 'block', fontSize: '10px', letterSpacing: '2px', color: '#f5c842', marginBottom: '6px', textTransform: 'uppercase' }
@@ -54,10 +55,7 @@ export default function ContactSettingsClient({ initial }) {
 
   return (
     <div style={{ maxWidth: '680px' }}>
-      <h1 style={{ fontFamily: 'var(--font-playfair)', fontSize: '28px', color: '#fafafa', marginBottom: '6px' }}>Find Us</h1>
-      <p style={{ color: 'rgba(255,255,255,0.4)', fontSize: '13px', marginBottom: '28px', lineHeight: 1.6 }}>
-        Edit the contact details, trading hours, and social links shown on the public Contact page. Changes go live immediately.
-      </p>
+      <PageHeader title="Find Us" subtitle="Contact details, trading hours and social links shown on the public Contact page. Changes go live immediately." />
 
       {/* Contact details */}
       <div style={card}>

@@ -3,6 +3,7 @@ import { useState, useEffect, useTransition, useCallback } from 'react'
 import { supabase } from '../../../lib/supabase-public'
 import { upsertCategory, deleteCategory, upsertSubcategory, deleteSubcategory, upsertMenuItem, deleteMenuItem } from '../actions'
 import ImageUpload from '../../../components/admin/ImageUpload'
+import { PageHeader } from '../../../components/admin/ui'
 
 const inputStyle = { width: '100%', padding: '10px 14px', background: '#0a0600', border: '1px solid #2e2000', borderRadius: '8px', color: '#fafafa', fontSize: '13px', outline: 'none', boxSizing: 'border-box' }
 const labelStyle = { display: 'block', fontSize: '10px', letterSpacing: '2px', color: '#f5c842', marginBottom: '6px', textTransform: 'uppercase' }
@@ -129,7 +130,7 @@ export default function MenuAdmin() {
 
   return (
     <>
-      <h1 style={{ fontFamily: 'var(--font-playfair)', color: '#fafafa', fontSize: '28px', marginBottom: '24px' }}>Menu Management</h1>
+      <PageHeader title="Menu" subtitle="Categories, sub-menus and every dish on the menu." />
 
       <div style={{ display: 'grid', gridTemplateColumns: '240px 240px 1fr', gap: '16px', alignItems: 'start' }}>
 

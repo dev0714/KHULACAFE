@@ -2,6 +2,7 @@
 import { useState, useEffect, useTransition } from 'react'
 import { supabase } from '../../../lib/supabase-public'
 import { updateLoyaltyConfig } from '../actions'
+import { PageHeader } from '../../../components/admin/ui'
 
 const inputStyle = { width: '100%', padding: '10px 14px', background: '#0a0600', border: '1px solid #2e2000', borderRadius: '8px', color: '#fafafa', fontSize: '13px', outline: 'none', boxSizing: 'border-box' }
 const labelStyle = { display: 'block', fontSize: '10px', letterSpacing: '2px', color: '#f5c842', marginBottom: '6px', textTransform: 'uppercase' }
@@ -31,7 +32,7 @@ export default function LoyaltyAdmin() {
 
   return (
     <>
-      <h1 style={{ fontFamily: 'var(--font-playfair)', color: '#fafafa', fontSize: '28px', marginBottom: '32px' }}>Khula Bucks Configuration</h1>
+      <PageHeader title="Khula Bucks" subtitle="Earn rates and rewards for the loyalty programme." />
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '20px', maxWidth: '800px' }}>
         <div style={{ background: '#1e1500', border: '1px solid #2e2000', borderRadius: '12px', padding: '24px' }}>

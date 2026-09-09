@@ -306,7 +306,7 @@ export default function CustomersPage() {
       {/* LEFT — Customer List */}
       <div style={{ width: '320px', flexShrink: 0, display: 'flex', flexDirection: 'column', gap: '16px' }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-          <h1 style={{ fontFamily: 'var(--font-playfair)', color: '#fafafa', fontSize: '24px', margin: 0 }}>
+          <h1 className="adm-h1" style={{ margin: 0 }}>
             Customers
           </h1>
           <button style={btnPrimary} onClick={() => setMode('add')}>+ Add</button>

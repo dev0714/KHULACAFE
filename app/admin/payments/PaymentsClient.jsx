@@ -1,6 +1,7 @@
 'use client'
 import { useState, useTransition } from 'react'
 import { savePaymentSettings, testPaymentConnectionAdmin } from '../actions'
+import { PageHeader } from '../../../components/admin/ui'
 
 const inp = { width: '100%', padding: '10px 14px', background: '#0a0600', border: '1px solid #2e2000', borderRadius: '8px', color: '#fafafa', fontSize: '13px', outline: 'none', boxSizing: 'border-box' }
 const lbl = { display: 'block', fontSize: '10px', letterSpacing: '2px', color: '#f5c842', marginBottom: '6px', textTransform: 'uppercase' }
@@ -47,10 +48,7 @@ export default function PaymentsClient({ initial }) {
 
   return (
     <div style={{ maxWidth: '680px' }}>
-      <h1 style={{ fontFamily: 'var(--font-playfair)', fontSize: '28px', color: '#fafafa', marginBottom: '6px' }}>Payments</h1>
-      <p style={{ color: 'rgba(255,255,255,0.4)', fontSize: '13px', marginBottom: '20px', lineHeight: 1.6 }}>
-        Configure how card payments are processed. Change these to switch to the client's own Paystack — changes take effect immediately, no redeploy.
-      </p>
+      <PageHeader title="Payments" subtitle="Configure how card payments are processed. Switch to the client's own Paystack with no redeploy." />
 
       {initial?.usingEnv && (
         <div style={{ background: 'rgba(245,200,66,0.08)', border: '1px solid rgba(245,200,66,0.3)', borderRadius: '10px', padding: '12px 16px', marginBottom: '24px', fontSize: '12px', color: 'rgba(255,255,255,0.65)', lineHeight: 1.6 }}>
