@@ -184,10 +184,10 @@ export default function HomePage() {
             src="/images/logo.png"
             alt="Khula Cafe"
             style={{
-              width: 'clamp(160px, 22vw, 260px)',
+              width: 'clamp(110px, 14vw, 170px)',
               height: 'auto',
               display: 'block',
-              margin: '0 auto 8px',
+              margin: '0 auto 20px',
               filter: 'drop-shadow(0 8px 32px rgba(61,34,0,0.35))',
             }}
           />
