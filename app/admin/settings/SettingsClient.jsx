@@ -208,7 +208,7 @@ export default function SettingsClient({ initial, tableMissing, needsSmtpColumns
         <h2 style={sectionTitle}>Staff Notifications</h2>
         <p style={sectionSub}>Get an email to your team whenever a new booking or contact message comes in.</p>
         <div style={{ display: 'grid', gap: '16px' }}>
-          <Field label="Notification Email"><input style={inp} value={form.notify_email} onChange={e => set('notify_email', e.target.value)} placeholder="bookings@khulacafe.co.za" /></Field>
+          <Field label="Notification Email — separate several with commas"><input style={inp} value={form.notify_email} onChange={e => set('notify_email', e.target.value)} placeholder="bookings@khulacafe.co.za, simmy.khulacafe@gmail.com" /></Field>
           <label style={{ display: 'flex', alignItems: 'center', gap: '10px', color: 'rgba(255,255,255,0.7)', fontSize: '13px', cursor: 'pointer' }}>
             <input type="checkbox" checked={!!form.notify_on_booking} onChange={e => set('notify_on_booking', e.target.checked)} /> Notify staff on new bookings
           </label>
