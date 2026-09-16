@@ -457,6 +457,15 @@ export async function deleteAdminUser(id) {
 // ── Public Booking Submission ────────────────────────────────────
 export async function createBooking(data) {
   const { occasion_id, date, time, guests, customer_name, customer_email, customer_phone, add_ons, special_song, special_request, occasion_reason, deposit_cents, voucher_code, bucks_redeemed, customer_id } = data
+
+  // The cafe is closed on Sundays and Mondays — reject those even if the
+  // browser form was bypassed.
+  const dayNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday']
+  const day = date ? new Date(date + 'T00:00:00').getDay() : null
+  if (day === 0 || day === 1) {
+    return { error: `We are closed on ${dayNames[day]}s. Please choose another date.` }
+  }
+
   const { data: booking, error } = await supabaseAdmin
     .from('bookings')
     .insert({
@@ -574,7 +583,8 @@ export async function getBookings() {
   const { data } = await supabaseAdmin
     .from('bookings')
     .select('*, booking_occasions(label, emoji)')
-    .order('date', { ascending: false })
+    .order('date', { ascending: true })
+    .order('time', { ascending: true })
   return data ?? []
 }
 

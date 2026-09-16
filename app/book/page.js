@@ -3,6 +3,15 @@ import { useState, useEffect, useRef } from 'react'
 import { supabase } from '../../lib/supabase-public'
 import { createBooking, validateVoucherPublic } from '../admin/actions'
 
+// The cafe is closed on Sundays (0) and Mondays (1).
+const CLOSED_DAYS = [0, 1]
+const CLOSED_DAY_NAMES = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday']
+function isClosedDay(dateStr) {
+  if (!dateStr) return false
+  const d = new Date(dateStr + 'T00:00:00')
+  return !Number.isNaN(d.getTime()) && CLOSED_DAYS.includes(d.getDay())
+}
+
 export default function BookPage() {
   const [occasions, setOccasions] = useState([])
   const [addOns, setAddOns] = useState([])
@@ -361,10 +370,15 @@ export default function BookPage() {
                     type="date" value={form.date}
                     min={new Date().toISOString().split('T')[0]}
                     onChange={e => setForm(f => ({ ...f, date: e.target.value }))}
-                    style={{ ...inputStyle, colorScheme: 'dark' }}
+                    style={{ ...inputStyle, colorScheme: 'dark', borderColor: isClosedDay(form.date) ? '#c0392b' : '#2e2000' }}
                     onFocus={e => e.target.style.borderColor = '#f5c842'}
-                    onBlur={e => e.target.style.borderColor = '#2e2000'}
+                    onBlur={e => e.target.style.borderColor = isClosedDay(form.date) ? '#c0392b' : '#2e2000'}
                   />
+                  <p style={{ fontSize: '12px', margin: '8px 0 0', color: isClosedDay(form.date) ? '#ff8a7a' : 'rgba(255,255,255,0.4)' }}>
+                    {isClosedDay(form.date)
+                      ? `We're closed on ${CLOSED_DAY_NAMES[new Date(form.date + 'T00:00:00').getDay()]}s. Please pick another day.`
+                      : 'We are closed on Sundays and Mondays.'}
+                  </p>
                 </div>
                 <div>
                   <label style={labelStyle}>Time</label>
@@ -405,13 +419,18 @@ export default function BookPage() {
                   fontWeight: 600, color: 'rgba(255,255,255,0.6)', padding: '16px 32px', borderRadius: '50px',
                   background: 'transparent', border: '1px solid #2e2000',
                 }}>← Back</button>
-                <button type="button" disabled={!form.date || !form.time} onClick={() => setStep(3)} style={{
-                  cursor: form.date && form.time ? 'pointer' : 'not-allowed',
-                  fontSize: '12px', letterSpacing: '3px', textTransform: 'uppercase',
-                  fontWeight: 600, color: '#0a0600', padding: '16px 48px', borderRadius: '50px',
-                  background: form.date && form.time ? 'linear-gradient(135deg, #f5c842, #c8940c)' : '#2e2000',
-                  border: 'none', opacity: form.date && form.time ? 1 : 0.5,
-                }}>Continue →</button>
+                {(() => {
+                  const ok = Boolean(form.date) && Boolean(form.time) && !isClosedDay(form.date)
+                  return (
+                    <button type="button" disabled={!ok} onClick={() => setStep(3)} style={{
+                      cursor: ok ? 'pointer' : 'not-allowed',
+                      fontSize: '12px', letterSpacing: '3px', textTransform: 'uppercase',
+                      fontWeight: 600, color: '#0a0600', padding: '16px 48px', borderRadius: '50px',
+                      background: ok ? 'linear-gradient(135deg, #f5c842, #c8940c)' : '#2e2000',
+                      border: 'none', opacity: ok ? 1 : 0.5,
+                    }}>Continue →</button>
+                  )
+                })()}
               </div>
             </div>
           )}
