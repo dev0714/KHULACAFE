@@ -142,7 +142,10 @@ export default function OrdersPage() {
                   style={{ gridTemplateColumns: '100px minmax(0,1fr) 90px 80px 150px', cursor: 'pointer', background: isSel ? 'var(--adm-gold-soft)' : 'transparent' }}>
                   <span style={{ fontSize: '12px', fontWeight: 600, color: 'var(--adm-gold)' }}>{ref(o)}</span>
                   <div style={{ display: 'flex', flexDirection: 'column', minWidth: 0 }}>
-                    <span style={{ fontSize: '13px', fontWeight: 500 }}>{o.customer_name}</span>
+                    <span style={{ fontSize: '13px', fontWeight: 500, display: 'flex', alignItems: 'center', gap: '6px' }}>
+                      {o.customer_name}
+                      {o.notes && <span title="Has special instructions" style={{ fontSize: '9px', fontWeight: 700, letterSpacing: '0.5px', textTransform: 'uppercase', color: 'var(--adm-page)', background: 'var(--adm-gold)', borderRadius: '5px', padding: '2px 5px', flexShrink: 0 }}>Note</span>}
+                    </span>
                     <span style={{ fontSize: '12px', color: 'var(--adm-faint)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{o.customer_email || o.customer_phone || timeAgo(o.created_at)}</span>
                   </div>
                   <span style={{ fontSize: '13px', color: 'var(--adm-muted)' }}>{o.delivery_type === 'delivery' ? 'Delivery' : 'Pickup'}</span>
@@ -174,8 +177,16 @@ export default function OrdersPage() {
                   {selected.customer_email && <span style={{ fontSize: '12px', color: 'var(--adm-muted)', display: 'flex', alignItems: 'center', gap: '8px' }}>{Icon.at(14)} {selected.customer_email}</span>}
                   {selected.customer_phone && <span style={{ fontSize: '12px', color: 'var(--adm-muted)', display: 'flex', alignItems: 'center', gap: '8px' }}>{Icon.phone(14)} {selected.customer_phone}</span>}
                   {selected.delivery_type === 'delivery' && selected.delivery_address && <span style={{ fontSize: '12px', color: 'var(--adm-muted)', display: 'flex', alignItems: 'center', gap: '8px' }}>{Icon.truck(14)} {selected.delivery_address}</span>}
-                  {selected.notes && <span style={{ fontSize: '12px', color: 'var(--adm-faint)', fontStyle: 'italic' }}>“{selected.notes}”</span>}
                 </div>
+
+                {selected.notes && (
+                  <div style={{ padding: '14px', borderRadius: '10px', background: 'var(--adm-gold-soft)', border: '1px solid var(--adm-gold2)' }}>
+                    <span className="adm-th" style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px', color: 'var(--adm-gold)' }}>
+                      {Icon.receipt(14)} Special instructions
+                    </span>
+                    <p style={{ margin: 0, fontSize: '14px', lineHeight: 1.6, whiteSpace: 'pre-wrap' }}>{selected.notes}</p>
+                  </div>
+                )}
 
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
                   <span className="adm-th">Items</span>

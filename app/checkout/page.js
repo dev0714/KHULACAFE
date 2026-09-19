@@ -211,10 +211,22 @@ export default function CheckoutPage() {
 
             <div>
               <label style={labelStyle}>Special Instructions</label>
-              <input style={inputStyle} value={form.notes} onChange={e => set('notes', e.target.value)}
-                placeholder="Allergies, gate code, etc."
+              <textarea
+                style={{ ...inputStyle, minHeight: '96px', resize: 'vertical', lineHeight: 1.6, fontFamily: 'inherit' }}
+                value={form.notes}
+                maxLength={500}
+                onChange={e => set('notes', e.target.value)}
+                placeholder={form.deliveryType === 'delivery'
+                  ? 'Allergies, no onions, extra sauce, gate code, where to leave it…'
+                  : 'Allergies, no onions, extra sauce, how you would like it cooked…'}
                 onFocus={e => e.target.style.borderColor = '#f5c842'}
                 onBlur={e => e.target.style.borderColor = '#2e2000'} />
+              <div style={{ display: 'flex', justifyContent: 'space-between', gap: '12px', marginTop: '6px' }}>
+                <span style={{ fontSize: '12px', color: 'rgba(255,255,255,0.35)' }}>
+                  Anything the kitchen should know. This goes straight to our team.
+                </span>
+                <span style={{ fontSize: '12px', color: 'rgba(255,255,255,0.25)', flexShrink: 0 }}>{form.notes.length}/500</span>
+              </div>
             </div>
 
             {/* Khula Bucks nudge */}
