@@ -74,7 +74,7 @@ export default function ContactSettingsClient({ initial }) {
             </Field>
           </div>
           <Field label="Email" hint="Tap-to-email.">
-            <input style={inp} value={form.email} onChange={e => set('email', e.target.value)} placeholder="bookings@khulacafe.co.za" />
+            <input style={inp} value={form.email} onChange={e => set('email', e.target.value)} placeholder="info@khulacafe.co.za" />
           </Field>
         </div>
       </div>
