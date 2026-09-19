@@ -99,6 +99,18 @@ export default function OrderConfirmedPage() {
           </span>
         </div>
 
+        {order.notes && (
+          <div style={{
+            background: 'rgba(245,200,66,0.06)', border: '1px solid rgba(245,200,66,0.25)',
+            borderRadius: '12px', padding: '16px 18px', textAlign: 'left', margin: '0 auto 28px', maxWidth: '420px',
+          }}>
+            <p style={{ margin: '0 0 6px', fontSize: '11px', letterSpacing: '1.5px', textTransform: 'uppercase', color: '#f5c842', fontWeight: 700 }}>
+              Your special instructions
+            </p>
+            <p style={{ margin: 0, fontSize: '14px', lineHeight: 1.6, color: 'rgba(255,255,255,0.75)', whiteSpace: 'pre-wrap' }}>{order.notes}</p>
+          </div>
+        )}
+
         <Link href="/menu" style={{
           textDecoration: 'none', fontSize: '12px', letterSpacing: '2px', textTransform: 'uppercase',
           fontWeight: 600, color: '#0a0600', padding: '14px 36px', borderRadius: '50px',
