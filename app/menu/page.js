@@ -338,7 +338,7 @@ export default function MenuPage() {
                       <span style={{ fontSize: '20px' }}>{cat.icon}</span>
                       <h3 style={{ fontSize: '13px', letterSpacing: '2px', textTransform: 'uppercase', color: 'rgba(255,255,255,0.4)', fontWeight: 600 }}>{cat.name}</h3>
                     </div>
-                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '20px' }}>
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(230px, 1fr))', gap: '16px' }}>
                       {cat.matchedItems.map(item => (
                         <div key={item.id}>
                           {item.menu_subcategories?.name && (
@@ -386,7 +386,7 @@ export default function MenuPage() {
                       {group.sub?.description && (
                         <p style={{ fontSize: '13px', color: 'rgba(255,255,255,0.4)', marginBottom: '20px' }}>{group.sub.description}</p>
                       )}
-                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '20px' }}>
+                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(230px, 1fr))', gap: '16px' }}>
                         {group.items.map(item => (
                           <ItemCard key={item.id} item={item} cartQty={cartQty} addItem={addItem} />
                         ))}
@@ -428,7 +428,7 @@ function ItemCard({ item, cartQty, addItem }) {
       overflow: 'hidden', position: 'relative', display: 'flex', flexDirection: 'column',
     }}>
       {item.image_url && (
-        <div style={{ position: 'relative', height: '200px', flexShrink: 0 }}>
+        <div style={{ position: 'relative', height: '150px', flexShrink: 0 }}>
           <img src={item.image_url} alt={item.name} style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
           <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to top, rgba(30,21,0,0.7) 0%, transparent 60%)' }} />
           {item.badge && (
@@ -436,17 +436,17 @@ function ItemCard({ item, cartQty, addItem }) {
           )}
         </div>
       )}
-      <div style={{ padding: '24px', flex: 1, display: 'flex', flexDirection: 'column' }}>
+      <div style={{ padding: '18px', flex: 1, display: 'flex', flexDirection: 'column' }}>
         {!item.image_url && item.badge && (
           <span style={{ alignSelf: 'flex-start', marginBottom: '12px', background: '#f5c842', color: '#0a0600', fontSize: '9px', fontWeight: 700, letterSpacing: '1.5px', textTransform: 'uppercase', padding: '4px 10px', borderRadius: '20px' }}>{item.badge}</span>
         )}
-        <h3 style={{ fontFamily: 'var(--font-playfair)', fontSize: '20px', color: '#fafafa', marginBottom: '8px' }}>{item.name}</h3>
-        <p style={{ fontSize: '13px', color: 'rgba(255,255,255,0.5)', lineHeight: 1.75, marginBottom: '20px', flex: 1 }}>{item.description}</p>
+        <h3 style={{ fontFamily: 'var(--font-playfair)', fontSize: '17px', color: '#fafafa', marginBottom: '6px' }}>{item.name}</h3>
+        <p style={{ fontSize: '12px', color: 'rgba(255,255,255,0.5)', lineHeight: 1.6, marginBottom: '14px', flex: 1 }}>{item.description}</p>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 'auto' }}>
-          <span style={{ fontFamily: 'var(--font-playfair)', fontSize: '24px', color: '#f5c842', fontWeight: 600 }}>{item.price}</span>
+          <span style={{ fontFamily: 'var(--font-playfair)', fontSize: '18px', color: '#f5c842', fontWeight: 600 }}>{item.price}</span>
           {item.price_cents ? (
             <button onClick={() => addItem({ id: item.id, name: item.name, price_cents: item.price_cents, image_url: item.image_url || null })}
-              style={{ fontSize: '11px', letterSpacing: '1.5px', textTransform: 'uppercase', fontWeight: 700, color: '#0a0600', padding: '8px 18px', borderRadius: '30px', background: qty > 0 ? 'linear-gradient(135deg, #c8940c, #a07008)' : 'linear-gradient(135deg, #f5c842, #c8940c)', border: 'none', cursor: 'pointer', transition: 'all 0.2s' }}>
+              style={{ fontSize: '10px', letterSpacing: '1px', textTransform: 'uppercase', fontWeight: 700, color: '#0a0600', padding: '7px 14px', borderRadius: '30px', background: qty > 0 ? 'linear-gradient(135deg, #c8940c, #a07008)' : 'linear-gradient(135deg, #f5c842, #c8940c)', border: 'none', cursor: 'pointer', transition: 'all 0.2s' }}>
               {qty > 0 ? `In Cart (${qty})` : 'Add to Cart'}
             </button>
           ) : (

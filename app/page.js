@@ -276,7 +276,7 @@ export default function HomePage() {
           </div>
 
           {featuredItems.length > 0 && (
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '24px', marginBottom: '48px' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(230px, 1fr))', gap: '16px', marginBottom: '48px' }}>
             {featuredItems.map((item, i) => (
               <div key={item.id} className="card-lift" data-reveal data-delay={`${i * 150 + 200}`} style={{
                 background: '#1e1500', border: '1px solid #2e2000', borderRadius: '16px',
@@ -284,7 +284,7 @@ export default function HomePage() {
                 display: 'flex', flexDirection: 'column',
               }}>
                 {item.image_url ? (
-                  <div style={{ position: 'relative', height: '180px', flexShrink: 0 }}>
+                  <div style={{ position: 'relative', height: '140px', flexShrink: 0 }}>
                     <img src={item.image_url} alt={item.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                     <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to top, rgba(30,21,0,0.65) 0%, transparent 60%)' }} />
                     {item.badge && (
@@ -303,7 +303,7 @@ export default function HomePage() {
                     </div>
                   </div>
                 )}
-                <div style={{ padding: '20px 28px 28px', flex: 1, display: 'flex', flexDirection: 'column' }}>
+                <div style={{ padding: '16px 18px 18px', flex: 1, display: 'flex', flexDirection: 'column' }}>
                   {!item.image_url && item.badge && (
                     <span style={{
                       alignSelf: 'flex-start', marginBottom: '10px',
@@ -312,14 +312,14 @@ export default function HomePage() {
                       padding: '4px 10px', borderRadius: '20px',
                     }}>{item.badge}</span>
                   )}
-                  <h3 style={{ fontFamily: 'var(--font-playfair)', fontSize: '20px', color: '#fafafa', marginBottom: '8px' }}>
+                  <h3 style={{ fontFamily: 'var(--font-playfair)', fontSize: '17px', color: '#fafafa', marginBottom: '6px' }}>
                     {item.name}
                   </h3>
-                  <p style={{ fontSize: '13px', color: 'rgba(255,255,255,0.5)', lineHeight: 1.7, marginBottom: '20px', flex: 1 }}>
+                  <p style={{ fontSize: '12px', color: 'rgba(255,255,255,0.5)', lineHeight: 1.6, marginBottom: '14px', flex: 1 }}>
                     {item.description}
                   </p>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <span style={{ fontFamily: 'var(--font-playfair)', fontSize: '22px', color: '#f5c842', fontWeight: 600 }}>
+                    <span style={{ fontFamily: 'var(--font-playfair)', fontSize: '18px', color: '#f5c842', fontWeight: 600 }}>
                       {item.price}
                     </span>
                     {item.price_cents ? (
@@ -327,7 +327,7 @@ export default function HomePage() {
                         onClick={() => addItem({ id: item.id, name: item.name, price_cents: item.price_cents, image_url: item.image_url || null })}
                         style={{
                           fontSize: '10px', letterSpacing: '1.5px', textTransform: 'uppercase', fontWeight: 700,
-                          color: '#0a0600', padding: '7px 16px', borderRadius: '30px', border: 'none', cursor: 'pointer',
+                          color: '#0a0600', padding: '6px 13px', borderRadius: '30px', border: 'none', cursor: 'pointer',
                           background: cartQty(item.id) > 0 ? 'linear-gradient(135deg, #c8940c, #a07008)' : 'linear-gradient(135deg, #f5c842, #c8940c)',
                         }}
                       >
