@@ -410,6 +410,9 @@ export async function updateOrderStatus(orderId, status) {
   if (status === 'out_for_delivery' && staff?.sub) patch.driver_id = staff.sub
   await supabaseAdmin.from('orders').update(patch).eq('id', orderId)
 
+  // Stamp the transition so we can measure how long each step actually took.
+  await supabaseAdmin.from('order_status_events').insert({ order_id: orderId, status })
+
   // Tell the driver and the customer. Awaited, because a serverless function
   // can be frozen the instant this action returns.
   const { announceStage } = await import('../../lib/order-notify')
