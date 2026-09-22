@@ -203,6 +203,16 @@ export default function BookingsAdmin() {
                       <span className="adm-th">Payment</span>
                       <span style={{ fontFamily: 'var(--font-playfair)', fontSize: '18px', fontWeight: 700, color: 'var(--adm-gold)' }}>R{(b.deposit_cents / 100).toFixed(0)} <span style={{ fontFamily: 'var(--font-poppins)', fontSize: '11px', color: 'var(--adm-faint)', fontWeight: 400 }}>deposit</span></span>
                       {b.payment_note && <span style={{ fontSize: '11px', color: 'var(--adm-muted)' }}>{b.payment_note}</span>}
+                      {b.rescheduled_count > 0 && (
+                        <span style={{ fontSize: '11px', color: 'var(--adm-gold)' }}>
+                          Moved {b.rescheduled_count}× · was {b.previous_date} at {b.previous_time}
+                        </span>
+                      )}
+                      {b.cancellation_reason && (
+                        <span style={{ fontSize: '11px', color: 'var(--adm-red)', fontStyle: 'italic' }}>
+                          Cancelled: “{b.cancellation_reason}”
+                        </span>
+                      )}
                     </div>
                     <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '8px' }}>
                       <Pill color={st.color}>{st.label}</Pill>
