@@ -62,7 +62,10 @@ export default function ManageBookingPage() {
     const res = await cancelBooking(id, reason)
     setBusy(false)
     if (res?.error) setError(res.error)
-    else setView('cancelled')
+    else {
+      setBooking(b => ({ ...b, refund_due_by: res.refundDueBy || null }))
+      setView('cancelled')
+    }
   }
 
   const wrap = { background: '#0a0600', minHeight: '100vh', padding: '80px 24px', display: 'flex', justifyContent: 'center' }
@@ -105,9 +108,19 @@ export default function ManageBookingPage() {
           <div style={{ ...card, textAlign: 'center' }}>
             <p style={{ fontSize: '40px', margin: '0 0 12px' }}>😔</p>
             <h2 style={{ fontFamily: 'var(--font-playfair)', color: '#fafafa', fontSize: '22px', marginBottom: '10px' }}>Your booking is cancelled</h2>
-            <p style={{ color: 'rgba(255,255,255,0.5)', fontSize: '14px', lineHeight: 1.7, marginBottom: '24px' }}>
+            <p style={{ color: 'rgba(255,255,255,0.5)', fontSize: '14px', lineHeight: 1.7, marginBottom: '16px' }}>
               We are sorry to see this one go. You are welcome any time, and we would love to host you again.
             </p>
+            {(booking.deposit_cents || 0) > 0 && (
+              <div style={{ background: 'rgba(245,200,66,0.08)', border: '1px solid rgba(245,200,66,0.3)', borderRadius: '10px', padding: '14px 16px', marginBottom: '24px', textAlign: 'left' }}>
+                <p style={{ margin: '0 0 6px', color: GOLD, fontSize: '12px', letterSpacing: '1px', textTransform: 'uppercase', fontWeight: 700 }}>Your refund</p>
+                <p style={{ margin: 0, color: 'rgba(255,255,255,0.7)', fontSize: '13px', lineHeight: 1.6 }}>
+                  Your {deposit} deposit will be processed within 7 working days
+                  {booking.refund_due_by ? <> , by <strong style={{ color: '#fafafa' }}>{prettyDate(booking.refund_due_by)}</strong></> : null}.
+                  It goes back to the card you paid with.
+                </p>
+              </div>
+            )}
             <Link href="/book" style={{ ...btn(true), textDecoration: 'none', display: 'inline-block' }}>Make a new booking</Link>
           </div>
         )}
@@ -124,19 +137,35 @@ export default function ManageBookingPage() {
           </div>
         )}
 
-        {/* Step one: always offer to move the booking first */}
+        {/* Step one: alternative dates in plain sight, before any cancel button */}
         {view === 'summary' && booking.status !== 'cancelled' && (
           <div style={card}>
             <h2 style={{ fontFamily: 'var(--font-playfair)', color: '#fafafa', fontSize: '20px', marginBottom: '10px' }}>
               Need to change your plans?
             </h2>
             <p style={{ color: 'rgba(255,255,255,0.55)', fontSize: '14px', lineHeight: 1.7, marginBottom: '18px' }}>
-              Your {deposit} deposit is non-refundable, but it does move with your booking.
-              Pick another date and you keep every rand of it. Cancelling means the deposit is lost.
+              The easiest thing is to move your booking. Your {deposit} deposit comes with you and
+              there is nothing to pay again. Just pick a day below.
             </p>
+
+            <p style={{ fontSize: '10px', letterSpacing: '2px', textTransform: 'uppercase', color: GOLD, marginBottom: '10px' }}>
+              Alternative dates available
+            </p>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', marginBottom: '20px' }}>
+              {alts.length === 0
+                ? <span style={{ color: 'rgba(255,255,255,0.35)', fontSize: '13px' }}>Loading dates…</span>
+                : alts.map(a => (
+                  <button
+                    key={a.date}
+                    onClick={() => { setPickDate(a.date); setView('reschedule') }}
+                    style={chip(false)}
+                  >{a.label}</button>
+                ))}
+            </div>
+
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px' }}>
-              <button onClick={() => setView('reschedule')} style={btn(true)}>Choose another date</button>
-              <button onClick={() => setView('reason')} style={btn(false)}>Cancel anyway</button>
+              <button onClick={() => setView('reschedule')} style={btn(true)}>Pick a different day or time</button>
+              <button onClick={() => setView('reason')} style={btn(false)}>I need to cancel</button>
             </div>
           </div>
         )}
@@ -146,7 +175,7 @@ export default function ManageBookingPage() {
           <div style={card}>
             <h2 style={{ fontFamily: 'var(--font-playfair)', color: '#fafafa', fontSize: '20px', marginBottom: '6px' }}>Pick a new date</h2>
             <p style={{ color: 'rgba(255,255,255,0.45)', fontSize: '13px', marginBottom: '18px' }}>
-              Your {deposit} deposit carries over. We are closed on Sundays and Mondays.
+              Your {deposit} deposit carries over, so there is nothing more to pay. We are closed on Sundays and Mondays.
             </p>
 
             <p style={{ fontSize: '10px', letterSpacing: '2px', textTransform: 'uppercase', color: GOLD, marginBottom: '10px' }}>Next available dates</p>
@@ -189,11 +218,20 @@ export default function ManageBookingPage() {
         {view === 'reason' && (
           <div style={card}>
             <h2 style={{ fontFamily: 'var(--font-playfair)', color: '#fafafa', fontSize: '20px', marginBottom: '10px' }}>Before you cancel</h2>
-            <div style={{ background: 'rgba(255,107,107,0.08)', border: '1px solid rgba(255,107,107,0.3)', borderRadius: '10px', padding: '14px 16px', marginBottom: '18px' }}>
-              <p style={{ margin: 0, color: '#ff8a7a', fontSize: '13px', lineHeight: 1.6 }}>
-                Cancelling means your {deposit} deposit is lost. Moving to another date keeps it.
+            <div style={{ background: 'rgba(245,200,66,0.08)', border: '1px solid rgba(245,200,66,0.3)', borderRadius: '10px', padding: '14px 16px', marginBottom: '18px' }}>
+              <p style={{ margin: '0 0 8px', color: GOLD, fontSize: '13px', fontWeight: 700, lineHeight: 1.6 }}>
+                Cancelling because of unforeseen circumstances?
+              </p>
+              <p style={{ margin: 0, color: 'rgba(255,255,255,0.65)', fontSize: '13px', lineHeight: 1.6 }}>
+                Your {deposit} deposit will be refunded within 7 working days. Please tell us what
+                happened below so our team can process it.
               </p>
             </div>
+
+            <p style={{ color: 'rgba(255,255,255,0.45)', fontSize: '13px', lineHeight: 1.6, marginBottom: '18px' }}>
+              If your plans have only shifted, moving to another day is quicker for everyone
+              and your deposit stays exactly where it is.
+            </p>
 
             <label style={{ display: 'block', fontSize: '10px', letterSpacing: '2px', textTransform: 'uppercase', color: GOLD, marginBottom: '8px' }}>
               Why are you cancelling? *

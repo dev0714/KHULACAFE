@@ -213,6 +213,16 @@ export default function BookingsAdmin() {
                           Cancelled: “{b.cancellation_reason}”
                         </span>
                       )}
+                      {b.refund_status === 'due' && (
+                        <span style={{ fontSize: '11px', fontWeight: 700, color: 'var(--adm-page)', background: 'var(--adm-gold)', borderRadius: '5px', padding: '3px 7px', alignSelf: 'flex-start' }}>
+                          Refund R{((b.deposit_cents || 0) / 100).toFixed(0)} due by {b.refund_due_by}
+                        </span>
+                      )}
+                      {b.refund_status === 'paid' && (
+                        <span style={{ fontSize: '11px', color: 'var(--adm-green)', fontWeight: 600 }}>
+                          Refund paid
+                        </span>
+                      )}
                     </div>
                     <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '8px' }}>
                       <Pill color={st.color}>{st.label}</Pill>
