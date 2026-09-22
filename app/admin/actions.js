@@ -8,6 +8,16 @@ async function assertAdmin() {
   const token = cookies().get('admin_session')?.value
   const payload = token ? await verifyToken(token) : null
   if (!payload) throw new Error('Unauthorized')
+  return payload
+}
+
+// Any signed-in staff member, driver included. Used by the order screens the
+// driver shares with the kitchen.
+async function assertStaff() {
+  const token = cookies().get('admin_session')?.value
+  const payload = token ? await verifyToken(token) : null
+  if (!payload) throw new Error('Unauthorized')
+  return payload
 }
 
 // ── Menu Categories ─────────────────────────────────────────────
@@ -373,7 +383,7 @@ export async function redeemBucks(customerId, bucksAmount, notes) {
 
 // ── Orders ───────────────────────────────────────────────────────
 export async function getOrders() {
-  await assertAdmin()
+  await assertStaff()
   const { data } = await supabaseAdmin
     .from('orders')
     .select('*, order_items(*)')
@@ -393,21 +403,57 @@ export async function getOrderCounts() {
 }
 
 export async function updateOrderStatus(orderId, status) {
-  await assertAdmin()
-  await supabaseAdmin
-    .from('orders')
-    .update({ status, updated_at: new Date().toISOString() })
-    .eq('id', orderId)
+  const staff = await assertStaff()
 
-  // Fire status email non-blocking
-  const { data: order } = await supabaseAdmin.from('orders').select('*').eq('id', orderId).single()
-  if (order?.customer_email && status !== 'received') {
-    import('../../lib/resend').then(({ sendStatusUpdate }) => {
-      sendStatusUpdate({ order, status }).catch(() => {})
-    })
-  }
+  const patch = { status, updated_at: new Date().toISOString() }
+  // Record who took the order out, so the kitchen knows which driver has it.
+  if (status === 'out_for_delivery' && staff?.sub) patch.driver_id = staff.sub
+  await supabaseAdmin.from('orders').update(patch).eq('id', orderId)
+
+  // Tell the driver and the customer. Awaited, because a serverless function
+  // can be frozen the instant this action returns.
+  const { announceStage } = await import('../../lib/order-notify')
+  await announceStage(orderId, status)
+
+  // Delivered is the cue to ask how we did — once only.
+  if (status === 'delivered') await requestFeedback(orderId)
 
   revalidatePath('/admin/orders')
+  revalidatePath('/driver')
+}
+
+// Sends the rate-your-order email, at most once per order.
+export async function requestFeedback(orderId) {
+  const { data: order } = await supabaseAdmin.from('orders').select('*').eq('id', orderId).single()
+  if (!order || !order.customer_email || order.feedback_sent_at) return
+  const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://khulacafe.vercel.app'
+  try {
+    const { sendFeedbackRequest } = await import('../../lib/resend')
+    await sendFeedbackRequest({ order, baseUrl })
+    await supabaseAdmin.from('orders')
+      .update({ feedback_sent_at: new Date().toISOString() }).eq('id', orderId)
+  } catch (e) {
+    console.error('[feedback request]', e)
+  }
+}
+
+// Orders a driver needs: delivery orders that are not finished yet.
+export async function getDriverOrders() {
+  await assertStaff()
+  const { data } = await supabaseAdmin
+    .from('orders')
+    .select('*, order_items(*)')
+    .eq('delivery_type', 'delivery')
+    .neq('status', 'delivered')
+    .order('created_at', { ascending: true })
+  return data ?? []
+}
+
+export async function getMyStaffRole() {
+  const staff = await assertStaff()
+  const { data } = await supabaseAdmin
+    .from('admin_users').select('role, name').eq('id', staff.sub).single()
+  return { role: data?.role || 'admin', name: data?.name || staff.name || '' }
 }
 
 // ── Admin Users ──────────────────────────────────────────────────
@@ -415,27 +461,29 @@ export async function getAdminUsers() {
   await assertAdmin()
   const { data } = await supabaseAdmin
     .from('admin_users')
-    .select('id, name, email, created_at')
+    .select('id, name, email, role, created_at')
     .order('created_at', { ascending: true })
   return data ?? []
 }
 
-export async function createAdminUser(name, email, password) {
+export async function createAdminUser(name, email, password, role = 'admin') {
   await assertAdmin()
   const bcrypt = await import('bcryptjs')
   const password_hash = await bcrypt.hash(password, 12)
   const { error } = await supabaseAdmin.from('admin_users').insert({
     name: name.trim(),
     email: email.toLowerCase().trim(),
+    role: role === 'driver' ? 'driver' : 'admin',
     password_hash,
   })
   if (error) throw new Error(error.message)
   revalidatePath('/admin/users')
 }
 
-export async function updateAdminUser(id, name, email, password) {
+export async function updateAdminUser(id, name, email, password, role) {
   await assertAdmin()
   const fields = { name: name.trim(), email: email.toLowerCase().trim() }
+  if (role) fields.role = role === 'driver' ? 'driver' : 'admin'
   if (password) {
     const bcrypt = await import('bcryptjs')
     fields.password_hash = await bcrypt.hash(password, 12)
@@ -808,4 +856,14 @@ export async function testPaymentConnectionAdmin() {
   await assertAdmin()
   const { testPaymentConnection } = await import('../../lib/payments')
   return testPaymentConnection()
+}
+
+// ── Feedback ─────────────────────────────────────────────────────
+export async function getFeedback() {
+  await assertAdmin()
+  const { data } = await supabaseAdmin
+    .from('order_feedback')
+    .select('*, orders(customer_name, customer_email, total_cents, delivery_type)')
+    .order('created_at', { ascending: false })
+  return data ?? []
 }

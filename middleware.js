@@ -15,9 +15,17 @@ export async function middleware(request) {
     return NextResponse.redirect(url)
   }
 
+  // Drivers get the deliveries screen only; they have no business in the
+  // dashboard, and sending them there would just show a wall of controls.
+  if (payload.role === 'driver' && pathname.startsWith('/admin')) {
+    const url = request.nextUrl.clone()
+    url.pathname = '/driver'
+    return NextResponse.redirect(url)
+  }
+
   return NextResponse.next()
 }
 
 export const config = {
-  matcher: ['/admin/:path*'],
+  matcher: ['/admin/:path*', '/driver/:path*'],
 }
