@@ -765,7 +765,7 @@ export async function getVouchersAdmin() {
   return { vouchers: data ?? [], tableMissing: !!tableMissing }
 }
 
-export async function createVoucher({ code, amount_cents, expires_at }) {
+export async function createVoucher({ code, amount_cents, expires_at, recipient_name, sender_name, message, theme }) {
   await assertAdmin()
   const clean = (code || '').trim().toUpperCase()
   if (!clean) return { error: 'Enter a voucher code.' }
@@ -774,6 +774,10 @@ export async function createVoucher({ code, amount_cents, expires_at }) {
     code: clean,
     amount_cents: Math.round(amount_cents),
     expires_at: expires_at || null,
+    recipient_name: (recipient_name || '').trim() || null,
+    sender_name: (sender_name || '').trim() || null,
+    message: (message || '').trim().slice(0, 300) || null,
+    theme: theme || 'classic',
   })
   if (error) {
     if (error.code === '23505') return { error: 'That code already exists.' }

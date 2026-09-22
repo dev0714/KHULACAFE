@@ -1,7 +1,8 @@
 'use client'
-import { useState, useTransition } from 'react'
+import { useState, useEffect, useTransition } from 'react'
 import { createVoucher, setVoucherActive, deleteVoucher } from '../actions'
 import { PageHeader } from '../../../components/admin/ui'
+import VoucherCard, { VOUCHER_THEMES } from '../../../components/VoucherCard'
 
 const CREATE_SQL = `CREATE TABLE IF NOT EXISTS "Khulacafe".vouchers (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -22,7 +23,12 @@ const card = { background: '#1e1500', border: '1px solid #2e2000', borderRadius:
 
 export default function VouchersClient({ initial, tableMissing }) {
   const [vouchers, setVouchers] = useState(initial || [])
-  const [form, setForm] = useState({ code: '', amount: '', expires_at: '' })
+  const [form, setForm] = useState({
+    code: '', amount: '', expires_at: '',
+    recipient_name: '', sender_name: '', message: '', theme: 'classic',
+  })
+  const [origin, setOrigin] = useState('')
+  useEffect(() => { if (typeof window !== 'undefined') setOrigin(window.location.origin) }, [])
   const [copied, setCopied] = useState(false)
   const [isPending, startTransition] = useTransition()
 
@@ -34,11 +40,21 @@ export default function VouchersClient({ initial, tableMissing }) {
   function add() {
     startTransition(async () => {
       const amount_cents = Math.round(parseFloat(form.amount || 0) * 100)
-      const res = await createVoucher({ code: form.code, amount_cents, expires_at: form.expires_at || null })
+      const res = await createVoucher({
+        code: form.code, amount_cents, expires_at: form.expires_at || null,
+        recipient_name: form.recipient_name, sender_name: form.sender_name,
+        message: form.message, theme: form.theme,
+      })
       if (res?.error) { alert(res.error); return }
-      setForm({ code: '', amount: '', expires_at: '' })
-      // Optimistic add; refetch on next load. Prepend a temp row.
-      setVouchers(v => [{ id: `tmp-${Date.now()}`, code: form.code.trim().toUpperCase(), amount_cents, active: true, expires_at: form.expires_at || null, redeemed_at: null, created_at: new Date().toISOString() }, ...v])
+      const created = {
+        id: `tmp-${Date.now()}`, code: form.code.trim().toUpperCase(), amount_cents,
+        active: true, expires_at: form.expires_at || null, redeemed_at: null,
+        recipient_name: form.recipient_name || null, sender_name: form.sender_name || null,
+        message: form.message || null, theme: form.theme,
+        created_at: new Date().toISOString(),
+      }
+      setForm({ code: '', amount: '', expires_at: '', recipient_name: '', sender_name: '', message: '', theme: 'classic' })
+      setVouchers(v => [created, ...v])
     })
   }
   function toggle(v) {
@@ -101,6 +117,68 @@ export default function VouchersClient({ initial, tableMissing }) {
             <input type="date" value={form.expires_at} onChange={e => setForm(f => ({ ...f, expires_at: e.target.value }))} style={{ ...inp, colorScheme: 'dark' }} />
           </div>
         </div>
+        {/* Who it is for, and what it says */}
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '14px' }}>
+          <div>
+            <label style={lbl}>For (recipient)</label>
+            <input value={form.recipient_name} onChange={e => setForm(f => ({ ...f, recipient_name: e.target.value }))} placeholder="Nokuphumula" style={inp} />
+          </div>
+          <div>
+            <label style={lbl}>From (sender)</label>
+            <input value={form.sender_name} onChange={e => setForm(f => ({ ...f, sender_name: e.target.value }))} placeholder="The Khula team" style={inp} />
+          </div>
+        </div>
+
+        <div style={{ marginBottom: '14px' }}>
+          <label style={lbl}>Greeting / message</label>
+          <textarea
+            value={form.message}
+            maxLength={300}
+            onChange={e => setForm(f => ({ ...f, message: e.target.value }))}
+            placeholder="Wishing you a wonderful day. Enjoy a meal on us!"
+            style={{ ...inp, minHeight: '76px', resize: 'vertical', fontFamily: 'inherit', lineHeight: 1.6 }}
+          />
+          <p style={{ margin: '6px 0 0', fontSize: '11px', color: 'rgba(255,255,255,0.3)' }}>{form.message.length}/300</p>
+        </div>
+
+        <div style={{ marginBottom: '18px' }}>
+          <label style={lbl}>Design template</label>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
+            {Object.entries(VOUCHER_THEMES).map(([key, t]) => (
+              <button
+                key={key}
+                onClick={() => setForm(f => ({ ...f, theme: key }))}
+                style={{
+                  cursor: 'pointer', padding: '9px 14px', borderRadius: '20px',
+                  fontSize: '12px', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '7px',
+                  background: form.theme === key ? 'linear-gradient(135deg,#f5c842,#c8940c)' : '#0a0600',
+                  color: form.theme === key ? '#0a0600' : 'rgba(255,255,255,0.6)',
+                  border: `1px solid ${form.theme === key ? 'transparent' : '#2e2000'}`,
+                }}
+              >
+                <span>{t.motif}</span>{t.label}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* Live preview — exactly what the recipient will see */}
+        <div style={{ marginBottom: '18px' }}>
+          <label style={lbl}>Preview</label>
+          <VoucherCard
+            scale={0.82}
+            voucher={{
+              code: form.code || 'KHULA000',
+              amount_cents: Math.round(parseFloat(form.amount || 0) * 100),
+              expires_at: form.expires_at || null,
+              recipient_name: form.recipient_name,
+              sender_name: form.sender_name,
+              message: form.message,
+              theme: form.theme,
+            }}
+          />
+        </div>
+
         <button onClick={add} disabled={isPending || !form.code || !form.amount} style={btnP}>{isPending ? 'Saving…' : 'Create Voucher'}</button>
       </div>
 
@@ -123,7 +201,19 @@ export default function VouchersClient({ initial, tableMissing }) {
                   {v.expires_at && <div style={{ fontSize: '11px', color: 'rgba(255,255,255,0.35)', marginTop: '2px' }}>Expires {v.expires_at}</div>}
                   {used && v.redeemed_note && <div style={{ fontSize: '11px', color: 'rgba(255,255,255,0.35)', marginTop: '2px' }}>{v.redeemed_note}</div>}
                 </div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexShrink: 0 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexShrink: 0, flexWrap: 'wrap', justifyContent: 'flex-end' }}>
+                  {(() => {
+                    const link = `${origin}/voucher/${v.code}`
+                    const text = `${v.sender_name ? `${v.sender_name} has sent you` : "Here's"} a R${(v.amount_cents / 100).toFixed(0)} Khula Cafe gift voucher! Code ${v.code}. ${link}`
+                    const small = { padding: '7px 12px', borderRadius: '8px', border: '1px solid #2e2000', background: 'transparent', color: 'rgba(255,255,255,0.6)', cursor: 'pointer', fontSize: '12px', textDecoration: 'none' }
+                    return (
+                      <>
+                        <a href={link} target="_blank" rel="noopener noreferrer" style={small}>View</a>
+                        <a href={`https://wa.me/?text=${encodeURIComponent(text)}`} target="_blank" rel="noopener noreferrer" style={{ ...small, borderColor: 'rgba(37,211,102,0.5)', color: '#25D366' }}>WhatsApp</a>
+                        <a href={`mailto:?subject=${encodeURIComponent(`A R${(v.amount_cents / 100).toFixed(0)} Khula Cafe gift voucher for you`)}&body=${encodeURIComponent(text)}`} style={small}>Email</a>
+                      </>
+                    )
+                  })()}
                   {!used && (
                     <button onClick={() => toggle(v)} style={{ padding: '7px 12px', borderRadius: '8px', border: '1px solid #2e2000', background: 'transparent', color: 'rgba(255,255,255,0.6)', cursor: 'pointer', fontSize: '12px' }}>
                       {v.active ? 'Deactivate' : 'Activate'}
