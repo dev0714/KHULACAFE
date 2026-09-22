@@ -886,3 +886,14 @@ export async function markRefundPaid(bookingId) {
   revalidatePath('/admin/bookings')
   return { ok: true }
 }
+
+// Recent email delivery attempts, newest first.
+export async function getEmailLog(limit = 15) {
+  await assertAdmin()
+  const { data } = await supabaseAdmin
+    .from('email_log')
+    .select('*')
+    .order('created_at', { ascending: false })
+    .limit(limit)
+  return data ?? []
+}
