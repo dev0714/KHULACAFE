@@ -1,6 +1,6 @@
 'use client'
-import { useState, useTransition } from 'react'
-import { saveEmailSettings, sendTestEmailAdmin } from '../actions'
+import { useState, useEffect, useTransition } from 'react'
+import { saveEmailSettings, sendTestEmailAdmin, getEmailLog } from '../actions'
 import { PageHeader } from '../../../components/admin/ui'
 
 const CREATE_SQL = `CREATE TABLE IF NOT EXISTS "Khulacafe".email_settings (
@@ -94,6 +94,11 @@ export default function SettingsClient({ initial, tableMissing, needsSmtpColumns
   const [testResult, setTestResult] = useState(null)
   const [isPending, startTransition] = useTransition()
   const [isTesting, startTest] = useTransition()
+  const [log, setLog] = useState([])
+  useEffect(() => { getEmailLog(15).then(setLog).catch(() => {}) }, [saved, testResult])
+
+  const recentFailures = log.filter(l => !l.ok).length
+  const allFailing = log.length > 0 && recentFailures === log.length
 
   const set = (k, v) => { setForm(f => ({ ...f, [k]: v })); setSaved(false) }
   const isSmtp = form.send_method === 'smtp'
@@ -129,6 +134,20 @@ export default function SettingsClient({ initial, tableMissing, needsSmtpColumns
       <PageHeader title="Email" subtitle="How Khula Cafe sends booking, order and contact-form emails. Changes take effect immediately." />
 
       {needsSmtpColumns && <SqlCard title="Enable SMTP — one-time database update" sql={UPGRADE_SQL} />}
+
+      {allFailing && (
+        <div style={{ ...card, border: '1px solid #ff6b6b', background: 'rgba(255,107,107,0.07)' }}>
+          <h2 style={{ color: '#ff8a7a', fontSize: '15px', marginBottom: '8px' }}>No emails are being delivered</h2>
+          <p style={{ fontSize: '13px', color: 'rgba(255,255,255,0.65)', lineHeight: 1.7, margin: '0 0 10px' }}>
+            Every one of the last {log.length} attempts failed. Nobody is receiving booking,
+            order or contact notifications, including any address listed below.
+          </p>
+          <p style={{ fontSize: '12px', color: 'rgba(255,255,255,0.45)', lineHeight: 1.7, margin: 0 }}>
+            The usual cause is a mail host that refuses connections from cloud servers.
+            Switching the sending method to Resend avoids that entirely.
+          </p>
+        </div>
+      )}
 
       {/* ── Sending method ── */}
       <div style={card}>
@@ -284,6 +303,37 @@ export default function SettingsClient({ initial, tableMissing, needsSmtpColumns
           </p>
         )}
       </div>
+      {/* Delivery log */}
+      <div style={card}>
+        <h2 style={sectionTitle}>Recent delivery attempts</h2>
+        <p style={sectionSub}>Every email the site tried to send, newest first. Use this to check whether a notification actually went out.</p>
+        {log.length === 0 ? (
+          <p style={{ color: 'rgba(255,255,255,0.35)', fontSize: '13px', margin: 0 }}>Nothing sent yet.</p>
+        ) : (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+            {log.map(l => (
+              <div key={l.id} style={{
+                padding: '12px 14px', borderRadius: '10px', background: '#0a0600',
+                border: `1px solid ${l.ok ? '#2e2000' : 'rgba(255,107,107,0.35)'}`,
+              }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', gap: '10px', flexWrap: 'wrap', marginBottom: '4px' }}>
+                  <span style={{ fontSize: '13px', color: '#fafafa', fontWeight: 600 }}>
+                    {l.ok ? '✓' : '✕'} {l.subject || '(no subject)'}
+                  </span>
+                  <span style={{ fontSize: '11px', color: 'rgba(255,255,255,0.35)' }}>
+                    {new Date(l.created_at).toLocaleString('en-ZA', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}
+                  </span>
+                </div>
+                <p style={{ margin: '0 0 4px', fontSize: '12px', color: 'rgba(255,255,255,0.5)' }}>To {l.recipients || '—'}</p>
+                {!l.ok && l.error && (
+                  <p style={{ margin: 0, fontSize: '12px', color: '#ff8a7a', lineHeight: 1.6 }}>{l.error}</p>
+                )}
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
     </div>
   )
 }
