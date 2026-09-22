@@ -22,7 +22,8 @@ export default function StaffLogin() {
     })
 
     if (res.ok) {
-      router.push('/admin')
+      const data = await res.json().catch(() => ({}))
+      router.push(data.redirect || '/admin')
       router.refresh()
     } else {
       const { error: msg } = await res.json()

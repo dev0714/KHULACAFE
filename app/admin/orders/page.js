@@ -4,10 +4,11 @@ import { getOrders, updateOrderStatus } from '../actions'
 import { PageHeader, Card, Pill, Btn, Tabs, Icon, Empty } from '../../../components/admin/ui'
 
 const STATUSES = [
-  { key: 'received',         label: 'Received',         color: '#6b9fff' },
-  { key: 'making',           label: 'Being made',       color: '#f5c842' },
-  { key: 'out_for_delivery', label: 'Out for delivery', color: '#ff9f43' },
-  { key: 'delivered',        label: 'Delivered',        color: '#26de81' },
+  { key: 'received',         label: 'Received',            color: '#6b9fff' },
+  { key: 'making',           label: 'Being made',          color: '#f5c842' },
+  { key: 'ready',            label: 'Ready for collection', color: '#26de81' },
+  { key: 'out_for_delivery', label: 'Out for delivery',    color: '#ff9f43' },
+  { key: 'delivered',        label: 'Delivered',           color: '#26de81' },
 ]
 const statusMeta = (key) => STATUSES.find(s => s.key === key) ?? STATUSES[0]
 const nextStatus = (key) => { const i = STATUSES.findIndex(s => s.key === key); return i < STATUSES.length - 1 ? STATUSES[i + 1] : null }

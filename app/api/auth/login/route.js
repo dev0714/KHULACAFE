@@ -12,7 +12,7 @@ export async function POST(request) {
 
   const { data: user, error: dbError } = await supabaseAdmin
     .from('admin_users')
-    .select('id, email, name, password_hash')
+    .select('id, email, name, role, password_hash')
     .eq('email', email.toLowerCase().trim())
     .single()
 
@@ -25,9 +25,10 @@ export async function POST(request) {
     return NextResponse.json({ error: 'Invalid credentials' }, { status: 401 })
   }
 
-  const token = await signToken({ sub: user.id, email: user.email, name: user.name })
+  const role = user.role || 'admin'
+  const token = await signToken({ sub: user.id, email: user.email, name: user.name, role })
 
-  const response = NextResponse.json({ ok: true })
+  const response = NextResponse.json({ ok: true, role, redirect: role === 'driver' ? '/driver' : '/admin' })
   response.cookies.set('admin_session', token, {
     httpOnly: true,
     secure: process.env.NODE_ENV === 'production',

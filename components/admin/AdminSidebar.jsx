@@ -12,6 +12,7 @@ export const NAV_GROUPS = [
     { href: '/admin/orders', label: 'Orders', icon: 'receipt', badge: 'orders' },
     { href: '/admin/bookings', label: 'Bookings', icon: 'calendar' },
     { href: '/admin/messages', label: 'Messages', icon: 'mail', badge: 'messages' },
+    { href: '/admin/feedback', label: 'Ratings', icon: 'check' },
   ]},
   { group: 'Content', items: [
     { href: '/admin/menu', label: 'Menu', icon: 'utensils' },

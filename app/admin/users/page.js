@@ -3,7 +3,7 @@ import { useState, useEffect, useCallback } from 'react'
 import { getAdminUsers, createAdminUser, updateAdminUser, deleteAdminUser } from '../actions'
 import { PageHeader, Card, Btn, Avatar, Icon, Empty } from '../../../components/admin/ui'
 
-const blank = { name: '', email: '', password: '', confirm: '' }
+const blank = { name: '', email: '', password: '', confirm: '', role: 'admin' }
 
 export default function UsersPage() {
   const [users, setUsers] = useState([])
@@ -18,7 +18,7 @@ export default function UsersPage() {
   useEffect(() => { load() }, [load])
 
   const set = (k, v) => setForm(f => ({ ...f, [k]: v }))
-  function startEdit(user) { setEditing(user); setForm({ name: user.name, email: user.email, password: '', confirm: '' }); setError(''); setSuccess('') }
+  function startEdit(user) { setEditing(user); setForm({ name: user.name, email: user.email, password: '', confirm: '', role: user.role || 'admin' }); setError(''); setSuccess('') }
   function cancelEdit() { setEditing(null); setForm(blank); setError('') }
 
   async function handleSave(e) {
@@ -30,8 +30,8 @@ export default function UsersPage() {
     if (form.password && form.password.length < 8) { setError('Password must be at least 8 characters.'); return }
     setSaving(true)
     try {
-      if (editing) { await updateAdminUser(editing.id, form.name, form.email, form.password || null); setSuccess('User updated.') }
-      else { await createAdminUser(form.name, form.email, form.password); setSuccess('User created.') }
+      if (editing) { await updateAdminUser(editing.id, form.name, form.email, form.password || null, form.role); setSuccess('User updated.') }
+      else { await createAdminUser(form.name, form.email, form.password, form.role); setSuccess('User created.') }
       setEditing(null); setForm(blank)
       await load()
     } catch (err) { setError(err.message) }
@@ -59,7 +59,10 @@ export default function UsersPage() {
               <div style={{ display: 'flex', alignItems: 'center', gap: '12px', minWidth: 0 }}>
                 <Avatar name={user.name} />
                 <div style={{ display: 'flex', flexDirection: 'column', minWidth: 0 }}>
-                  <span style={{ fontSize: '14px', fontWeight: 600 }}>{user.name}</span>
+                  <span style={{ fontSize: '14px', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    {user.name}
+                    {user.role === 'driver' && <span style={{ fontSize: '9px', fontWeight: 700, letterSpacing: '0.5px', textTransform: 'uppercase', color: 'var(--adm-page)', background: 'var(--adm-gold)', borderRadius: '5px', padding: '2px 6px' }}>Driver</span>}
+                  </span>
                   <span style={{ fontSize: '12px', color: 'var(--adm-muted)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{user.email}</span>
                 </div>
               </div>
@@ -76,6 +79,13 @@ export default function UsersPage() {
           <form onSubmit={handleSave} style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
             <div><label className="adm-label">Full name</label><input className="adm-input" value={form.name} onChange={e => set('name', e.target.value)} /></div>
             <div><label className="adm-label">Email</label><input className="adm-input" type="email" value={form.email} onChange={e => set('email', e.target.value)} /></div>
+            <div>
+              <label className="adm-label">Role</label>
+              <select className="adm-input" value={form.role} onChange={e => set('role', e.target.value)}>
+                <option value="admin">Admin — full access to this dashboard</option>
+                <option value="driver">Driver — deliveries screen only</option>
+              </select>
+            </div>
             <div><label className="adm-label">{editing ? 'New password (leave blank to keep)' : 'Password'}</label><input className="adm-input" type="password" value={form.password} onChange={e => set('password', e.target.value)} /></div>
             {form.password && <div><label className="adm-label">Confirm password</label><input className="adm-input" type="password" value={form.confirm} onChange={e => set('confirm', e.target.value)} /></div>}
             {error && <p style={{ color: 'var(--adm-red)', fontSize: '12px', margin: 0 }}>{error}</p>}
