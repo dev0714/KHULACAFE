@@ -1,10 +1,28 @@
 import { NextResponse } from 'next/server'
 import { supabaseAdmin } from '../../../../lib/supabase-admin'
-import { sendOrderConfirmation } from '../../../../lib/resend'
+import { sendOrderConfirmation, notifyStaff } from '../../../../lib/resend'
+
+function staffOrderHtml({ order, items, totalCents }) {
+  const when = order.wanted_time
+    ? `${order.delivery_type === 'delivery' ? 'Deliver at' : 'Collect at'}: <strong>${order.wanted_time}</strong>`
+    : 'No time requested'
+  const lines = items.map(i => `<tr><td style="padding:6px 0">${i.qty}x ${i.name}</td><td style="text-align:right">R${(i.price_cents * i.qty / 100).toFixed(2)}</td></tr>`).join('')
+  return `
+    <h2 style="margin:0 0 8px">New order ${order.id.slice(0, 8).toUpperCase()}</h2>
+    <p style="margin:0 0 4px"><strong>${order.customer_name}</strong>${order.customer_phone ? ` &middot; ${order.customer_phone}` : ''}</p>
+    <p style="margin:0 0 4px">${order.delivery_type === 'delivery' ? `Delivery to: ${order.delivery_address}` : 'Pickup'}</p>
+    <p style="margin:0 0 16px">${when}</p>
+    ${order.notes ? `<div style="background:#f9f5ec;border-left:4px solid #f5c842;padding:12px 14px;margin:0 0 16px">
+      <p style="margin:0 0 4px;font-size:12px;text-transform:uppercase;letter-spacing:1px;color:#a8860b;font-weight:700">Special instructions</p>
+      <p style="margin:0;white-space:pre-wrap">${order.notes}</p></div>` : ''}
+    <table style="width:100%;border-top:1px solid #eee">${lines}
+      <tr style="border-top:1px solid #eee;font-weight:700"><td style="padding:10px 0">Total</td><td style="text-align:right">R${(totalCents / 100).toFixed(2)}</td></tr>
+    </table>`
+}
 
 export async function POST(request) {
   const body = await request.json()
-  const { customerName, customerEmail, customerPhone, deliveryType, deliveryAddress, notes, items, bucksRedeemed, customerId, voucherCode } = body
+  const { customerName, customerEmail, customerPhone, deliveryType, deliveryAddress, wantedTime, notes, items, bucksRedeemed, customerId, voucherCode } = body
 
   if (!customerName || !Array.isArray(items) || items.length === 0) {
     return NextResponse.json({ error: 'Customer name and at least one item are required' }, { status: 400 })
@@ -23,6 +41,7 @@ export async function POST(request) {
       customer_phone: customerPhone?.trim() || null,
       delivery_type: deliveryType,
       delivery_address: deliveryType === 'delivery' ? deliveryAddress.trim() : null,
+      wanted_time: wantedTime?.trim() || null,
       notes: notes?.trim() || null,
       total_cents: totalCents,
       status: 'received',
@@ -99,12 +118,22 @@ export async function POST(request) {
   if (extraNotes.length) {
     const merged = [notes?.trim() || null, ...extraNotes].filter(Boolean).join(' · ')
     await supabaseAdmin.from('orders').update({ notes: merged }).eq('id', order.id)
+    order.notes = merged
   }
 
   const netCents = Math.max(0, totalCents - voucherCents - redeemedCents)
 
-  // Send confirmation email (non-blocking)
-  sendOrderConfirmation({ order, items }).catch(() => {})
+  // Await the emails. On serverless the function can be frozen the moment we
+  // respond, so a fire-and-forget send silently never leaves the box.
+  const mail = await Promise.allSettled([
+    sendOrderConfirmation({ order, items }),
+    notifyStaff({
+      type: 'order',
+      subject: `New order ${order.id.slice(0, 8).toUpperCase()} — ${order.customer_name}`,
+      html: staffOrderHtml({ order, items, totalCents }),
+    }),
+  ])
+  mail.forEach(r => { if (r.status === 'rejected') console.error('[order email]', r.reason) })
 
   return NextResponse.json({ orderId: order.id, netCents, voucherCents, redeemedCents })
 }
