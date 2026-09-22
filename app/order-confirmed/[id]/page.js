@@ -96,6 +96,7 @@ export default function OrderConfirmedPage() {
           </span><br />
           <span style={{ fontSize: '12px' }}>
             {order.delivery_type === 'delivery' ? `Delivering to: ${order.delivery_address}` : 'Ready for pickup at Khula Cafe'}
+            {order.wanted_time ? <><br />{order.delivery_type === 'delivery' ? 'Delivery time' : 'Collection time'}: <strong style={{ color: '#f5c842' }}>{order.wanted_time}</strong></> : null}
           </span>
         </div>
 

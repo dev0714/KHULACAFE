@@ -148,7 +148,10 @@ export default function OrdersPage() {
                     </span>
                     <span style={{ fontSize: '12px', color: 'var(--adm-faint)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{o.customer_email || o.customer_phone || timeAgo(o.created_at)}</span>
                   </div>
-                  <span style={{ fontSize: '13px', color: 'var(--adm-muted)' }}>{o.delivery_type === 'delivery' ? 'Delivery' : 'Pickup'}</span>
+                  <div style={{ display: 'flex', flexDirection: 'column', minWidth: 0 }}>
+                    <span style={{ fontSize: '13px', color: 'var(--adm-muted)' }}>{o.delivery_type === 'delivery' ? 'Delivery' : 'Pickup'}</span>
+                    {o.wanted_time && <span style={{ fontSize: '11px', color: 'var(--adm-gold)', fontWeight: 600 }}>{o.wanted_time}</span>}
+                  </div>
                   <span style={{ fontSize: '13px', fontWeight: 600 }}>R{(o.total_cents / 100).toFixed(0)}</span>
                   <Pill color={st.color}>{st.label}</Pill>
                 </div>
@@ -177,6 +180,7 @@ export default function OrdersPage() {
                   {selected.customer_email && <span style={{ fontSize: '12px', color: 'var(--adm-muted)', display: 'flex', alignItems: 'center', gap: '8px' }}>{Icon.at(14)} {selected.customer_email}</span>}
                   {selected.customer_phone && <span style={{ fontSize: '12px', color: 'var(--adm-muted)', display: 'flex', alignItems: 'center', gap: '8px' }}>{Icon.phone(14)} {selected.customer_phone}</span>}
                   {selected.delivery_type === 'delivery' && selected.delivery_address && <span style={{ fontSize: '12px', color: 'var(--adm-muted)', display: 'flex', alignItems: 'center', gap: '8px' }}>{Icon.truck(14)} {selected.delivery_address}</span>}
+                  {selected.wanted_time && <span style={{ fontSize: '12px', color: 'var(--adm-gold)', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '8px' }}>{Icon.clock(14)} {selected.delivery_type === 'delivery' ? 'Deliver at' : 'Collect at'} {selected.wanted_time}</span>}
                 </div>
 
                 {selected.notes && (

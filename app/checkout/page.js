@@ -15,11 +15,31 @@ const labelStyle = {
   color: '#f5c842', marginBottom: '6px', textTransform: 'uppercase',
 }
 
+// Half-hour slots across trading hours (08:00 to 19:00 covers Fri/Sat too).
+const SLOTS = (() => {
+  const out = []
+  for (let h = 8; h <= 18; h++) {
+    out.push(`${String(h).padStart(2, '0')}:00`)
+    out.push(`${String(h).padStart(2, '0')}:30`)
+  }
+  out.push('19:00')
+  return out
+})()
+
+const timeChipStyle = (active) => ({
+  cursor: 'pointer', padding: '9px 14px', borderRadius: '20px',
+  fontSize: '12px', fontWeight: 700, letterSpacing: '0.5px',
+  background: active ? 'linear-gradient(135deg, #f5c842, #c8940c)' : '#1e1500',
+  color: active ? '#0a0600' : 'rgba(255,255,255,0.6)',
+  border: `1px solid ${active ? 'transparent' : '#2e2000'}`,
+  transition: 'all 0.15s', whiteSpace: 'nowrap',
+})
+
 export default function CheckoutPage() {
   const { items, totalCents, clearCart } = useCart()
   const router = useRouter()
 
-  const [form, setForm] = useState({ name: '', email: '', phone: '', deliveryType: 'pickup', address: '', notes: '' })
+  const [form, setForm] = useState({ name: '', email: '', phone: '', deliveryType: 'pickup', address: '', wantedTime: '', notes: '' })
   const [step, setStep] = useState('details') // 'details' | 'payment'
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
@@ -77,6 +97,12 @@ export default function CheckoutPage() {
       setError('Please enter your delivery address.')
       return
     }
+    if (!form.wantedTime) {
+      setError(form.deliveryType === 'delivery'
+        ? 'Please choose what time you would like your order delivered.'
+        : 'Please choose what time you will collect your order.')
+      return
+    }
     setError('')
     // Look up Khula Bucks balance by email
     setLoyaltyCustomer(null)
@@ -110,6 +136,7 @@ export default function CheckoutPage() {
           customerPhone: form.phone || null,
           deliveryType: form.deliveryType,
           deliveryAddress: form.address || null,
+          wantedTime: form.wantedTime || null,
           notes: form.notes || null,
           items,
           bucksRedeemed: redeemedBucks,
@@ -175,6 +202,32 @@ export default function CheckoutPage() {
                   {type === 'pickup' ? '🏠 Pickup' : '🛵 Delivery'}
                 </button>
               ))}
+            </div>
+
+            {/* When do they want it */}
+            <div>
+              <label style={labelStyle}>
+                {form.deliveryType === 'delivery' ? 'Delivery Time *' : 'Collection Time *'}
+              </label>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
+                <button
+                  type="button"
+                  onClick={() => set('wantedTime', 'As soon as possible')}
+                  style={timeChipStyle(form.wantedTime === 'As soon as possible')}
+                >
+                  As soon as possible
+                </button>
+                {SLOTS.map(t => (
+                  <button key={t} type="button" onClick={() => set('wantedTime', t)} style={timeChipStyle(form.wantedTime === t)}>
+                    {t}
+                  </button>
+                ))}
+              </div>
+              <p style={{ fontSize: '12px', color: 'rgba(255,255,255,0.35)', margin: '8px 0 0' }}>
+                {form.deliveryType === 'delivery'
+                  ? 'When would you like it delivered? We are open 08:00 to 17:00, and to 19:00 on Friday and Saturday.'
+                  : 'When will you collect? We are open 08:00 to 17:00, and to 19:00 on Friday and Saturday.'}
+              </p>
             </div>
 
             <div>
