@@ -86,6 +86,18 @@ export async function rescheduleBooking(id, newDate, newTime) {
   return { ok: true, date: newDate, time: newTime }
 }
 
+// Seven working days from today, skipping Saturdays and Sundays.
+function workingDaysFrom(days) {
+  const d = new Date()
+  let left = days
+  while (left > 0) {
+    d.setDate(d.getDate() + 1)
+    const wd = d.getDay()
+    if (wd !== 0 && wd !== 6) left--
+  }
+  return d.toISOString().slice(0, 10)
+}
+
 // Cancel, but only with a reason attached.
 export async function cancelBooking(id, reason) {
   const text = (reason || '').trim()
@@ -96,10 +108,13 @@ export async function cancelBooking(id, reason) {
   if (!booking) return { error: 'We could not find that booking.' }
   if (booking.status === 'cancelled') return { ok: true }
 
+  const dueBy = workingDaysFrom(7)
   const { error } = await supabaseAdmin.from('bookings').update({
     status: 'cancelled',
     cancellation_reason: text.slice(0, 500),
     cancelled_at: new Date().toISOString(),
+    refund_status: booking.deposit_cents > 0 ? 'due' : null,
+    refund_due_by: booking.deposit_cents > 0 ? dueBy : null,
   }).eq('id', id)
   if (error) return { error: 'Could not cancel your booking. Please try again.' }
 
@@ -115,9 +130,9 @@ export async function cancelBooking(id, reason) {
           <p style="margin:0 0 4px;font-size:12px;text-transform:uppercase;letter-spacing:1px;color:#a8860b;font-weight:700">Reason given</p>
           <p style="margin:0;white-space:pre-wrap">${text}</p>
         </div>
-        <p>Deposit paid: R${((booking.deposit_cents || 0) / 100).toFixed(0)} (non-refundable).</p>`,
+        <p><strong>Refund due:</strong> R${((booking.deposit_cents || 0) / 100).toFixed(0)}, to be processed by <strong>${dueBy}</strong> (7 working days).</p>`,
     })
   } catch (e) { console.error('[cancel mail]', e) }
 
-  return { ok: true }
+  return { ok: true, refundDueBy: dueBy, depositCents: booking.deposit_cents || 0 }
 }

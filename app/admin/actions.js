@@ -870,3 +870,15 @@ export async function getFeedback() {
     .order('created_at', { ascending: false })
   return data ?? []
 }
+
+// Marks a cancelled booking's deposit refund as paid.
+export async function markRefundPaid(bookingId) {
+  await assertAdmin()
+  const { error } = await supabaseAdmin.from('bookings').update({
+    refund_status: 'paid',
+    refunded_at: new Date().toISOString(),
+  }).eq('id', bookingId)
+  if (error) return { error: error.message }
+  revalidatePath('/admin/bookings')
+  return { ok: true }
+}

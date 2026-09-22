@@ -6,6 +6,21 @@ import { createBooking, validateVoucherPublic } from '../admin/actions'
 // The cafe is closed on Sundays (0) and Mondays (1).
 const CLOSED_DAYS = [0, 1]
 const CLOSED_DAY_NAMES = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday']
+// The next eight days we are actually open, offered as one-tap choices.
+const NEXT_OPEN_DATES = (() => {
+  const out = []
+  const d = new Date()
+  while (out.length < 8) {
+    d.setDate(d.getDate() + 1)
+    if (CLOSED_DAYS.includes(d.getDay())) continue
+    out.push({
+      date: d.toISOString().slice(0, 10),
+      label: d.toLocaleDateString('en-ZA', { weekday: 'short', day: 'numeric', month: 'short' }),
+    })
+  }
+  return out
+})()
+
 function isClosedDay(dateStr) {
   if (!dateStr) return false
   const d = new Date(dateStr + 'T00:00:00')
@@ -379,6 +394,26 @@ export default function BookPage() {
                       ? `We're closed on ${CLOSED_DAY_NAMES[new Date(form.date + 'T00:00:00').getDay()]}s. Please pick another day.`
                       : 'We are closed on Sundays and Mondays.'}
                   </p>
+
+                  <p style={{ fontSize: '10px', letterSpacing: '2px', textTransform: 'uppercase', color: '#f5c842', margin: '18px 0 10px' }}>
+                    Next available dates
+                  </p>
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
+                    {NEXT_OPEN_DATES.map(d => (
+                      <button
+                        key={d.date}
+                        type="button"
+                        onClick={() => setForm(f => ({ ...f, date: d.date }))}
+                        style={{
+                          cursor: 'pointer', padding: '9px 14px', borderRadius: '20px',
+                          fontSize: '12px', fontWeight: 700, whiteSpace: 'nowrap',
+                          background: form.date === d.date ? 'linear-gradient(135deg,#f5c842,#c8940c)' : '#1e1500',
+                          color: form.date === d.date ? '#0a0600' : 'rgba(255,255,255,0.6)',
+                          border: `1px solid ${form.date === d.date ? 'transparent' : '#2e2000'}`,
+                        }}
+                      >{d.label}</button>
+                    ))}
+                  </div>
                 </div>
                 <div>
                   <label style={labelStyle}>Time</label>
