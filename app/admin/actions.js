@@ -429,7 +429,7 @@ export async function updateOrderStatus(orderId, status) {
 export async function requestFeedback(orderId) {
   const { data: order } = await supabaseAdmin.from('orders').select('*').eq('id', orderId).single()
   if (!order || !order.customer_email || order.feedback_sent_at) return
-  const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://khulacafe.vercel.app'
+  const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://www.khulacafe.co.za'
   try {
     const { sendFeedbackRequest } = await import('../../lib/resend')
     await sendFeedbackRequest({ order, baseUrl })

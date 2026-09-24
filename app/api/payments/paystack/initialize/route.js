@@ -3,12 +3,17 @@ import { supabaseAdmin } from '../../../../../lib/supabase-admin'
 import { initializeTransaction } from '../../../../../lib/payments'
 import { getPaymentSettings } from '../../../../../lib/payment-settings'
 
+// Where Paystack sends the customer after paying. Never VERCEL_URL: that is
+// the per-deployment address, which Vercel hides behind its own login page.
+// Prefer the address the customer is actually browsing on.
 function getCallbackBaseUrl(request) {
-  const vercelUrl = process.env.VERCEL_URL?.trim().replace(/\/+$/, '')
-  const forwardedHost = request.headers.get('x-forwarded-host')?.trim().replace(/\/+$/, '')
+  const clean = (u) => u?.trim().replace(/\/+$/, '')
+  const forwardedHost = clean(request.headers.get('x-forwarded-host'))
   const forwardedProto = request.headers.get('x-forwarded-proto')?.trim() || 'https'
-  const requestOrigin = forwardedHost ? `${forwardedProto}://${forwardedHost}` : new URL(request.url).origin
-  return vercelUrl ? `https://${vercelUrl}` : requestOrigin
+  if (forwardedHost) return `${forwardedProto}://${forwardedHost}`
+  const production = clean(process.env.VERCEL_PROJECT_PRODUCTION_URL)
+  if (production) return `https://${production}`
+  return new URL(request.url).origin
 }
 
 export async function POST(request) {
