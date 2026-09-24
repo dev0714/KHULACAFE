@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { supabaseAdmin } from '../../../../lib/supabase-admin'
 import { sendOrderConfirmation, notifyStaff } from '../../../../lib/resend'
+import { isAllowedTime, slotsFor } from '../../../../lib/trading-hours'
 
 function staffOrderHtml({ order, items, totalCents }) {
   const when = order.wanted_time
@@ -29,6 +30,15 @@ export async function POST(request) {
   }
   if (deliveryType === 'delivery' && !deliveryAddress?.trim()) {
     return NextResponse.json({ error: 'Delivery address is required for delivery orders' }, { status: 400 })
+  }
+  if (wantedTime && !isAllowedTime(deliveryType, wantedTime.trim())) {
+    const info = slotsFor(deliveryType)
+    const msg = !info.open
+      ? 'We are closed today. Please order again on Tuesday.'
+      : deliveryType === 'delivery'
+        ? `That time is no longer available. Deliveries run until ${info.last} today.`
+        : `That time is no longer available. Collections run until ${info.close} today.`
+    return NextResponse.json({ error: msg }, { status: 400 })
   }
 
   const totalCents = items.reduce((sum, i) => sum + i.price_cents * i.qty, 0)
