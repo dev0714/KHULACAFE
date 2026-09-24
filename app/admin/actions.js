@@ -413,13 +413,16 @@ export async function updateOrderStatus(orderId, status) {
   // Stamp the transition so we can measure how long each step actually took.
   await supabaseAdmin.from('order_status_events').insert({ order_id: orderId, status })
 
-  // Tell the driver and the customer. Awaited, because a serverless function
-  // can be frozen the instant this action returns.
-  const { announceStage } = await import('../../lib/order-notify')
-  await announceStage(orderId, status)
-
-  // Delivered is the cue to ask how we did — once only.
-  if (status === 'delivered') await requestFeedback(orderId)
+  // Tell the driver and the customer after the screen has updated. Staff
+  // should never wait on email: a slow or unreachable mail server used to
+  // hold this button for 25+ seconds.
+  const { inBackground } = await import('../../lib/background')
+  inBackground('order notify', async () => {
+    const { announceStage } = await import('../../lib/order-notify')
+    await announceStage(orderId, status)
+    // Delivered is the cue to ask how we did — once only.
+    if (status === 'delivered') await requestFeedback(orderId)
+  })
 
   revalidatePath('/admin/orders')
   revalidatePath('/driver')
@@ -620,7 +623,8 @@ export async function createBooking(data) {
         `,
       }),
     ]).catch(() => {})
-    await Promise.race([emails, new Promise(res => setTimeout(res, 3000))])
+    const { inBackground } = await import('../../lib/background')
+    inBackground('booking emails', () => emails)
   } catch (e) {
     console.error('booking email failed:', e)
   }

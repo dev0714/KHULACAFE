@@ -70,7 +70,8 @@ export async function rescheduleBooking(id, newDate, newTime) {
     const { data: occ } = booking.occasion_id
       ? await supabaseAdmin.from('booking_occasions').select('label, emoji').eq('id', booking.occasion_id).single()
       : { data: null }
-    await Promise.allSettled([
+    const { inBackground } = await import('../../../lib/background')
+    inBackground('reschedule emails', () => Promise.allSettled([
       sendBookingConfirmation({ booking: updated, occasion: occ }),
       notifyStaff({
         type: 'booking',
@@ -80,7 +81,7 @@ export async function rescheduleBooking(id, newDate, newTime) {
           <p>From ${booking.date} at ${booking.time}<br>To <strong>${newDate} at ${newTime}</strong></p>
           <p>Deposit of R${((booking.deposit_cents || 0) / 100).toFixed(0)} carries over.</p>`,
       }),
-    ])
+    ]))
   } catch (e) { console.error('[reschedule mail]', e) }
 
   return { ok: true, date: newDate, time: newTime }
@@ -120,7 +121,8 @@ export async function cancelBooking(id, reason) {
 
   try {
     const { notifyStaff } = await import('../../../lib/resend')
-    await notifyStaff({
+    const { inBackground } = await import('../../../lib/background')
+    inBackground('cancel email', () => notifyStaff({
       type: 'booking',
       subject: `Booking CANCELLED — ${booking.customer_name}`,
       html: `<h2>Booking cancelled</h2>
@@ -131,7 +133,7 @@ export async function cancelBooking(id, reason) {
           <p style="margin:0;white-space:pre-wrap">${text}</p>
         </div>
         <p><strong>Refund due:</strong> R${((booking.deposit_cents || 0) / 100).toFixed(0)}, to be processed by <strong>${dueBy}</strong> (7 working days).</p>`,
-    })
+    }))
   } catch (e) { console.error('[cancel mail]', e) }
 
   return { ok: true, refundDueBy: dueBy, depositCents: booking.deposit_cents || 0 }
