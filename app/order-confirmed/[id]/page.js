@@ -15,6 +15,7 @@ export default function OrderConfirmedPage() {
   const paidOverride = searchParams.get('paid') === '1'
   const reference = searchParams.get('reference') || searchParams.get('trxref')
   const verificationStarted = useRef(false)
+  const [countdown, setCountdown] = useState(null)
 
   useEffect(() => {
     if (!id) return
@@ -47,6 +48,19 @@ export default function OrderConfirmedPage() {
         verificationStarted.current = false
       })
   }, [id, reference, paidOverride, paymentStatus, router])
+
+  // Once payment is confirmed, send the customer back to the home page.
+  const paidNow = paidOverride || paymentStatus === 'paid' || order?.payment_status === 'paid'
+  useEffect(() => {
+    if (!paidNow || countdown !== null) return
+    setCountdown(8)
+  }, [paidNow, countdown])
+  useEffect(() => {
+    if (countdown === null) return
+    if (countdown <= 0) { router.push('/'); return }
+    const t = setTimeout(() => setCountdown(c => c - 1), 1000)
+    return () => clearTimeout(t)
+  }, [countdown, router])
 
   if (!order) {
     return (
@@ -112,13 +126,28 @@ export default function OrderConfirmedPage() {
           </div>
         )}
 
-        <Link href="/menu" style={{
-          textDecoration: 'none', fontSize: '12px', letterSpacing: '2px', textTransform: 'uppercase',
-          fontWeight: 600, color: '#0a0600', padding: '14px 36px', borderRadius: '50px',
-          background: 'linear-gradient(135deg, #f5c842, #c8940c)', display: 'inline-block',
-        }}>
-          Order Again
-        </Link>
+        {countdown !== null && (
+          <p style={{ color: 'rgba(255,255,255,0.5)', fontSize: '13px', marginBottom: '16px' }}>
+            Payment received. Taking you back to the Khula Cafe home page in {Math.max(0, countdown)} second{countdown === 1 ? '' : 's'}…
+          </p>
+        )}
+
+        <div style={{ display: 'flex', gap: '10px', justifyContent: 'center', flexWrap: 'wrap' }}>
+          <Link href="/" style={{
+            textDecoration: 'none', fontSize: '12px', letterSpacing: '2px', textTransform: 'uppercase',
+            fontWeight: 600, color: '#0a0600', padding: '14px 36px', borderRadius: '50px',
+            background: 'linear-gradient(135deg, #f5c842, #c8940c)', display: 'inline-block',
+          }}>
+            {countdown !== null ? 'Go home now' : 'Back to home'}
+          </Link>
+          <Link href="/menu" style={{
+            textDecoration: 'none', fontSize: '12px', letterSpacing: '2px', textTransform: 'uppercase',
+            fontWeight: 600, color: 'rgba(255,255,255,0.6)', padding: '14px 36px', borderRadius: '50px',
+            border: '1px solid #2e2000', display: 'inline-block',
+          }}>
+            Order Again
+          </Link>
+        </div>
       </div>
     </div>
   )
