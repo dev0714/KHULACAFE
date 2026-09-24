@@ -2,6 +2,7 @@
 import { usePathname } from 'next/navigation'
 import Navbar from './Navbar'
 import Footer from './Footer'
+import MobileScrollbar from './MobileScrollbar'
 
 export default function ConditionalShell({ children }) {
   const pathname = usePathname()
@@ -15,6 +16,7 @@ export default function ConditionalShell({ children }) {
       <Navbar />
       <main>{children}</main>
       <Footer />
+      <MobileScrollbar />
     </>
   )
 }
