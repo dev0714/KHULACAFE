@@ -89,6 +89,7 @@ export default function BookPage() {
   const [success, setSuccess] = useState(false)
   const [bookingRef, setBookingRef] = useState('')
   const [submitError, setSubmitError] = useState('')
+  const [submitNotice, setSubmitNotice] = useState('')
 
   // Scroll to the top of the page whenever the step changes, so the customer
   // lands on the new section instead of staying scrolled at the bottom.
@@ -130,17 +131,28 @@ export default function BookPage() {
   const bucksRands = useBucks && loyalty ? Math.min(bucksToUse, afterVoucher, loyalty.khulaBucks) : 0
   const depositDue = Math.max(0, afterVoucher - bucksRands)
 
-  async function applyVoucher() {
+  async function applyVoucher(code = voucherCode, { quiet = false } = {}) {
     setVoucherError('')
-    if (!voucherCode.trim()) return
+    const clean = (code || '').trim()
+    if (!clean) return null
     setVoucherChecking(true)
     try {
-      const res = await validateVoucherPublic(voucherCode)
+      const res = await validateVoucherPublic(clean)
       if (res.valid) { setVoucherApplied({ code: res.code, amount_cents: res.amount_cents }); setVoucherError('') }
-      else { setVoucherApplied(null); setVoucherError(res.error || 'Invalid voucher.') }
-    } catch { setVoucherError('Could not check that voucher.') }
-    finally { setVoucherChecking(false) }
+      else { setVoucherApplied(null); if (!quiet || clean.length >= 6) setVoucherError(res.error || 'Invalid voucher.') }
+      return res
+    } catch {
+      setVoucherError('Could not check that voucher.')
+      return { valid: false, error: 'Could not check that voucher.' }
+    } finally { setVoucherChecking(false) }
   }
+  // Apply the code by itself once the customer stops typing, so a voucher
+  // is never left sitting in the box un-applied.
+  useEffect(() => {
+    if (voucherApplied || voucherCode.trim().length < 4) return
+    const t = setTimeout(() => applyVoucher(voucherCode, { quiet: true }), 800)
+    return () => clearTimeout(t)
+  }, [voucherCode]) // eslint-disable-line react-hooks/exhaustive-deps
   function removeVoucher() { setVoucherApplied(null); setVoucherCode(''); setVoucherError('') }
 
   async function lookupBucks(email) {
@@ -169,6 +181,17 @@ export default function BookPage() {
   const handleSubmit = async (e) => {
     e.preventDefault()
     setSubmitError('')
+    setSubmitNotice('')
+    // A code typed but not yet applied: apply it now and let the customer see
+    // the new amount due before anything is charged.
+    if (!voucherApplied && voucherCode.trim()) {
+      const res = await applyVoucher(voucherCode)
+      if (!res?.valid) { setSubmitError(`Voucher ${voucherCode.trim()}: ${res?.error || 'could not be applied.'} Remove it or try another code.`); return }
+      setSubmitNotice('Your voucher has been applied. Check the new amount due above, then confirm again.')
+      return
+    }
+    const giftNoAmount = addOns.find(a => form.selectedAddOns.includes(a.id) && isCustomAmount(a) && !(addonPrice(a) > 0))
+    if (giftNoAmount) { setSubmitError(`Please enter an amount for ${giftNoAmount.label}, or untick it.`); return }
     // Require a colour for any selected add-on that offers colour options
     const missingColor = addOns.find(a =>
       form.selectedAddOns.includes(a.id) && Array.isArray(a.colors) && a.colors.length > 0 && !addonColors[a.id])
@@ -628,10 +651,11 @@ export default function BookPage() {
                       style={{ ...inputStyle, flex: 1 }}
                       onFocus={e => e.target.style.borderColor = '#f5c842'}
                       onBlur={e => e.target.style.borderColor = '#2e2000'} />
-                    <button type="button" onClick={applyVoucher} disabled={voucherChecking || !voucherCode.trim()} style={{
-                      padding: '0 22px', borderRadius: '10px', border: '1px solid #2e2000', cursor: 'pointer',
-                      background: '#1e1500', color: '#f5c842', fontWeight: 700, fontSize: '12px', whiteSpace: 'nowrap',
-                    }}>{voucherChecking ? '…' : 'Apply'}</button>
+                    <button type="button" onClick={() => applyVoucher()} disabled={voucherChecking || !voucherCode.trim()} style={{
+                      padding: '0 22px', borderRadius: '10px', border: 'none', cursor: 'pointer',
+                      background: voucherCode.trim() ? 'linear-gradient(135deg, #f5c842, #c8940c)' : '#1e1500',
+                      color: voucherCode.trim() ? '#0a0600' : '#f5c842', fontWeight: 700, fontSize: '12px', whiteSpace: 'nowrap',
+                    }}>{voucherChecking ? 'Checking…' : 'Apply'}</button>
                   </div>
                 )}
                 {voucherError && <p style={{ fontSize: '12px', color: '#ff6b6b', margin: '0 0 10px' }}>{voucherError}</p>}
@@ -671,14 +695,25 @@ export default function BookPage() {
                   { label: 'Date', value: form.date },
                   { label: 'Time', value: form.time },
                   { label: 'Guests', value: form.guests },
-                  { label: 'Add-ons', value: totalAddOns > 0 ? `R ${totalAddOns.toFixed(0)}` : 'None' },
+                  ...(form.selectedAddOns.length === 0
+                    ? [{ label: 'Add-ons', value: 'None' }]
+                    : addOns.filter(a => form.selectedAddOns.includes(a.id)).map(a => {
+                        const price = addonPrice(a)
+                        const colour = addonColors[a.id] ? ` (${addonColors[a.id]})` : ''
+                        return {
+                          label: `${a.label}${colour}`,
+                          value: isCustomAmount(a) && !(price > 0) ? 'Enter an amount' : price > 0 ? `R${price.toFixed(0)}` : 'Free',
+                          warn: isCustomAmount(a) && !(price > 0),
+                        }
+                      })),
                   { label: 'Deposit', value: `R${(depositCents / 100).toFixed(0)}` },
                   ...(voucherRands > 0 ? [{ label: `Voucher ${voucherApplied.code}`, value: `−R${voucherRands.toFixed(0)}`, good: true }] : []),
+                  ...(!voucherApplied && voucherCode.trim() ? [{ label: `Voucher ${voucherCode.trim()}`, value: voucherChecking ? 'Checking…' : 'Not applied', warn: true }] : []),
                   ...(bucksRands > 0 ? [{ label: `Khula Bucks (${bucksRands})`, value: `−R${bucksRands.toFixed(0)}`, good: true }] : []),
                 ].map(row => (
-                  <div key={row.label} style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
+                  <div key={row.label} style={{ display: 'flex', justifyContent: 'space-between', gap: '12px', marginBottom: '8px' }}>
                     <span style={{ fontSize: '13px', color: 'rgba(255,255,255,0.4)' }}>{row.label}</span>
-                    <span style={{ fontSize: '13px', color: row.good ? '#26de81' : '#fafafa', fontWeight: 500 }}>{row.value}</span>
+                    <span style={{ fontSize: '13px', color: row.good ? '#26de81' : row.warn ? '#ff9f43' : '#fafafa', fontWeight: 500 }}>{row.value}</span>
                   </div>
                 ))}
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '12px', paddingTop: '14px', borderTop: '1px solid #2e2000' }}>
@@ -686,12 +721,15 @@ export default function BookPage() {
                   <span style={{ fontFamily: 'var(--font-playfair)', fontSize: '22px', color: '#fafafa', fontWeight: 700 }}>R{depositDue.toFixed(0)}</span>
                 </div>
                 <p style={{ fontSize: '11px', color: 'rgba(255,255,255,0.35)', margin: '6px 0 0', lineHeight: 1.5 }}>
-                  The deposit secures your table and is deducted from your final bill. Add-ons (R{totalAddOns.toFixed(0)}) are settled on the day.
+                  The deposit secures your table and is deducted from your final bill. {totalAddOns > 0 ? `Add-ons (R${totalAddOns.toFixed(0)}) are settled on the day.` : ''}
                 </p>
               </div>
 
               {submitError && (
                 <p style={{ color: '#ff6b6b', fontSize: '13px', marginBottom: '16px' }}>{submitError}</p>
+              )}
+              {submitNotice && (
+                <p style={{ color: '#f5c842', fontSize: '13px', marginBottom: '16px' }}>{submitNotice}</p>
               )}
 
               <div style={{ display: 'flex', gap: '12px' }}>
