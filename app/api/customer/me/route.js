@@ -10,7 +10,7 @@ export async function GET(request) {
   }
   const { data } = await supabaseAdmin
     .from('customers')
-    .select('id, name, email, phone, khula_bucks')
+    .select('id, name, email, phone, khula_bucks, delivery_address, preferred_delivery_type')
     .eq('id', payload.sub)
     .single()
   if (!data) return NextResponse.json({ authenticated: false })
@@ -21,5 +21,7 @@ export async function GET(request) {
     email: data.email,
     phone: data.phone,
     khulaBucks: data.khula_bucks,
+    deliveryAddress: data.delivery_address || '',
+    deliveryType: data.preferred_delivery_type || '',
   })
 }

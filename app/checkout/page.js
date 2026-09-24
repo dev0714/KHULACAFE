@@ -74,8 +74,27 @@ export default function CheckoutPage() {
     if (items.length === 0) router.push('/cart')
   }, [items.length, router])
 
-  // Pre-fill details for a logged-in customer so their Khula Bucks are found.
+  // Remember the customer's details on this device so a second order, or a
+  // return trip to the menu mid-order, never means typing the address again.
+  const SAVED_KEY = 'khula_checkout_details'
+  const [restored, setRestored] = useState(false)
+  const [prefilled, setPrefilled] = useState(false)
   useEffect(() => {
+    let saved = null
+    try { saved = JSON.parse(localStorage.getItem(SAVED_KEY) || 'null') } catch {}
+    if (saved) {
+      setForm(f => ({
+        ...f,
+        name: saved.name || f.name,
+        email: saved.email || f.email,
+        phone: saved.phone || f.phone,
+        deliveryType: saved.deliveryType === 'delivery' ? 'delivery' : f.deliveryType,
+        address: saved.address || f.address,
+      }))
+      if (saved.address || saved.name) setPrefilled(true)
+    }
+    // A signed-in customer's account fills anything still blank, so their
+    // saved address follows them to a new phone or laptop too.
     fetch('/api/customer/me')
       .then(r => r.json())
       .then(d => {
@@ -85,10 +104,26 @@ export default function CheckoutPage() {
           name: f.name || d.name || '',
           email: f.email || d.email || '',
           phone: f.phone || d.phone || '',
+          address: f.address || d.deliveryAddress || '',
+          deliveryType: saved?.deliveryType ? f.deliveryType : (d.deliveryType === 'delivery' ? 'delivery' : f.deliveryType),
         }))
+        if (d.deliveryAddress) setPrefilled(true)
       })
       .catch(() => {})
+      .finally(() => setRestored(true))
   }, [])
+
+  // Save as they type (only once the saved copy has been loaded, so an
+  // empty first render never wipes it).
+  useEffect(() => {
+    if (!restored) return
+    try {
+      localStorage.setItem(SAVED_KEY, JSON.stringify({
+        name: form.name, email: form.email, phone: form.phone,
+        deliveryType: form.deliveryType, address: form.address,
+      }))
+    } catch {}
+  }, [restored, form.name, form.email, form.phone, form.deliveryType, form.address])
 
   if (items.length === 0) return null
 
@@ -239,7 +274,7 @@ export default function CheckoutPage() {
 
             <div>
               <label style={labelStyle}>Full Name *</label>
-              <input style={inputStyle} value={form.name} onChange={e => set('name', e.target.value)} required
+              <input style={inputStyle} value={form.name} onChange={e => set('name', e.target.value)} required autoComplete="name"
                 onFocus={e => e.target.style.borderColor = '#f5c842'}
                 onBlur={e => e.target.style.borderColor = '#2e2000'} />
             </div>
@@ -247,13 +282,13 @@ export default function CheckoutPage() {
             <div className="checkout-two-col" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px' }}>
               <div>
                 <label style={labelStyle}>Email</label>
-                <input style={inputStyle} type="email" value={form.email} onChange={e => set('email', e.target.value)}
+                <input style={inputStyle} type="email" autoComplete="email" value={form.email} onChange={e => set('email', e.target.value)}
                   onFocus={e => e.target.style.borderColor = '#f5c842'}
                   onBlur={e => e.target.style.borderColor = '#2e2000'} />
               </div>
               <div>
                 <label style={labelStyle}>Phone</label>
-                <input style={inputStyle} value={form.phone} onChange={e => set('phone', e.target.value)}
+                <input style={inputStyle} type="tel" autoComplete="tel" value={form.phone} onChange={e => set('phone', e.target.value)}
                   onFocus={e => e.target.style.borderColor = '#f5c842'}
                   onBlur={e => e.target.style.borderColor = '#2e2000'} />
               </div>
@@ -264,8 +299,14 @@ export default function CheckoutPage() {
                 <label style={labelStyle}>Delivery Address *</label>
                 <input style={inputStyle} value={form.address} onChange={e => set('address', e.target.value)} required
                   placeholder="Street, Suburb, City"
+                  autoComplete="street-address"
                   onFocus={e => e.target.style.borderColor = '#f5c842'}
                   onBlur={e => e.target.style.borderColor = '#2e2000'} />
+                {prefilled && form.address && (
+                  <p style={{ fontSize: '12px', color: 'rgba(255,255,255,0.4)', margin: '6px 0 0' }}>
+                    Filled in from your last order. Change it if we're delivering somewhere else.
+                  </p>
+                )}
               </div>
             )}
 
