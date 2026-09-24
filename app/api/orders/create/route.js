@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server'
+import { verifyToken } from '../../../../lib/auth'
 import { supabaseAdmin } from '../../../../lib/supabase-admin'
 import { sendOrderConfirmation, notifyStaff } from '../../../../lib/resend'
 import { isAllowedTime, slotsFor } from '../../../../lib/trading-hours'
@@ -61,6 +62,20 @@ export async function POST(request) {
     .single()
 
   if (orderError) return NextResponse.json({ error: orderError.message }, { status: 500 })
+
+  // Remember delivery details on the signed-in customer's account so their
+  // next order is pre-filled on any device. Only the session owner's record
+  // is ever touched, never one matched by a typed-in email.
+  try {
+    const token = request.cookies.get('customer_session')?.value
+    const session = token ? await verifyToken(token) : null
+    if (session?.role === 'customer' && session.sub) {
+      const patch = { preferred_delivery_type: deliveryType }
+      if (deliveryType === 'delivery' && deliveryAddress?.trim()) patch.delivery_address = deliveryAddress.trim()
+      if (customerPhone?.trim()) patch.phone = customerPhone.trim()
+      await supabaseAdmin.from('customers').update(patch).eq('id', session.sub)
+    }
+  } catch (e) { console.error('[save delivery details]', e) }
 
   const { error: itemsError } = await supabaseAdmin.from('order_items').insert(
     items.map(i => ({
