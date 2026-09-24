@@ -4,6 +4,7 @@ import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { useCart } from '../../lib/cart-context'
 import { validateVoucherPublic } from '../admin/actions'
+import { slotsFor, ASAP } from '../../lib/trading-hours'
 
 const inputStyle = {
   width: '100%', padding: '12px 14px', boxSizing: 'border-box',
@@ -14,17 +15,6 @@ const labelStyle = {
   display: 'block', fontSize: '10px', letterSpacing: '2px',
   color: '#f5c842', marginBottom: '6px', textTransform: 'uppercase',
 }
-
-// Half-hour slots across trading hours (08:00 to 19:00 covers Fri/Sat too).
-const SLOTS = (() => {
-  const out = []
-  for (let h = 8; h <= 18; h++) {
-    out.push(`${String(h).padStart(2, '0')}:00`)
-    out.push(`${String(h).padStart(2, '0')}:30`)
-  }
-  out.push('19:00')
-  return out
-})()
 
 const timeChipStyle = (active) => ({
   cursor: 'pointer', padding: '9px 14px', borderRadius: '20px',
@@ -68,6 +58,17 @@ export default function CheckoutPage() {
   }
 
   const set = (k, v) => setForm(f => ({ ...f, [k]: v }))
+
+  // Slots depend on today's hours and on pickup vs delivery; recheck each minute.
+  const [tick, setTick] = useState(0)
+  useEffect(() => { const t = setInterval(() => setTick(n => n + 1), 60000); return () => clearInterval(t) }, [])
+  const slotInfo = slotsFor(form.deliveryType)
+  // Drop a chosen time that is no longer allowed (switched to delivery, or time passed).
+  useEffect(() => {
+    if (!form.wantedTime) return
+    const ok = form.wantedTime === ASAP ? slotInfo.asap : slotInfo.slots.includes(form.wantedTime)
+    if (!ok) setForm(f => ({ ...f, wantedTime: '' }))
+  }, [form.deliveryType, tick]) // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     if (items.length === 0) router.push('/cart')
@@ -209,24 +210,30 @@ export default function CheckoutPage() {
               <label style={labelStyle}>
                 {form.deliveryType === 'delivery' ? 'Delivery Time *' : 'Collection Time *'}
               </label>
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
-                <button
-                  type="button"
-                  onClick={() => set('wantedTime', 'As soon as possible')}
-                  style={timeChipStyle(form.wantedTime === 'As soon as possible')}
-                >
-                  As soon as possible
-                </button>
-                {SLOTS.map(t => (
-                  <button key={t} type="button" onClick={() => set('wantedTime', t)} style={timeChipStyle(form.wantedTime === t)}>
-                    {t}
-                  </button>
-                ))}
-              </div>
+              {slotInfo.slots.length === 0 && !slotInfo.asap ? (
+                <p style={{ fontSize: '13px', color: '#ff8a7a', margin: 0, lineHeight: 1.6 }}>
+                  {slotInfo.open
+                    ? `We are no longer taking ${form.deliveryType === 'delivery' ? 'deliveries' : 'collections'} today. Please order again tomorrow.`
+                    : 'We are closed today (Sundays and Mondays). Please order again on Tuesday.'}
+                </p>
+              ) : (
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
+                  {slotInfo.asap && (
+                    <button type="button" onClick={() => set('wantedTime', ASAP)} style={timeChipStyle(form.wantedTime === ASAP)}>
+                      As soon as possible
+                    </button>
+                  )}
+                  {slotInfo.slots.map(t => (
+                    <button key={t} type="button" onClick={() => set('wantedTime', t)} style={timeChipStyle(form.wantedTime === t)}>
+                      {t}
+                    </button>
+                  ))}
+                </div>
+              )}
               <p style={{ fontSize: '12px', color: 'rgba(255,255,255,0.35)', margin: '8px 0 0' }}>
                 {form.deliveryType === 'delivery'
-                  ? 'When would you like it delivered? We are open 08:00 to 17:00, and to 19:00 on Friday and Saturday.'
-                  : 'When will you collect? We are open 08:00 to 17:00, and to 19:00 on Friday and Saturday.'}
+                  ? `Deliveries run until 30 minutes before closing${slotInfo.last ? `, so the last delivery today is ${slotInfo.last}` : ''}.`
+                  : `Collect any time until we close${slotInfo.close ? ` at ${slotInfo.close} today` : ''}.`}
               </p>
             </div>
 
