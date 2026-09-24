@@ -65,7 +65,7 @@ export default function FeedbackPage() {
     else setDone(true)
   }
 
-  const wrap = { background: '#0a0600', minHeight: '100vh', padding: '80px 24px', display: 'flex', alignItems: 'center', justifyContent: 'center' }
+  const wrap = { background: '#0a0600', minHeight: '100vh', padding: '130px 24px 80px', display: 'flex', alignItems: 'center', justifyContent: 'center' }
   const card = { maxWidth: '460px', width: '100%', textAlign: 'center' }
 
   if (order === false) {

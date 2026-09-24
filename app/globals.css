@@ -156,7 +156,7 @@ html { overflow-x: clip; }
 
 /* ── Cart page on phones ── */
 @media (max-width: 700px) {
-  .cart-page { padding: 96px 0 40px !important; }
+  .cart-page { padding: 126px 0 40px !important; }
   .cart-wrap { padding-left: 14px !important; padding-right: 14px !important; }
   .cart-title { font-size: 27px !important; }
   .cart-item { padding: 12px !important; }

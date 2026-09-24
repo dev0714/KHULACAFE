@@ -64,10 +64,11 @@ export default function Navbar() {
     <>
       <nav style={{
         position: 'fixed', top: 0, left: 0, right: 0, zIndex: 1000,
-        padding: scrolled ? '10px 40px' : '22px 40px',
-        background: scrolled ? '#F1EDE6' : 'transparent',
-        backdropFilter: scrolled ? 'blur(24px)' : 'none',
-        borderBottom: scrolled ? '1px solid rgba(200,148,12,0.2)' : 'none',
+        // Always a solid bar, on every page and at every scroll position.
+        padding: '10px 40px',
+        background: '#F1EDE6',
+        borderBottom: '1px solid rgba(200,148,12,0.2)',
+        boxShadow: scrolled ? '0 4px 18px rgba(10,6,0,0.18)' : 'none',
         transition: 'all 0.4s cubic-bezier(0.25,0.46,0.45,0.94)',
         display: 'flex', alignItems: 'center', justifyContent: 'space-between',
       }}>

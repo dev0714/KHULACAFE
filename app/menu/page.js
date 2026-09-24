@@ -22,7 +22,7 @@ export default function MenuPage() {
   function scrollToMenuTop() {
     const el = stickyRef.current
     if (!el || typeof window === 'undefined') return
-    const y = Math.max(0, el.offsetTop - 62) // 62 = navbar height
+    const y = Math.max(0, el.offsetTop - 102) // 102 = navbar height
     window.scrollTo({ top: y, behavior: 'smooth' })
   }
 
@@ -146,7 +146,7 @@ export default function MenuPage() {
 
       {/* Sticky bar: search + tabs */}
       <div ref={stickyRef} style={{
-        position: 'sticky', top: '62px', zIndex: 100,
+        position: 'sticky', top: '102px', zIndex: 100,
         background: 'rgba(10,6,0,0.97)', backdropFilter: 'blur(20px)',
         borderBottom: '1px solid #2e2000',
       }}>

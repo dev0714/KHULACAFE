@@ -68,7 +68,7 @@ export default function ManageBookingPage() {
     }
   }
 
-  const wrap = { background: '#0a0600', minHeight: '100vh', padding: '80px 24px', display: 'flex', justifyContent: 'center' }
+  const wrap = { background: '#0a0600', minHeight: '100vh', padding: '130px 24px 80px', display: 'flex', justifyContent: 'center' }
   const inner = { maxWidth: '560px', width: '100%' }
 
   if (booking === false) {

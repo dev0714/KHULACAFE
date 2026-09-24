@@ -79,7 +79,7 @@ export default function DriverPage() {
   const coming = orders.filter(o => o.status === 'received' || o.status === 'making')
 
   return (
-    <div style={{ background: '#0a0600', minHeight: '100vh', padding: '24px 0 60px' }}>
+    <div style={{ background: '#0a0600', minHeight: '100vh', padding: '126px 0 60px' }}>
       {toast && (
         <div style={{
           position: 'fixed', top: '16px', left: '16px', right: '16px', zIndex: 9999,

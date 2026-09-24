@@ -74,7 +74,7 @@ export default function OrderConfirmedPage() {
   const isPaid = paidOverride || paymentStatus === 'paid' || order.payment_status === 'paid'
 
   return (
-    <div style={{ background: '#0a0600', minHeight: '100vh', padding: '80px 24px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+    <div style={{ background: '#0a0600', minHeight: '100vh', padding: '130px 24px 80px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
       <div style={{ maxWidth: '520px', width: '100%', textAlign: 'center' }}>
         <div style={{ fontSize: '64px', marginBottom: '24px' }}>🎉</div>
         <h1 style={{ fontFamily: 'var(--font-playfair)', color: '#f5c842', fontSize: '36px', marginBottom: '8px' }}>Order Placed!</h1>

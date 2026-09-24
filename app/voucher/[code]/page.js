@@ -32,7 +32,7 @@ export default function VoucherPage() {
       .then(({ data }) => setVoucher(data ?? false))
   }, [code])
 
-  const wrap = { background: '#0a0600', minHeight: '100vh', padding: '70px 20px', display: 'flex', justifyContent: 'center' }
+  const wrap = { background: '#0a0600', minHeight: '100vh', padding: '130px 20px 70px', display: 'flex', justifyContent: 'center' }
 
   if (voucher === false) {
     return <div style={wrap}><p style={{ color: 'rgba(255,255,255,0.45)' }}>We could not find that voucher.</p></div>
