@@ -274,6 +274,18 @@ main, footer { overflow-x: clip; }
   .show-mobile-only { display: none !important; }
 }
 
+/* ── Top bar: full links only where they fit, the menu button everywhere else ── */
+@media (max-width: 1099px) {
+  .nav-desktop { display: none !important; }
+}
+@media (min-width: 1100px) {
+  .nav-burger { display: none !important; }
+}
+@media (min-width: 1100px) and (max-width: 1279px) {
+  .nav-links { gap: 22px !important; }
+  .nav-links a { letter-spacing: 1.4px !important; }
+}
+
 /* ── Gallery grid ── */
 .gallery-grid {
   display: grid;
