@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { verifyToken } from '../../../../lib/auth'
 import { supabaseAdmin } from '../../../../lib/supabase-admin'
 import { sendOrderConfirmation, notifyStaff } from '../../../../lib/resend'
+import { inBackground } from '../../../../lib/background'
 import { isAllowedTime, slotsFor } from '../../../../lib/trading-hours'
 
 function staffOrderHtml({ order, items, totalCents }) {
@@ -148,17 +149,18 @@ export async function POST(request) {
 
   const netCents = Math.max(0, totalCents - voucherCents - redeemedCents)
 
-  // Await the emails. On serverless the function can be frozen the moment we
-  // respond, so a fire-and-forget send silently never leaves the box.
-  const mail = await Promise.allSettled([
-    sendOrderConfirmation({ order, items }),
-    notifyStaff({
-      type: 'order',
-      subject: `New order ${order.id.slice(0, 8).toUpperCase()} — ${order.customer_name}`,
-      html: staffOrderHtml({ order, items, totalCents }),
-    }),
-  ])
-  mail.forEach(r => { if (r.status === 'rejected') console.error('[order email]', r.reason) })
+  // Send the emails after replying, so checkout moves straight on to payment.
+  inBackground('order emails', async () => {
+    const mail = await Promise.allSettled([
+      sendOrderConfirmation({ order, items }),
+      notifyStaff({
+        type: 'order',
+        subject: `New order ${order.id.slice(0, 8).toUpperCase()} — ${order.customer_name}`,
+        html: staffOrderHtml({ order, items, totalCents }),
+      }),
+    ])
+    mail.forEach(r => { if (r.status === 'rejected') console.error('[order email]', r.reason) })
+  })
 
   return NextResponse.json({ orderId: order.id, netCents, voucherCents, redeemedCents })
 }
