@@ -10,6 +10,7 @@ const navLinks = [
   { href: '/gallery', label: 'Gallery' },
   { href: '/about', label: 'About' },
   { href: '/loyalty', label: 'Loyalty' },
+  { href: '/vouchers', label: 'Vouchers' },
   { href: '/contact', label: 'Contact' },
 ]
 
@@ -84,7 +85,7 @@ export default function Navbar() {
         </Link>
 
         {/* Desktop links — absolutely centred */}
-        <div className="hide-mobile" style={{
+        <div className="nav-desktop nav-links" style={{
           position: 'absolute', left: '50%', transform: 'translateX(-50%)',
           display: 'flex', gap: '36px', alignItems: 'center',
         }}>
@@ -113,7 +114,7 @@ export default function Navbar() {
 
         {/* CTA + hamburger */}
         <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-          <Link href="/book" className="hide-mobile" style={{
+          <Link href="/book" className="nav-desktop" style={{
             textDecoration: 'none', fontSize: '11px', letterSpacing: '2.5px',
             textTransform: 'uppercase', fontWeight: 600, color: '#0a0600',
             padding: '10px 24px', borderRadius: '40px',
@@ -140,7 +141,7 @@ export default function Navbar() {
               display: 'flex', flexDirection: 'column', gap: '5px',
               transition: 'all 0.3s',
             }}
-            className="show-mobile-only"
+            className="nav-burger"
           >
             {[0, 1, 2].map(i => (
               <span key={i} style={{

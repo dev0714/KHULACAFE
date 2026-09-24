@@ -15,6 +15,7 @@ const footerLinks = {
     { href: '/book', label: 'Reserve a Table' },
     { href: '/loyalty', label: 'Khula Bucks' },
     { href: '/loyalty#gold', label: 'Khula Gold' },
+    { href: '/vouchers', label: 'Gift Vouchers' },
     { href: '/contact', label: 'Contact Us' },
   ],
 }
