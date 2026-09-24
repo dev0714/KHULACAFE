@@ -180,7 +180,7 @@ export default function CheckoutPage() {
   }
 
   return (
-    <div style={{ background: '#0a0600', minHeight: '100vh', padding: '60px 0' }}>
+    <div style={{ background: '#0a0600', minHeight: '100vh', padding: '130px 0 60px' }}>
       <div className="section-wrap" style={{ maxWidth: '640px' }}>
         <Link href="/cart" style={{ color: 'rgba(255,255,255,0.35)', fontSize: '12px', textDecoration: 'none', letterSpacing: '1px', display: 'block', marginBottom: '32px' }}>
           ← Back to Cart
