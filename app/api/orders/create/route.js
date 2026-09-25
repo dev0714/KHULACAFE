@@ -104,13 +104,36 @@ export async function POST(request) {
   // ── Khula Bucks — redeem and/or earn ──
   let redeemedCents = 0
   if (customerEmail) {
+    // Case-insensitive, so a member saved as Name@Mail.com is still found and
+    // not duplicated. Escape LIKE wildcards so the match stays exact.
+    const emailPattern = customerEmail.toLowerCase().trim().replace(/[\\%_]/g, (c) => `\\${c}`)
     const { data: customer } = await supabaseAdmin
       .from('customers')
       .select('id, khula_bucks')
-      .eq('email', customerEmail.toLowerCase().trim())
-      .single()
+      .ilike('email', emailPattern)
+      .limit(1)
+      .maybeSingle()
 
-    const resolvedCustomer = customer || (customerId ? { id: customerId, khula_bucks: 0 } : null)
+    let resolvedCustomer = customer || (customerId ? { id: customerId, khula_bucks: 0 } : null)
+
+    // First order with this email: set up their Khula Bucks so the order
+    // earns straight away. No password is set; if they register later with
+    // the same email, the sign-up takes over this record and keeps the Bucks.
+    if (!resolvedCustomer && /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(customerEmail.trim())) {
+      const { data: created, error: createErr } = await supabaseAdmin
+        .from('customers')
+        .insert({
+          name: customerName.trim(),
+          email: customerEmail.toLowerCase().trim(),
+          phone: customerPhone?.trim() || null,
+          khula_bucks: 0,
+          is_gold: false,
+        })
+        .select('id, khula_bucks')
+        .single()
+      if (created) resolvedCustomer = created
+      else if (createErr) console.error('[auto-enrol]', createErr.message)
+    }
 
     if (resolvedCustomer) {
       const { data: cfg } = await supabaseAdmin.from('loyalty_config').select('*').eq('id', 1).single()
