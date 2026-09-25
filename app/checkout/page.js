@@ -1,5 +1,5 @@
 'use client'
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { useCart } from '../../lib/cart-context'
@@ -45,19 +45,32 @@ export default function CheckoutPage() {
   const [voucherError, setVoucherError] = useState('')
   const [voucherChecking, setVoucherChecking] = useState(false)
 
-  async function applyVoucher() {
+  async function applyVoucher(code = voucherCode, { quiet = false } = {}) {
     setVoucherError('')
-    if (!voucherCode.trim()) return
+    const clean = (code || '').trim()
+    if (!clean) return null
     setVoucherChecking(true)
     try {
-      const res = await validateVoucherPublic(voucherCode)
+      const res = await validateVoucherPublic(clean)
       if (res.valid) setVoucherApplied({ code: res.code, amount_cents: res.amount_cents })
-      else { setVoucherApplied(null); setVoucherError(res.error || 'Invalid voucher.') }
-    } catch { setVoucherError('Could not check that voucher.') }
-    finally { setVoucherChecking(false) }
+      else { setVoucherApplied(null); if (!quiet || clean.length >= 6) setVoucherError(res.error || 'Invalid voucher.') }
+      return res
+    } catch {
+      setVoucherError('Could not check that voucher.')
+      return { valid: false, error: 'Could not check that voucher.' }
+    } finally { setVoucherChecking(false) }
   }
 
+
   const set = (k, v) => setForm(f => ({ ...f, [k]: v }))
+
+  // Apply a voucher by itself once typing pauses, so a code is never left in
+  // the box un-applied while the customer is sent to pay the full amount.
+  useEffect(() => {
+    if (voucherApplied || voucherCode.trim().length < 4) return
+    const t = setTimeout(() => applyVoucher(voucherCode, { quiet: true }), 800)
+    return () => clearTimeout(t)
+  }, [voucherCode]) // eslint-disable-line react-hooks/exhaustive-deps
 
   // Slots depend on today's hours and on pickup vs delivery; recheck each minute.
   const [tick, setTick] = useState(0)
@@ -70,8 +83,11 @@ export default function CheckoutPage() {
     if (!ok) setForm(f => ({ ...f, wantedTime: '' }))
   }, [form.deliveryType, tick]) // eslint-disable-line react-hooks/exhaustive-deps
 
+  // An empty cart means there is nothing to check out, unless the cart is
+  // empty because an order was just placed and we are on our way out.
+  const leavingRef = useRef(false)
   useEffect(() => {
-    if (items.length === 0) router.push('/cart')
+    if (items.length === 0 && !leavingRef.current) router.push('/cart')
   }, [items.length, router])
 
   // Remember the customer's details on this device so a second order, or a
@@ -160,8 +176,17 @@ export default function CheckoutPage() {
   const payableCents = Math.max(0, totalCents - redeemedCents - voucherCents)
 
   async function handlePaystackCheckout() {
-    setLoading(true)
     setError('')
+    if (!voucherApplied && voucherCode.trim()) {
+      const res = await applyVoucher(voucherCode)
+      if (!res?.valid) {
+        setError(`Voucher ${voucherCode.trim()}: ${res?.error || 'could not be applied.'} Remove it to pay by card instead.`)
+        return
+      }
+      setError('')
+      return // applied: let the customer see the new amount before paying
+    }
+    setLoading(true)
     try {
       const res = await fetch('/api/orders/create', {
         method: 'POST',
@@ -188,8 +213,9 @@ export default function CheckoutPage() {
 
       // If fully covered by bucks/voucher, or no email, skip Paystack
       if (payNow === 0 || !form.email?.trim()) {
-        clearCart()
+        leavingRef.current = true
         router.push(`/order-confirmed/${data.orderId}`)
+        clearCart()
         return
       }
 
@@ -206,6 +232,7 @@ export default function CheckoutPage() {
       const payData = await payRes.json()
       if (!payRes.ok) throw new Error(payData.error || 'Failed to initialize payment')
 
+      leavingRef.current = true
       clearCart()
       window.location.href = payData.authorizationUrl
     } catch (err) {
@@ -398,7 +425,7 @@ export default function CheckoutPage() {
                   <input type="text" placeholder="Voucher code" value={voucherCode}
                     onChange={e => { setVoucherCode(e.target.value.toUpperCase()); setVoucherError('') }}
                     style={{ ...inputStyle, flex: 1 }} />
-                  <button type="button" onClick={applyVoucher} disabled={voucherChecking || !voucherCode.trim()} style={{
+                  <button type="button" onClick={() => applyVoucher()} disabled={voucherChecking || !voucherCode.trim()} style={{
                     padding: '0 20px', borderRadius: '8px', border: '1px solid #2e2000', cursor: 'pointer',
                     background: '#0a0600', color: '#f5c842', fontWeight: 700, fontSize: '12px', whiteSpace: 'nowrap',
                   }}>{voucherChecking ? '…' : 'Apply'}</button>
@@ -470,12 +497,33 @@ export default function CheckoutPage() {
             <div style={{ background: '#1e1500', border: '1px solid #2e2000', borderRadius: '12px', padding: '24px', textAlign: 'center' }}>
               <p style={{ fontSize: '10px', letterSpacing: '3px', color: 'rgba(255,255,255,0.3)', textTransform: 'uppercase', marginBottom: '16px' }}>Payment</p>
               <div style={{ background: '#140e00', borderRadius: '8px', padding: '20px', marginBottom: '16px' }}>
-                <p style={{ color: 'rgba(255,255,255,0.5)', fontSize: '13px', margin: 0 }}>
-                  🔒 Secure payment via Paystack
-                </p>
-                <p style={{ color: 'rgba(255,255,255,0.25)', fontSize: '11px', marginTop: '8px' }}>
-                  You will be redirected to Paystack to complete secure payment. If you skip payment, your order remains pending.
-                </p>
+                {payableCents === 0 ? (
+                  <>
+                    <p style={{ color: '#26de81', fontSize: '14px', fontWeight: 600, margin: 0 }}>
+                      Nothing to pay by card
+                    </p>
+                    <p style={{ color: 'rgba(255,255,255,0.45)', fontSize: '12px', marginTop: '8px', lineHeight: 1.6 }}>
+                      Your {voucherCents > 0 && redeemedBucks > 0 ? 'voucher and Khula Bucks cover' : voucherCents > 0 ? 'voucher covers' : 'Khula Bucks cover'} the full amount.
+                      Place your order and you're done.
+                    </p>
+                  </>
+                ) : (
+                  <>
+                    <p style={{ color: 'rgba(255,255,255,0.5)', fontSize: '13px', margin: 0 }}>
+                      🔒 Secure payment via Paystack
+                    </p>
+                    <p style={{ color: 'rgba(255,255,255,0.35)', fontSize: '11px', marginTop: '8px', lineHeight: 1.6 }}>
+                      {voucherCents > 0 || redeemedBucks > 0
+                        ? `R${((voucherCents + redeemedCents) / 100).toFixed(2)} is covered. The remaining R${(payableCents / 100).toFixed(2)} is paid by card on Paystack, then you come straight back to Khula Cafe.`
+                        : 'You pay by card on Paystack, then come straight back to Khula Cafe.'}
+                    </p>
+                  </>
+                )}
+                {!voucherApplied && voucherCode.trim() && (
+                  <p style={{ color: '#ff9f43', fontSize: '12px', marginTop: '10px' }}>
+                    {voucherChecking ? 'Checking your voucher…' : `Voucher ${voucherCode.trim()} is not applied yet.`}
+                  </p>
+                )}
               </div>
 
               {error && <p style={{ color: '#ff6b6b', fontSize: '13px', marginBottom: '12px' }}>{error}</p>}
@@ -487,7 +535,10 @@ export default function CheckoutPage() {
                 color: loading ? 'rgba(255,255,255,0.4)' : '#0a0600',
                 fontWeight: 700, fontSize: '12px', letterSpacing: '2px', textTransform: 'uppercase',
               }}>
-                {loading ? 'Redirecting…' : payableCents === 0 ? '✓ Place Order — Fully Paid with Bucks' : `Pay with Paystack — R${(payableCents / 100).toFixed(2)}`}
+                {loading ? 'Placing order…'
+                  : !voucherApplied && voucherCode.trim() ? 'Apply voucher'
+                  : payableCents === 0 ? `✓ Place order — paid by ${voucherCents > 0 ? 'voucher' : 'Khula Bucks'}`
+                  : `Pay R${(payableCents / 100).toFixed(2)} by card`}
               </button>
             </div>
 

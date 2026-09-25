@@ -114,7 +114,7 @@ export default function VouchersClient({ initial, tableMissing }) {
           </div>
           <div>
             <label style={lbl}>Expires (optional)</label>
-            <input type="date" value={form.expires_at} onChange={e => setForm(f => ({ ...f, expires_at: e.target.value }))} style={{ ...inp, colorScheme: 'dark' }} />
+            <input type="date" min={new Date().toISOString().slice(0, 10)} value={form.expires_at} onChange={e => setForm(f => ({ ...f, expires_at: e.target.value }))} style={{ ...inp, colorScheme: 'dark' }} />
           </div>
         </div>
         {/* Who it is for, and what it says */}
