@@ -63,6 +63,8 @@ export default function CheckoutPage() {
 
 
   const set = (k, v) => setForm(f => ({ ...f, [k]: v }))
+  const [bucksBoxFocused, setBucksBoxFocused] = useState(false)
+  const emailLooksValid = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(form.email.trim())
 
   // Apply a voucher by itself once typing pauses, so a code is never left in
   // the box un-applied while the customer is sent to pay the full amount.
@@ -309,7 +311,7 @@ export default function CheckoutPage() {
             <div className="checkout-two-col" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px' }}>
               <div>
                 <label style={labelStyle}>Email</label>
-                <input style={inputStyle} type="email" autoComplete="email" value={form.email} onChange={e => set('email', e.target.value)}
+                <input id="checkout-email" style={inputStyle} type="email" autoComplete="email" inputMode="email" value={form.email} onChange={e => set('email', e.target.value)}
                   onFocus={e => e.target.style.borderColor = '#f5c842'}
                   onBlur={e => e.target.style.borderColor = '#2e2000'} />
               </div>
@@ -357,9 +359,37 @@ export default function CheckoutPage() {
               </div>
             </div>
 
-            {/* Khula Bucks nudge */}
-            <div style={{ background: 'rgba(245,200,66,0.06)', border: '1px solid rgba(245,200,66,0.2)', borderRadius: '10px', padding: '14px 16px', fontSize: '13px', color: 'rgba(255,255,255,0.6)', lineHeight: 1.6 }}>
-              💛 <strong style={{ color: '#f5c842' }}>Earn Khula Bucks</strong> — Enter your email to automatically earn loyalty points on this order. Already a member? Points are added to your account automatically.
+            {/* Khula Bucks — a real email field, not just a message */}
+            <div style={{ background: 'rgba(245,200,66,0.06)', border: '1px solid rgba(245,200,66,0.25)', borderRadius: '10px', padding: '14px 16px', fontSize: '13px', color: 'rgba(255,255,255,0.65)', lineHeight: 1.6 }}>
+              <p style={{ margin: '0 0 4px' }}>💛 <strong style={{ color: '#f5c842' }}>Earn Khula Bucks on this order</strong></p>
+              {emailLooksValid && !bucksBoxFocused ? (
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '10px', flexWrap: 'wrap' }}>
+                  <span>✓ Bucks for this order go to <strong style={{ color: '#fafafa', wordBreak: 'break-all' }}>{form.email.trim()}</strong></span>
+                  <button type="button" onClick={() => { setBucksBoxFocused(true); setTimeout(() => document.getElementById('bucks-email')?.focus(), 0) }}
+                    style={{ background: 'none', border: 'none', color: '#f5c842', fontSize: '12px', fontWeight: 700, cursor: 'pointer', padding: '4px 0' }}>
+                    Change
+                  </button>
+                </div>
+              ) : (
+                <>
+                  <p style={{ margin: '0 0 10px' }}>
+                    Add your email and every rand you spend earns Bucks. New to Khula? We'll set up your Bucks for you.
+                  </p>
+                  <input
+                    id="bucks-email"
+                    type="email"
+                    inputMode="email"
+                    autoComplete="email"
+                    placeholder="your@email.com"
+                    aria-label="Email address for Khula Bucks"
+                    value={form.email}
+                    onChange={e => set('email', e.target.value)}
+                    onFocus={e => { setBucksBoxFocused(true); e.target.style.borderColor = '#f5c842' }}
+                    onBlur={e => { setBucksBoxFocused(false); e.target.style.borderColor = '#2e2000' }}
+                    style={{ ...inputStyle, fontSize: '16px' }}
+                  />
+                </>
+              )}
             </div>
 
             {error && <p style={{ color: '#ff6b6b', fontSize: '13px', margin: 0 }}>{error}</p>}
