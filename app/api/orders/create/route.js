@@ -149,6 +149,15 @@ export async function POST(request) {
 
   const netCents = Math.max(0, totalCents - voucherCents - redeemedCents)
 
+  // Fully covered by a voucher and/or Khula Bucks: nothing goes to Paystack,
+  // so record it as paid here. Otherwise the order sat on "payment pending"
+  // and the customer was never sent home from the confirmation page.
+  if (netCents === 0 && (voucherCents > 0 || redeemedCents > 0)) {
+    const reference = voucherCents > 0 ? `VOUCHER-${String(voucherCode).trim().toUpperCase()}` : 'KHULA-BUCKS'
+    await supabaseAdmin.from('orders').update({ payment_status: 'paid', payment_reference: reference }).eq('id', order.id)
+    order.payment_status = 'paid'
+  }
+
   // Send the emails after replying, so checkout moves straight on to payment.
   inBackground('order emails', async () => {
     const mail = await Promise.allSettled([

@@ -774,6 +774,9 @@ export async function createVoucher({ code, amount_cents, expires_at, recipient_
   const clean = (code || '').trim().toUpperCase()
   if (!clean) return { error: 'Enter a voucher code.' }
   if (!amount_cents || amount_cents <= 0) return { error: 'Enter an amount greater than R0.' }
+  if (expires_at && expires_at < new Date().toISOString().slice(0, 10)) {
+    return { error: 'That expiry date has already passed, so the voucher could never be used. Pick a future date or leave it blank.' }
+  }
   const { error } = await supabaseAdmin.from('vouchers').insert({
     code: clean,
     amount_cents: Math.round(amount_cents),
