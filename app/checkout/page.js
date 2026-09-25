@@ -306,19 +306,11 @@ export default function CheckoutPage() {
                 onBlur={e => e.target.style.borderColor = '#2e2000'} />
             </div>
 
-            <div className="checkout-two-col" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px' }}>
-              <div>
-                <label style={labelStyle}>Email</label>
-                <input style={inputStyle} type="email" autoComplete="email" value={form.email} onChange={e => set('email', e.target.value)}
-                  onFocus={e => e.target.style.borderColor = '#f5c842'}
-                  onBlur={e => e.target.style.borderColor = '#2e2000'} />
-              </div>
-              <div>
-                <label style={labelStyle}>Phone</label>
-                <input style={inputStyle} type="tel" autoComplete="tel" value={form.phone} onChange={e => set('phone', e.target.value)}
-                  onFocus={e => e.target.style.borderColor = '#f5c842'}
-                  onBlur={e => e.target.style.borderColor = '#2e2000'} />
-              </div>
+            <div>
+              <label htmlFor="checkout-phone" style={labelStyle}>Phone</label>
+              <input id="checkout-phone" style={inputStyle} type="tel" autoComplete="tel" value={form.phone} onChange={e => set('phone', e.target.value)}
+                onFocus={e => e.target.style.borderColor = '#f5c842'}
+                onBlur={e => e.target.style.borderColor = '#2e2000'} />
             </div>
 
             {form.deliveryType === 'delivery' && (
@@ -357,9 +349,25 @@ export default function CheckoutPage() {
               </div>
             </div>
 
-            {/* Khula Bucks nudge */}
-            <div style={{ background: 'rgba(245,200,66,0.06)', border: '1px solid rgba(245,200,66,0.2)', borderRadius: '10px', padding: '14px 16px', fontSize: '13px', color: 'rgba(255,255,255,0.6)', lineHeight: 1.6 }}>
-              💛 <strong style={{ color: '#f5c842' }}>Earn Khula Bucks</strong> — Enter your email to automatically earn loyalty points on this order. Already a member? Points are added to your account automatically.
+            {/* Khula Bucks: the email field lives in the box that asks for it */}
+            <div style={{ background: 'rgba(245,200,66,0.06)', border: '1px solid rgba(245,200,66,0.2)', borderRadius: '10px', padding: '14px 16px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
+              <label htmlFor="checkout-email" style={{ fontSize: '13px', color: 'rgba(255,255,255,0.6)', lineHeight: 1.6, cursor: 'text' }}>
+                💛 <strong style={{ color: '#f5c842' }}>Earn Khula Bucks</strong> — Enter your email to automatically earn loyalty points on this order. Already a member? Points are added to your account automatically.
+              </label>
+              <input
+                id="checkout-email"
+                name="email"
+                style={inputStyle}
+                type="email"
+                inputMode="email"
+                autoComplete="email"
+                autoCapitalize="none"
+                spellCheck={false}
+                placeholder="your@email.com"
+                value={form.email}
+                onChange={e => set('email', e.target.value)}
+                onFocus={e => e.target.style.borderColor = '#f5c842'}
+                onBlur={e => e.target.style.borderColor = '#2e2000'} />
             </div>
 
             {error && <p style={{ color: '#ff6b6b', fontSize: '13px', margin: 0 }}>{error}</p>}
