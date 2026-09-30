@@ -1,5 +1,6 @@
 'use client'
-import { useState, useRef, useCallback } from 'react'
+import { useState, useRef, useCallback, useEffect } from 'react'
+import { createPortal } from 'react-dom'
 import ReactCrop from 'react-image-crop'
 import 'react-image-crop/dist/ReactCrop.css'
 
@@ -61,6 +62,8 @@ function initCrop() {
 }
 
 export default function ImageUpload({ value, onChange, folder = 'general', aspect }) {
+  const [mounted, setMounted] = useState(false)
+  useEffect(() => { setMounted(true) }, [])
   const [rawSrc, setRawSrc] = useState(null)
   const [crop, setCrop] = useState()
   const [outputWidth, setOutputWidth] = useState(800)
@@ -96,8 +99,13 @@ export default function ImageUpload({ value, onChange, folder = 'general', aspec
     const img = imgRef.current
     const scaleX = img.naturalWidth / img.width
     const scaleY = img.naturalHeight / img.height
-    const srcW = crop.width * scaleX
-    const srcH = crop.height * scaleY
+    // The starting crop is in %, dragged crops are in px; handle both, as the
+    // upload itself does, so the size shown matches the file produced.
+    const isPct = crop.unit === '%'
+    const cropW = isPct ? (crop.width / 100) * img.width : crop.width
+    const cropH = isPct ? (crop.height / 100) * img.height : crop.height
+    const srcW = cropW * scaleX
+    const srcH = cropH * scaleY
     const scale = outputWidth && outputWidth < srcW ? outputWidth / srcW : 1
     return { w: Math.round(srcW * scale), h: Math.round(srcH * scale) }
   }
@@ -136,8 +144,10 @@ export default function ImageUpload({ value, onChange, folder = 'general', aspec
 
   return (
     <div>
-      {/* ── Crop modal ── */}
-      {rawSrc && (
+      {/* ── Crop modal ── rendered on <body>: the admin page animates with a
+          transform, which would otherwise pin this "fixed" window inside the
+          content area and cut off its buttons. */}
+      {rawSrc && mounted && createPortal(
         <div style={{
           position: 'fixed', inset: 0, zIndex: 9999,
           background: 'rgba(0,0,0,0.9)', backdropFilter: 'blur(6px)',
@@ -147,6 +157,7 @@ export default function ImageUpload({ value, onChange, folder = 'general', aspec
           <div style={{
             background: '#1e1500', border: '1px solid #2e2000', borderRadius: '16px',
             width: '100%', maxWidth: '600px', overflow: 'hidden', display: 'flex', flexDirection: 'column',
+            maxHeight: 'calc(100dvh - 32px)',
           }}>
             {/* Header */}
             <div style={{ padding: '16px 20px', borderBottom: '1px solid #2e2000', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
@@ -157,26 +168,26 @@ export default function ImageUpload({ value, onChange, folder = 'general', aspec
             </div>
 
             {/* Crop area */}
-            <div style={{ background: '#0a0600', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '16px', minHeight: '300px', maxHeight: '55vh', overflow: 'auto' }}>
+            <div style={{ background: '#0a0600', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '16px', minHeight: '160px', flex: '1 1 auto', overflow: 'auto' }}>
               <ReactCrop
                 crop={crop}
                 onChange={c => setCrop(c)}
                 ruleOfThirds
-                style={{ maxWidth: '100%', maxHeight: '50vh' }}
+                style={{ maxWidth: '100%', maxHeight: 'max(140px, calc(100dvh - 330px))' }}
               >
                 <img
                   ref={imgRef}
                   src={rawSrc}
                   crossOrigin="anonymous"
                   onLoad={onImageLoad}
-                  style={{ maxWidth: '100%', maxHeight: '50vh', display: 'block' }}
+                  style={{ maxWidth: '100%', maxHeight: 'max(140px, calc(100dvh - 330px))', display: 'block' }}
                   alt="crop preview"
                 />
               </ReactCrop>
             </div>
 
-            {/* Controls */}
-            <div style={{ padding: '16px 20px', borderTop: '1px solid #2e2000' }}>
+            {/* Controls — never shrink, so Save is always on screen */}
+            <div style={{ padding: '16px 20px', borderTop: '1px solid #2e2000', flexShrink: 0 }}>
               {/* Size presets */}
               <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '10px', flexWrap: 'wrap' }}>
                 <span style={{ fontSize: '11px', color: 'rgba(255,255,255,0.4)', letterSpacing: '1px', flexShrink: 0, width: '34px' }}>Size</span>
@@ -232,13 +243,14 @@ export default function ImageUpload({ value, onChange, folder = 'general', aspec
                     cursor: (uploading || !crop) ? 'not-allowed' : 'pointer',
                     opacity: (uploading || !crop) ? 0.7 : 1,
                   }}>
-                    {uploading ? 'Uploading…' : dims ? `Save ${dims.w}×${dims.h}` : 'Save Image'}
+                    {uploading ? 'Uploading…' : 'Upload photo'}
                   </button>
                 </div>
               </div>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
       {/* ── Current image preview ── */}
