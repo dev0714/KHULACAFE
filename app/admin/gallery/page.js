@@ -37,7 +37,7 @@ function AboutPhotosTab() {
             <p style={{ color: 'var(--adm-faint)', fontSize: '12px', margin: 0 }}>{slot.hint}</p>
           </div>
           {images[slot.key] && <img src={images[slot.key]} alt={slot.label} style={{ width: '100%', height: '160px', objectFit: 'cover', borderRadius: '10px', border: '1px solid var(--adm-border)' }} />}
-          <ImageUpload value={images[slot.key] || ''} onChange={url => setImages(m => ({ ...m, [slot.key]: url }))} folder="about" aspect={slot.aspect} />
+          <ImageUpload value={images[slot.key] || ''} onChange={url => { setImages(m => ({ ...m, [slot.key]: url })); if (url) handleSave(slot.key, url) }} folder="about" aspect={slot.aspect} />
           <div><Btn variant="primary" className="adm-btn-sm" onClick={() => handleSave(slot.key, images[slot.key] || null)} disabled={saving[slot.key]}>{saving[slot.key] ? 'Saving…' : success[slot.key] ? '✓ Saved' : 'Save photo'}</Btn></div>
         </Card>
       ))}
